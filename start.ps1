@@ -1,6 +1,17 @@
-# Version 0.3
+# LAST UPDATE 22/11/2017
+
 $ErrorActionPreference = "SilentlyContinue"
 Set-ExecutionPolicy unrestricted
+
+New-Item -ItemType Directory -Force -Path c:\WindowsEssentials
+Remove-Item c:\WindowsEssentials\* -recurse
+
+$brasuca = Read-Host "Install PT-BR UI language? (y/n)"
+
+while("y","n" -notcontains $brasuca)
+{
+	$brasuca = Read-Host "y or n?"
+}
 
 $visual = Read-Host "Install Visual C++ Redistributable Packages? (y/n)"
 
@@ -14,6 +25,13 @@ $netfx = Read-Host "Install NetFramework 3.5? (y/n)"
 while("y","n" -notcontains $netfx)
 {
 	$netfxr = Read-Host "y or n?"
+}
+
+$smart = Read-Host "Disable Smart screen? (y/n)"
+
+while("y","n" -notcontains $smart)
+{
+	$smart = Read-Host "y or n?"
 }
 
 $windowsdefender = Read-Host "Disable windows defender? (y/n)"
@@ -68,26 +86,37 @@ while("y","n" -notcontains $hosts)
 }
 
 
+if ($brasuca -like "y") { 
+#INSTALL PT-BR UI
+Set-TimeZone -Name "Hora oficial do Brasil"
+DISM.EXE /Online /Add-Capability /CapabilityName:Language.Basic~~~pt-BR~0.0.1.0
+DISM.EXE /Online /Add-Capability /CapabilityName:Language.UI.Client~~~pt-BR~
+}
+
+
 if ($visual -like "y") { 
 #INSTALL VISUAL C++
-<#
-    .SYNOPSIS
-        Download all "english" Visual C++ Runtimes
-    .PARAMETER  ParameterA
-        $OutputPath = Default Path
-    .LINK
-        http://www.software-virtualisierung.de
-#>
-param(
-    [String]$outputPath = ".\VCRuntime"
-)
-Write-Host "Download Microsoft Visual C++ 2005, 2008, 2010, 2012, 2013, 2015"
-Write-Host "Andreas Nick, Software-Virtualisierung.de, 2015"
-if(! (test-path "$outputPath\VS2005X86SP1")) { New-Item "$outputPath\VS2005" -Type directory -Force}
+
+$outputPath0 = "c:\WindowsEssentials"
+
+if(! (test-path "$outputPath0\VS2005X86SP1")) { New-Item "$outputPath0\VS2005" -Type directory -Force}
 Write-Verbose "Microsoft Visual C++ 2005 SP1 Redistributable Package (x86)" -Verbose
-Invoke-WebRequest   "http://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x86.EXE" -OutFile "$outputPath\VS2005\vcredist_x86.exe"
+Invoke-WebRequest   "http://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x86.EXE" -OutFile "$outputPath0\VS2005\vcredist_x86.exe"
 Write-Verbose "Microsoft Visual C++ 2005 SP1 Redistributable Package (x64)" -Verbose
-Invoke-WebRequest  "http://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x64.EXE" -OutFile "$outputPath\VS2005\vcredist_x64.exe"
+Invoke-WebRequest  "http://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x64.EXE" -OutFile "$outputPath0\VS2005\vcredist_x64.exe"
+ 
+foreach ($vcFile0 in Get-ChildItem $outputPath0 -Recurse -Filter "*.exe")
+{
+    Write-Host "Install " $vcFile0.fullname
+    Start-Process  $vcFile0.fullname -ArgumentList '/q' -NoNewWindow -Wait
+     
+     
+}
+
+Remove-Item c:\WindowsEssentials\* -recurse
+
+$outputPath = "c:\WindowsEssentials"
+
 if (! (test-path "$outputPath\VS2008")) { New-Item "$outputPath\VS2008" -Type directory -Force }
 Write-Verbose "Microsoft Visual C++ 2008 SP1 Redistributable Package (x86)" -Verbose
 Invoke-WebRequest  "http://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe" -OutFile "$outputPath\VS2008\vcredist_x86.exe"
@@ -116,47 +145,30 @@ Invoke-WebRequest "https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4
 if (! (test-path "$outputPath\VS2017")) { New-Item "$outputPath\VS2017" -Type directory -Force }
 Write-Verbose "Visual C++ Redistributable for Visual Studio 2017 (x64)" -Verbose
 Invoke-WebRequest "https://download.microsoft.com/download/4/b/c/4bc903be-f3f6-416d-9d19-af2492ca730b/vc_redist.x64.exe" -OutFile "$outputPath\VS2017\vcredist_x64.exe"
-
-
-
-<#
-    .SYNOPSIS
-        Install all "english" Visual C++ Runtimes
- 
-    .PARAMETER  ParameterA
-        $OutputPath = Default Path
- 
-    .LINK
-        http://www.software-virtualisierung.de
- 
-#>
- 
- 
-param(
-    [String]$outputPath = ".\VCRuntime"
-)
- 
-[String]$outputPath = ".\VCRuntime"
- 
-Write-Host "Install Microsoft Visual C++ 2005, 2008, 2010, 2012, 2013, 2015"
-Write-Host "Andreas Nick, Software-Virtualisierung.de, 2015"
  
 foreach ($vcFile in Get-ChildItem $outputPath -Recurse -Filter "*.exe")
 {
     Write-Host "Install " $vcFile.fullname
-    Start-Process  $vcFile.fullname -ArgumentList '/q' -NoNewWindow -Wait
+    Start-Process  $vcFile.fullname -ArgumentList '/q /norestart' -NoNewWindow -Wait
      
      
 }
 
-Remove-Item $outputPath -recurse
+Remove-Item c:\WindowsEssentials\* -recurse
+
 
 }
 
 if ($netfx -like "y") { 
 #INSTALL .NET FRAMEWORK 3.5
 DISM.EXE /Online /Add-Capability /CapabilityName:NetFx3~~~~
-DISM.EXE /Online /Add-Capability /CapabilityName:Language.Basic~~~pt-BR~0.0.1.0
+}
+
+if ($smart -like "y") { 
+#DISABLE WINDOWS SMART SCREEN FILTER
+Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer" -Name "SmartScreenEnabled" -Type String -Value "Off" -Force
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AppHost" -Name "EnableWebContentEvaluation" -Type DWord -Value 0 -Force
+if($?){   write-Host -ForegroundColor Green "Windows Smart Screen disabled"  }else{   write-Host -ForegroundColor red "Windows Smart Screen not disabled" }
 }
 
 if ($windowsdefender -like "y") { 
@@ -182,6 +194,13 @@ if($?){   write-Host -ForegroundColor Green "Windows Defender Startup Disabled" 
 
 }
 
+if ($chrome -like "y") { 
+#INSTALL CHROME
+
+$Path = "c:\WindowsEssentials"; $Installer = "chrome_installer.exe"; Invoke-WebRequest "http://dl.google.com/chrome/install/375.126/chrome_installer.exe" -OutFile $Path\$Installer; Start-Process -FilePath $Path\$Installer -Args "/silent /install" -Verb RunAs -Wait;
+if($?){   write-Host -ForegroundColor Green "CHROME INSTALLED"  }else{   write-Host -ForegroundColor red "CHROME NOT INSTALLED" }
+
+}
 
 if ($windowsfirewall -like "y") { 
 #DISABLE WINDOWS FIREWALL
@@ -228,15 +247,15 @@ if($?){   write-Host -ForegroundColor Green "Windows Hidden Extensions Disabled"
 
 if ($disableuac -like "y") { 
 #Disable UAC
-New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
+New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -Type DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows UAC disabled"  }else{   write-Host -ForegroundColor green "Windows UAC not disabled" } 
 
 #Disable SUGGESTED APPS
-New-ItemProperty -Path HKLM:SOFTWARE\Policies\Microsoft\Windows\CloudContent -Name DisableWindowsConsumerFeatures -PropertyType DWord -Value 1 -Force -EA SilentlyContinue | Out-Null
+New-ItemProperty -Path HKLM:SOFTWARE\Policies\Microsoft\Windows\CloudContent -Name DisableWindowsConsumerFeatures -Type DWord -Value 1 -Force -EA SilentlyContinue | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows SUGGESTED APPS SPAM disabled"  }else{   write-Host -ForegroundColor green "Windows SUGGESTED APPS SPAM not disabled" } 
 
 #Disable SUGGESTED APPS
-New-ItemProperty -Path HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SystemPaneSuggestionsEnabled -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
+New-ItemProperty -Path HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SystemPaneSuggestionsEnabled -Type DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows SUGGESTED APPS SPAM disabled"  }else{   write-Host -ForegroundColor green "Windows SUGGESTED APPS SPAM not disabled" } 
 
 
@@ -277,24 +296,36 @@ Get-AppxPackage -allusers *XboxGameCallableUI* | Remove-AppxPackage
 Get-AppxPackage -allusers *Cortana* | Remove-AppxPackage
 Get-AppxPackage -allusers *XboxIdentityProvider* | Remove-AppxPackage
 Get-appxpackage -allusers *XboxGameOverlay* | Remove-AppxPackage
+Get-appxpackage -allusers *Microsoft.CommsPhone* | Remove-AppxPackage
+Get-appxpackage -allusers *9E2F88E3.Twitter* | Remove-AppxPackage
+Get-appxpackage -allusers *king.com.CandyCrushSodaSaga* | Remove-AppxPackage
+Get-appxpackage -allusers *Microsoft.Office.Sway* | Remove-AppxPackage
+Get-appxpackage -allusers *Microsoft.ConnectivityStore* | Remove-AppxPackage
 }
 
 if ($ink -like "y") { 
 #Disable INK
-New-ItemProperty -Path HKLM:SOFTWARE\Policies\Microsoft -Name WindowsInkWorkspace -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
+New-ItemProperty -Path HKLM:SOFTWARE\Policies\Microsoft -Name WindowsInkWorkspace -Type DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows INK disabled"  }else{   write-Host -ForegroundColor red "Windows INK not disabled" } 
 }
 
 if ($people -like "y") { 
 #Disable PEOLPLE
-New-ItemProperty -Path HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People -Name PeopleBand -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
+New-ItemProperty -Path HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People -Name PeopleBand -Type DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows PEOPLE disabled"  }else{   write-Host -ForegroundColor red "Windows PEOPLE not disabled" } 
 }
 
-#DISABLE USELESS SERVICES
+#DISABLE DIAGTRACK KEYLOGGER
+Write-Host "Stopping and disabling Diagnostics Tracking Service..."
+Stop-Service "DiagTrack"
+Set-Service "DiagTrack" -StartupType Disabled
 sc delete diagtrack | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows Diagnostics Tracking Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Diagnostics Tracking Service not Disabled" }
 
+#DISABLE Stop and disable WAP Push Service
+Write-Host "Stopping and disabling WAP Push Service..."
+Stop-Service "dmwappushservice"
+Set-Service "dmwappushservice" -StartupType Disabled
 sc delete dmwappushservice | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows Keylogger Disabled"  }else{   write-Host -ForegroundColor red "Windows Keylogger not Disabled" }
 
@@ -363,10 +394,42 @@ if($?){   write-Host -ForegroundColor Green "Windows system restore disabled"  }
 sc config swprv start= disabled
 sc config VSS start= disabled
 
+# DISABLE GEOLOCATION SERVICE
+Write-Host "Disabling Location Tracking..."
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" -Name "SensorPermissionState" -Type DWord -Value 0
+if($?){   write-Host -ForegroundColor Green "Geolocation service disabled"  }else{   write-Host -ForegroundColor red "Geolocation service not disabled" } 
+Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Services\lfsvc\Service\Configuration" -Name "Status" -Type DWord -Value 0
+if($?){   write-Host -ForegroundColor Green "Geolocation service disabled"  }else{   write-Host -ForegroundColor red "Geolocation service not disabled" } 
 
-reg add HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v EnableBalloonTips /t REG_DWORD /d 0 /f
-reg add HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer /v DisableNotificationCenter /t REG_DWORD /d 1 /f
-reg add HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Explorer /v DisableNotificationCenter /t REG_DWORD /d 1 /f
+# Disable Advertising ID
+Write-Host "Disabling Advertising ID..."
+If (!(Test-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo")) {
+    New-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" | Out-Null
+}
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" -Name "Enabled" -Type DWord -Value 0
+
+# Disable Cortana
+Write-Host "Disabling Cortana..."
+If (!(Test-Path "HKCU:\Software\Microsoft\Personalization\Settings")) {
+    New-Item -Path "HKCU:\Software\Microsoft\Personalization\Settings" -Force | Out-Null
+}
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Personalization\Settings" -Name "AcceptedPrivacyPolicy" -Type DWord -Value 0
+If (!(Test-Path "HKCU:\Software\Microsoft\InputPersonalization")) {
+    New-Item -Path "HKCU:\Software\Microsoft\InputPersonalization" -Force | Out-Null
+}
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\InputPersonalization" -Name "RestrictImplicitTextCollection" -Type DWord -Value 1
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\InputPersonalization" -Name "RestrictImplicitInkCollection" -Type DWord -Value 1
+If (!(Test-Path "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore")) {
+    New-Item -Path "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore" -Force | Out-Null
+}
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore" -Name "HarvestContacts" -Type DWord -Value 0
+
+# DISABLE FEEDBACK
+Write-Host "Disabling Feedback..."
+If (!(Test-Path "HKCU:\Software\Microsoft\Siuf\Rules")) {
+    New-Item -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Force | Out-Null
+}
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "NumberOfSIUFInPeriod" -Type DWord -Value 0
 
 # Disable BITS service due still download windows updates even if the user does not want it
 Get-Service BITS | Stop-Service -PassThru | Set-Service -StartupType disabled
@@ -376,7 +439,7 @@ if($?){   write-Host -ForegroundColor Green "BITS service disabled"  }else{   wr
 Get-Service Winmgmt | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "Windows Management Instrumentation disabled"  }else{   write-Host -ForegroundColor red "Windows Management Instrumentation not disabled" } 
 
-New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 4 -Force
+New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -Type DWord -Value 4 -Force
 if($?){   write-Host -ForegroundColor Green "Windows Management Instrumentation disabled by registry"  }else{   write-Host -ForegroundColor red "Windows Management Instrumentation not disabled by registry" } 
 
 # Disable Ip helper due transfering a lot of strange data
@@ -385,23 +448,43 @@ Get-Service iphlpsvc | Stop-Service -PassThru | Set-Service -StartupType disable
 # Disable Delivery Optimization (DoSvc) due overriding the windows updates disable state
 Get-Service DoSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "Windows Delivery Optimization Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Delivery Optimization Service not Disabled" } 
-New-ItemProperty -Path 'HKLM:Software\Policies\Microsoft\Windows\DeliveryOptimization' -name DODownloadMode -PropertyType DWord -Value 3 -Force
+New-ItemProperty -Path 'HKLM:Software\Policies\Microsoft\Windows\DeliveryOptimization' -name DODownloadMode -Type DWord -Value 3 -Force
 if($?){   write-Host -ForegroundColor Green "Windows Delivery Optimization Service Disabled by reg"  }else{   write-Host -ForegroundColor red "Windows Delivery Optimization Service not Disabled by reg" } 
-New-ItemProperty -Path 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config' -name DODownloadMode -PropertyType DWord -Value 0 -Force
+New-ItemProperty -Path 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config' -name DODownloadMode -Type DWord -Value 0 -Force
 if($?){   write-Host -ForegroundColor Green "Windows Delivery Optimization Service Disabled by reg"  }else{   write-Host -ForegroundColor red "Windows Delivery Optimization Service not Disabled by reg" } 
 
-New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\WdBoot' -name Start -PropertyType DWord -Value 4 -Force
+New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\WdBoot' -name Start -Type DWord -Value 4 -Force
 
 # Disable Time Brooker due to huge network usage for spying users
-New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\TimeBrokerSvc' -name Start -PropertyType DWord -Value 4 -Force
+New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\TimeBrokerSvc' -name Start -Type DWord -Value 4 -Force
 if($?){   write-Host -ForegroundColor Green "Windows Time Brooker Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Time Brooker Service not Disabled" } 
 
 # Disable fastboot due conflicts with steam
 powercfg /hibernate OFF
-New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Control\Session Manager\Power' -name HiberbootEnabled -PropertyType DWord -Value 0 -Force
+New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Control\Session Manager\Power' -name HiberbootEnabled -Type DWord -Value 0 -Force
 
-reg add 'HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Explorer' /v DisableNotificationCenter /t REG_DWORD /d 1 /f
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d 0 /f
+
+# DISABLE ACTION CENTER
+Write-Host "Disabling Action Center..."
+Set-ItemProperty -Path "HKCU:\Software\Policies\Microsoft\Windows\Explorer" -Name "DisableNotificationCenter" -Type DWord -Value 1
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications" -Name "ToastEnabled" -Type DWord -Value 0
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "EnableBalloonTips" -Type DWord -Value 0
+
+# Disable Autoplay
+Write-Host "Disabling Autoplay..."
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" -Name "DisableAutoplay" -Type DWord -Value 1
+
+# Disable Autorun for all drives
+Write-Host "Disabling Autorun for all drives..."
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoDriveTypeAutoRun" -Type DWord -Value 255
+
+# Disable Sticky keys prompt
+Write-Host "Disabling Sticky keys prompt..."
+Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\StickyKeys" -Name "Flags" -Type String -Value "506"
+
+# DISABLE LOCK SCREEN
+Write-Host "Disabling Lock Screen..."
+Set-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Windows\Personalization" -Name "NoLockScreen" -Type DWord -Value 1
 
 # xbox dvr causing fps issues
 reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR /v value /t REG_DWORD /d 0 /f
@@ -421,6 +504,9 @@ Get-Service SysMain | Stop-Service -PassThru | Set-Service -StartupType disabled
 # WE DONT NEED TELEMETRY AGENT NVIDIA!
 Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -StartupType disabled
 
+# Uninstall Work Folders Client
+Write-Host "Uninstalling Work Folders Client..."
+dism /online /Disable-Feature /FeatureName:WorkFolders-Client /Quiet /NoRestart
 
 # Change plan to high performace
 $x = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'  
