@@ -1,4 +1,3 @@
-# Version 0.3
 $ErrorActionPreference = "SilentlyContinue"
 Set-ExecutionPolicy unrestricted
 
@@ -327,16 +326,12 @@ if ($visual -like "y") {
 
 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
-choco install vcredist-all -y 
-choco install vcredist2010 -y
-choco install vcredist2017 -y
-choco install dotnet3.5 -y 
-choco install dotnet4.0 -y 
-choco install dotnet4.5 -y 
+
 
 choco install notepadplusplus -y
 choco install 7zip -y
-choco install imageglass -y
+choco install nomacs
+choco install netbalancer
 
 #FIREFOX
 choco install firefox -y 
@@ -345,7 +340,15 @@ choco install ublockorigin-firefox -y
 choco install qbittorrent -y 
 choco install k-litecodecpackfull -y 
 choco install steam -y
+choco install virtualbox -y
 
+choco install vcredist-all -y 
+choco install vcredist2010 -y
+choco install vcredist2017 -y
+choco install dotnet3.5 -y 
+choco install dotnet4.0 -y 
+choco install dotnet4.5 -y 
+choco install dotnetfx -y
 
 }
 
