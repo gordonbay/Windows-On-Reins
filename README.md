@@ -11,3 +11,19 @@ This project aim is to make windows 10 usable, faster and under control.
 - Disable windows updades
 - Installation of those VC++ resources that should came with windows anyway
 - Clear all those bloatware that came with windows installation
+
+Usage
+============
+
+Run Power Shell with adm privileges
+Type:
+
+    Set-ExecutionPolicy unrestricted
+
+
+Confirm the question
+Run the script 
+
+    %path-to-file%/wor.ps1
+    
+Answer the questions with y or n
