@@ -225,11 +225,11 @@ if($?){   write-Host -ForegroundColor Green "Windows Defender AllowEmailScanning
 
 }
 
-if ($windowsfirewall -like "y") { 
+if ($windowsfirewall -like "y") {
 #DISABLE WINDOWS FIREWALL
 Get-Service MpsSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "Windows Firewall service disabled"  }else{   write-Host -ForegroundColor red "Windows Firewall service not disabled" } 
-Get-NetFirewallProfile | Set-NetFirewallProfile –Enabled False
+if($?){   write-Host -ForegroundColor Green "Windows Firewall service disabled"  } else {   write-Host -ForegroundColor red "Windows Firewall service not disabled" } 
+Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled False
 if($?){   write-Host -ForegroundColor Green "Windows Firewall Disabled"  }else{   write-Host -ForegroundColor red "Windows Firewall not Disabled" }
 # USELESS WINDOWS FIREWALL
 New-ItemProperty -Path HKLM:SYSTEM\CurrentControlSet\Services\MpsSvc -Name Start -PropertyType DWord -Value 4 -Force -EA SilentlyContinue | Out-Null
