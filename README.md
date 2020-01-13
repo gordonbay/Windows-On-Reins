@@ -1,4 +1,4 @@
-# Windows One Reins - Windows 10 Bloatware removal, privacy fix and performance optimization
+# Windows On Reins - Windows 10 Bloatware removal, privacy fix and performance optimization
 
 This project aim is to make windows 10 usable, faster and under control. 
 
