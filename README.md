@@ -8,9 +8,10 @@ This project aim is to make windows 10 usable, faster and under control.
 - Disable windows services with unusual data traffic
 - Disable windows services with unusual disk usage
 - Disable useless and questionable services like "Windows Telemetry"
-- Disable windows updades
+- Allow users to definitively disable windows updades
+- Allow users to definitively disable windows defender
 - Installation of those VC++ resources that should came with windows anyway
-- Clear all those bloatware that came with windows installation
+- Allow users to clear all the bloatware that came with windows installation
 
 Usage
 ============
