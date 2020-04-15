@@ -815,7 +815,6 @@ reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\ApplicationM
 # RAZER THINGS THAT NOBODY USES
 Get-Service Razer Chroma SDK Server | Stop-Service -PassThru | Set-Service -StartupType disabled
 Get-Service Razer Chroma SDK Service | Stop-Service -PassThru | Set-Service -StartupType disabled
-Get-Service Razer Chroma SDK Server | Stop-Service -PassThru | Set-Service -StartupType disabled
 
 
 # ANOYING PUSH NOTIFICATIONS
@@ -1106,7 +1105,7 @@ switch ($disablecortana) {
 $unpin = Read-Host "Unpin all tiles from the start menu? (y/n)"
 switch ($unpin) {
 	y {
-	UnpinStart
+	UnpinStart	
 	}
 }
 
@@ -1121,16 +1120,19 @@ Protect-Privacy
 
 #THINGS TO DO MANUALLY
 #CONFIG FIREFOX
-
 #geo.enabled false
 #general.warnOnAboutConfig false
 #dom.push.enabled false
 #dom.webnotifications.enabled false
 
-#FIREFOX DISABLE VIDEO DASH
-#media.cache_readahead_limit 999
-#media.cache_resume_threshold 999
-#media.cache_size 9999999
+
+## EXTRAS SUBSCRIBE LISTS FOR UBLOCK
+## https://filterlists.com/lists/
+## AdGuard Social Media filter
+## AdGuard Tracking Protection filter
+## Block Google Fonts
+## Fanboy's Anti-thirdparty Fonts
+## Fanboy's problematic-sites
 
 ## Credits
 ##https://github.com/adolfintel/Windows10-Privacy
