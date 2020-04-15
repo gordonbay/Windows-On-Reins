@@ -1,6 +1,347 @@
 $ErrorActionPreference = "SilentlyContinue"
 Set-ExecutionPolicy unrestricted
+Write-Host "Creating PSDrive 'HKCR' (HKEY_CLASSES_ROOT). This will be used for the duration of the script as it is necessary for the removal and modification of specific registry keys."
+New-PSDrive  HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
 
+#This will self elevate the script so with a UAC prompt since this script needs to be run as an Administrator in order to function properly.
+If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {
+    Write-Host "You didn't run this script as an Administrator. This script will self elevate to run as an Administrator and continue."
+    Start-Sleep 1
+    Write-Host "                                               3"
+    Start-Sleep 1
+    Write-Host "                                               2"
+    Start-Sleep 1
+    Write-Host "                                               1"
+    Start-Sleep 1
+    Start-Process powershell.exe -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
+    Exit
+}
+
+Function DebloatBlack {
+    $Bloatware = @(
+
+        #Unnecessary Windows 10 AppX Apps
+        "Microsoft.BingNews"
+        "Microsoft.GetHelp"
+        "Microsoft.Getstarted"
+        "Microsoft.Messaging"
+        "Microsoft.Microsoft3DViewer"
+        "Microsoft.MicrosoftOfficeHub"
+        "Microsoft.MicrosoftSolitaireCollection"
+        "Microsoft.NetworkSpeedTest"
+        "Microsoft.News"
+        "Microsoft.Office.Lens"
+        "Microsoft.Office.OneNote"
+        "Microsoft.Office.Sway"
+        "Microsoft.OneConnect"
+        "Microsoft.People"
+        "Microsoft.Print3D"
+        "Microsoft.RemoteDesktop"
+        "Microsoft.SkypeApp"
+        "Microsoft.StorePurchaseApp"
+        "Microsoft.Office.Todo.List"
+        "Microsoft.Whiteboard"
+        "Microsoft.WindowsAlarms"
+        #"Microsoft.WindowsCamera"
+        "microsoft.windowscommunicationsapps"
+        "Microsoft.WindowsFeedbackHub"
+        "Microsoft.WindowsMaps"
+        "Microsoft.WindowsSoundRecorder"
+        "Microsoft.Xbox.TCUI"
+        "Microsoft.XboxApp"
+        "Microsoft.XboxGameOverlay"
+        "Microsoft.XboxIdentityProvider"
+        "Microsoft.XboxSpeechToTextOverlay"
+        "Microsoft.ZuneMusic"
+        "Microsoft.ZuneVideo"
+
+        #Sponsored Windows 10 AppX Apps
+        #Add sponsored/featured apps to remove in the "*AppName*" format
+        "*EclipseManager*"
+        "*ActiproSoftwareLLC*"
+        "*AdobeSystemsIncorporated.AdobePhotoshopExpress*"
+        "*Duolingo-LearnLanguagesforFree*"
+        "*PandoraMediaInc*"
+        "*CandyCrush*"
+        "*BubbleWitch3Saga*"
+        "*Wunderlist*"
+        "*Flipboard*"
+        "*Twitter*"
+        "*Facebook*"
+        "*Spotify*"
+        "*Minecraft*"
+        "*Royal Revolt*"
+        "*Sway*"
+        "*Speed Test*"
+        "*Dolby*"
+             
+        #Optional: Typically not removed but you can if you need to for some reason
+        #"*Microsoft.Advertising.Xaml_10.1712.5.0_x64__8wekyb3d8bbwe*"
+        #"*Microsoft.Advertising.Xaml_10.1712.5.0_x86__8wekyb3d8bbwe*"
+        #"*Microsoft.BingWeather*"
+        #"*Microsoft.MSPaint*"
+        #"*Microsoft.MicrosoftStickyNotes*"
+        #"*Microsoft.Windows.Photos*"
+        #"*Microsoft.WindowsCalculator*"
+        #"*Microsoft.WindowsStore*"
+    )
+    foreach ($Bloat in $Bloatware) {
+        Get-AppxPackage -Name $Bloat| Remove-AppxPackage
+        Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $Bloat | Remove-AppxProvisionedPackage -Online
+        Write-Output "Trying to remove $Bloat."
+    }
+}
+
+Function DebloatAll {
+	# REMOVE GARBAGE BY BULK
+	Get-AppxPackage -AllUsers | Remove-AppxPackage; Get-AppxProvisionedPackage -Online | Remove-AppxProvisionedPackage -Online
+}
+
+Function Remove-Keys {
+        
+    #These are the registry keys that it will delete.
+            
+    $Keys = @(
+            
+        #Remove Background Tasks
+        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\46928bounde.EclipseManager_2.2.4.51_neutral__a5h4egax66k6y"
+        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\ActiproSoftwareLLC.562882FEEB491_2.6.18.18_neutral__24pqs290vpjk0"
+        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\Microsoft.MicrosoftOfficeHub_17.7909.7600.0_x64__8wekyb3d8bbwe"
+        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\Microsoft.PPIProjection_10.0.15063.0_neutral_neutral_cw5n1h2txyewy"
+        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\Microsoft.XboxGameCallableUI_1000.15063.0.0_neutral_neutral_cw5n1h2txyewy"
+        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\Microsoft.XboxGameCallableUI_1000.16299.15.0_neutral_neutral_cw5n1h2txyewy"
+            
+        #Windows File
+        "HKCR:\Extensions\ContractId\Windows.File\PackageId\ActiproSoftwareLLC.562882FEEB491_2.6.18.18_neutral__24pqs290vpjk0"
+            
+        #Registry keys to delete if they aren't uninstalled by RemoveAppXPackage/RemoveAppXProvisionedPackage
+        "HKCR:\Extensions\ContractId\Windows.Launch\PackageId\46928bounde.EclipseManager_2.2.4.51_neutral__a5h4egax66k6y"
+        "HKCR:\Extensions\ContractId\Windows.Launch\PackageId\ActiproSoftwareLLC.562882FEEB491_2.6.18.18_neutral__24pqs290vpjk0"
+        "HKCR:\Extensions\ContractId\Windows.Launch\PackageId\Microsoft.PPIProjection_10.0.15063.0_neutral_neutral_cw5n1h2txyewy"
+        "HKCR:\Extensions\ContractId\Windows.Launch\PackageId\Microsoft.XboxGameCallableUI_1000.15063.0.0_neutral_neutral_cw5n1h2txyewy"
+        "HKCR:\Extensions\ContractId\Windows.Launch\PackageId\Microsoft.XboxGameCallableUI_1000.16299.15.0_neutral_neutral_cw5n1h2txyewy"
+            
+        #Scheduled Tasks to delete
+        "HKCR:\Extensions\ContractId\Windows.PreInstalledConfigTask\PackageId\Microsoft.MicrosoftOfficeHub_17.7909.7600.0_x64__8wekyb3d8bbwe"
+            
+        #Windows Protocol Keys
+        "HKCR:\Extensions\ContractId\Windows.Protocol\PackageId\ActiproSoftwareLLC.562882FEEB491_2.6.18.18_neutral__24pqs290vpjk0"
+        "HKCR:\Extensions\ContractId\Windows.Protocol\PackageId\Microsoft.PPIProjection_10.0.15063.0_neutral_neutral_cw5n1h2txyewy"
+        "HKCR:\Extensions\ContractId\Windows.Protocol\PackageId\Microsoft.XboxGameCallableUI_1000.15063.0.0_neutral_neutral_cw5n1h2txyewy"
+        "HKCR:\Extensions\ContractId\Windows.Protocol\PackageId\Microsoft.XboxGameCallableUI_1000.16299.15.0_neutral_neutral_cw5n1h2txyewy"
+               
+        #Windows Share Target
+        "HKCR:\Extensions\ContractId\Windows.ShareTarget\PackageId\ActiproSoftwareLLC.562882FEEB491_2.6.18.18_neutral__24pqs290vpjk0"
+    )
+        
+    #This writes the output of each key it is removing and also removes the keys listed above.
+    ForEach ($Key in $Keys) {
+        Write-Output "Removing $Key from registry"
+        Remove-Item $Key -Recurse
+    }
+}
+
+Function DisableUAC {
+	New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
+	if($?){   write-Host -ForegroundColor Green "Windows UAC disabled"  }else{   write-Host -ForegroundColor green "Windows UAC not disabled" } 
+	# REMOVE ONE DRIVE
+	rd "%UserProfile%\OneDrive" /q /s > nul 2>&1
+	rd "%SystemDrive%\OneDriveTemp" /q /s > nul 2>&1
+	rd "%LocalAppData%\Microsoft\OneDrive" /q /s > nul 2>&1
+	rd "%ProgramData%\Microsoft OneDrive" /q /s > nul 2>&1
+	reg delete "HKEY_CLASSES_ROOT\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /f > nul 2>&1
+	reg delete "HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /f > nul 2>&1
+	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSyncNGSC" /t REG_DWORD /d 1 /f > nul
+	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSync" /t REG_DWORD /d 1 /f > nul
+	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableMeteredNetworkFileSync" /t REG_DWORD /d 1 /f > nul
+	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableLibrariesDefaultSaveToOneDrive" /t REG_DWORD /d 1 /f > nul
+	reg add "HKCU\SOFTWARE\Microsoft\OneDrive" /v "DisablePersonalSync" /t REG_DWORD /d 1 /f > nul
+}
+
+
+Function Protect-Privacy {
+
+    Write-Output "Disabling Windows Feedback Experience program / Advertising ID"
+    $Advertising = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo"
+    If (Test-Path $Advertising) {
+        Set-ItemProperty $Advertising Enabled -Value 0 
+    }
+            
+    Write-Output "Stopping Cortana from being used as part of your Windows Search Function"
+    $Search = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+    If (Test-Path $Search) {
+        Set-ItemProperty $Search AllowCortana -Value 0 
+    }
+
+    #Disables Web Search in Start Menu
+    Write-Output "Disabling Bing Search in Start Menu"
+    $WebSearch = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+    Set-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" BingSearchEnabled -Value 0 
+    If (!(Test-Path $WebSearch)) {
+        New-Item $WebSearch
+    }
+    Set-ItemProperty $WebSearch DisableWebSearch -Value 1 
+            
+    #Stops the Windows Feedback Experience from sending anonymous data
+    Write-Output "Stopping the Windows Feedback Experience program"
+    $Period = "HKCU:\Software\Microsoft\Siuf\Rules"
+    If (!(Test-Path $Period)) { 
+        New-Item $Period
+    }
+    Set-ItemProperty $Period PeriodInNanoSeconds -Value 0 
+
+    #Prevents bloatware applications from returning and removes Start Menu suggestions               
+    Write-Output "Adding Registry key to prevent bloatware apps from returning"
+    $registryPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent"
+    $registryOEM = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+    If (!(Test-Path $registryPath)) { 
+        New-Item $registryPath
+    }
+    Set-ItemProperty $registryPath DisableWindowsConsumerFeatures -Value 1 
+
+    If (!(Test-Path $registryOEM)) {
+        New-Item $registryOEM
+    }
+    Set-ItemProperty $registryOEM  ContentDeliveryAllowed -Value 0 
+    Set-ItemProperty $registryOEM  OemPreInstalledAppsEnabled -Value 0 
+    Set-ItemProperty $registryOEM  PreInstalledAppsEnabled -Value 0 
+    Set-ItemProperty $registryOEM  PreInstalledAppsEverEnabled -Value 0 
+    Set-ItemProperty $registryOEM  SilentInstalledAppsEnabled -Value 0 
+    Set-ItemProperty $registryOEM  SystemPaneSuggestionsEnabled -Value 0          
+    
+    #Preping mixed Reality Portal for removal    
+    Write-Output "Setting Mixed Reality Portal value to 0 so that you can uninstall it in Settings"
+    $Holo = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Holographic"    
+    If (Test-Path $Holo) {
+        Set-ItemProperty $Holo  FirstRunSucceeded -Value 0 
+    }
+
+    #Disables Wi-fi Sense
+    Write-Output "Disabling Wi-Fi Sense"
+    $WifiSense1 = "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting"
+    $WifiSense2 = "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots"
+    $WifiSense3 = "HKLM:\SOFTWARE\Microsoft\WcmSvc\wifinetworkmanager\config"
+    If (!(Test-Path $WifiSense1)) {
+        New-Item $WifiSense1
+    }
+    Set-ItemProperty $WifiSense1  Value -Value 0 
+    If (!(Test-Path $WifiSense2)) {
+        New-Item $WifiSense2
+    }
+    Set-ItemProperty $WifiSense2  Value -Value 0 
+    Set-ItemProperty $WifiSense3  AutoConnectAllowedOEM -Value 0 
+        
+    #Disables live tiles
+    Write-Output "Disabling live tiles"
+    $Live = "HKCU:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications"    
+    If (!(Test-Path $Live)) {      
+        New-Item $Live
+    }
+    Set-ItemProperty $Live  NoTileApplicationNotification -Value 1 
+        
+    #Turns off Data Collection via the AllowTelemtry key by changing it to 0
+    Write-Output "Turning off Data Collection"
+    $DataCollection1 = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection"
+    $DataCollection2 = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
+    $DataCollection3 = "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection"    
+    If (Test-Path $DataCollection1) {
+        Set-ItemProperty $DataCollection1  AllowTelemetry -Value 0 
+    }
+    If (Test-Path $DataCollection2) {
+        Set-ItemProperty $DataCollection2  AllowTelemetry -Value 0 
+    }
+    If (Test-Path $DataCollection3) {
+        Set-ItemProperty $DataCollection3  AllowTelemetry -Value 0 
+    }
+    
+    #Disabling Location Tracking
+    Write-Output "Disabling Location Tracking"
+    $SensorState = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}"
+    $LocationConfig = "HKLM:\SYSTEM\CurrentControlSet\Services\lfsvc\Service\Configuration"
+    If (!(Test-Path $SensorState)) {
+        New-Item $SensorState
+    }
+    Set-ItemProperty $SensorState SensorPermissionState -Value 0 
+    If (!(Test-Path $LocationConfig)) {
+        New-Item $LocationConfig
+    }
+    Set-ItemProperty $LocationConfig Status -Value 0 
+        
+    #Disables People icon on Taskbar
+    Write-Output "Disabling People icon on Taskbar"
+    $People = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People'
+    If (Test-Path $People) {
+        Set-ItemProperty $People -Name PeopleBand -Value 0
+    }
+        
+    #Disables scheduled tasks that are considered unnecessary 
+    Write-Output "Disabling scheduled tasks"
+    Get-ScheduledTask  XblGameSaveTaskLogon | Disable-ScheduledTask
+    Get-ScheduledTask  XblGameSaveTask | Disable-ScheduledTask
+    Get-ScheduledTask  Consolidator | Disable-ScheduledTask
+    Get-ScheduledTask  UsbCeip | Disable-ScheduledTask
+    Get-ScheduledTask  DmClient | Disable-ScheduledTask
+    Get-ScheduledTask  DmClientOnScenarioDownload | Disable-ScheduledTask
+
+    Write-Output "Stopping and disabling Diagnostics Tracking Service"
+    #Disabling the Diagnostics Tracking Service
+    Stop-Service "DiagTrack"
+    Set-Service "DiagTrack" -StartupType Disabled
+
+    
+    Write-Output "Removing CloudStore from registry if it exists"
+    $CloudStore = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CloudStore'
+    If (Test-Path $CloudStore) {
+        Stop-Process Explorer.exe -Force
+        Remove-Item $CloudStore -Recurse -Force
+        Start-Process Explorer.exe -Wait
+    }
+}
+
+Function DisableCortana {
+	Write-Host "Disabling Cortana..."	
+	Write-Output "Disabling AllowSearchToUseLocation"
+    $AllowSearchToUseLocation = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+    If (Test-Path $AllowSearchToUseLocation) {
+        Set-ItemProperty $AllowSearchToUseLocation Enabled -Value 0 
+    }
+
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "ConnectedSearchPrivacy" -Type DWord -Value 3
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "ConnectedSearchUseWeb" -Type DWord -Value 0
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "ConnectedSearchUseWebOverMeteredConnections" -Type DWord -Value 0
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "DisableWebSearch" -Type DWord -Value 1
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "CortanaEnabled" -Type DWord -Value 0
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "BingSearchEnabled" -Type DWord -Value 0
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "CanCortanaBeEnabled" -Type DWord -Value 0
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Personalization\Settings" -Name "AcceptedPrivacyPolicy" -Type DWord -Value 0
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "DeviceHistoryEnabled" -Type DWord -Value 0
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "HistoryViewEnabled" -Type DWord -Value 0
+}
+
+Function UnpinStart {
+    #https://superuser.com/questions/1068382/how-to-remove-all-the-tiles-in-the-windows-10-start-menu
+    #Unpins all tiles from the Start Menu
+    Write-Host "Unpinning all tiles from the start menu"
+    (New-Object -Com Shell.Application).
+    NameSpace('shell:::{4234d49b-0245-4df3-b780-3893943456e1}').
+    Items() |
+        % { $_.Verbs() } |
+        ? {$_.Name -match 'Un.*pin from Start'} |
+        % {$_.DoIt()}
+}
+
+Function Remove3dObjects {
+    #Removes 3D Objects from the 'My Computer' submenu in explorer
+    Write-Host "Removing 3D Objects from explorer 'My Computer' submenu"
+    $Objects32 = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}"
+    $Objects64 = "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}"
+    If (Test-Path $Objects32) {
+        Remove-Item $Objects32 -Recurse 
+    }
+    If (Test-Path $Objects64) {
+        Remove-Item $Objects64 -Recurse 
+    }
+}
 
 $reverse = Read-Host "Reverse mode? (use if having some troubles) (y/n)"
 
@@ -45,11 +386,14 @@ while("y","n" -notcontains $showhidden)
 	$showhidden = Read-Host "y or n?"
 }
 
+
 $disableuac = Read-Host "Disable UAC and remove windows apps (y/n)"
-while("y","n" -notcontains $disableuac)
-{
-	$disableuac = Read-Host "y or n?"
+switch ($disableuac) {
+	y {
+	DisableUAC
+	}
 }
+
 
 $ink = Read-Host "Disable Windows INK (y/n)"
 while("y","n" -notcontains $ink)
@@ -250,70 +594,6 @@ if($?){   write-Host -ForegroundColor Green "Windows Hidden Extensions Disabled"
 
 }
 
-if ($disableuac -like "y") { 
-#Disable UAC
-
-New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows UAC disabled"  }else{   write-Host -ForegroundColor green "Windows UAC not disabled" } 
-
-# REMOVE ONE DRIVE
-rd "%UserProfile%\OneDrive" /q /s > nul 2>&1
-rd "%SystemDrive%\OneDriveTemp" /q /s > nul 2>&1
-rd "%LocalAppData%\Microsoft\OneDrive" /q /s > nul 2>&1
-rd "%ProgramData%\Microsoft OneDrive" /q /s > nul 2>&1
-reg delete "HKEY_CLASSES_ROOT\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /f > nul 2>&1
-reg delete "HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /f > nul 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSyncNGSC" /t REG_DWORD /d 1 /f > nul
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSync" /t REG_DWORD /d 1 /f > nul
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableMeteredNetworkFileSync" /t REG_DWORD /d 1 /f > nul
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableLibrariesDefaultSaveToOneDrive" /t REG_DWORD /d 1 /f > nul
-reg add "HKCU\SOFTWARE\Microsoft\OneDrive" /v "DisablePersonalSync" /t REG_DWORD /d 1 /f > nul
-
-
-# REMOVE GARBAGE ONE BY ONE
-Get-AppxPackage -AllUsers | Remove-AppxPackage; Get-AppxProvisionedPackage -Online | Remove-AppxProvisionedPackage -Online
-# REMOVE GARBAGE ONE BY ONE
-Get-AppxPackage *3dbuilder* | Remove-AppxPackage
-Get-AppxPackage *windowsalarms* | Remove-AppxPackage
-Get-AppxPackage -allusers *windowscalculator* | Remove-AppxPackage
-Get-AppxPackage -allusers *windowscommunicationsapps* | Remove-AppxPackage
-Get-AppxPackage -allusers *officehub* | Remove-AppxPackage
-Get-AppxPackage -allusers *skypeapp* | Remove-AppxPackage
-Get-AppxPackage -allusers *getstarted* | Remove-AppxPackage
-Get-AppxPackage -allusers *windowsmaps* | Remove-AppxPackage
-Get-AppxPackage -allusers *solitairecollection* | Remove-AppxPackage
-Get-AppxPackage -allusers *bingfinance* | Remove-AppxPackage
-Get-AppxPackage -allusers *zunevideo* | Remove-AppxPackage
-Get-AppxPackage -allusers *bingnews* | Remove-AppxPackage
-Get-AppxPackage -allusers *onenote* | Remove-AppxPackage
-Get-AppxPackage -allusers *people* | Remove-AppxPackage
-Get-AppxPackage -allusers *windowsphone* | Remove-AppxPackage
-Get-AppxPackage -allusers *bingsports* | Remove-AppxPackage
-Get-AppxPackage -allusers *soundrecorder* | Remove-AppxPackage
-Get-AppxPackage -allusers *bingweather* | Remove-AppxPackage
-Get-AppxPackage -allusers *xboxapp* | Remove-AppxPackage
-Get-AppxPackage -allusers *zunemusic* | Remove-AppxPackage
-Get-AppxPackage -allusers *Twitter* | Remove-AppxPackage
-Get-AppxPackage -allusers *CandyCrushSodaSaga* | Remove-AppxPackage
-Get-AppxPackage -allusers *messaging* | Remove-AppxPackage
-Get-AppxPackage -allusers *Microsoft3DViewer* | Remove-AppxPackage
-Get-AppxPackage -allusers *XboxGameOverlay* | Remove-AppxPackage
-Get-AppxPackage -allusers *XboxSpeechToTextOverlay* | Remove-AppxPackage
-Get-AppxPackage -allusers*ParentalControls* | Remove-AppxPackage
-Get-AppxPackage -allusers *XboxGameCallableUI* | Remove-AppxPackage
-Get-AppxPackage -allusers *Cortana* | Remove-AppxPackage
-Get-AppxPackage -allusers *XboxIdentityProvider* | Remove-AppxPackage
-Get-appxpackage -allusers *XboxGameOverlay* | Remove-AppxPackage
-Get-AppxPackage "Microsoft.MicrosoftOfficeHub" | Remove-AppxPackage
-Get-AppxPackage "Microsoft.MicrosoftSolitaireCollection" | Remove-AppxPackage
-Get-AppxPackage "Microsoft.WindowsSoundRecorder" | Remove-AppxPackage
-Get-AppxPackage "Microsoft.AppConnector" | Remove-AppxPackage
-Get-AppxPackage "Microsoft.ConnectivityStore" | Remove-AppxPackage
-Get-AppxPackage "Microsoft.Office.Sway" | Remove-AppxPackage
-Get-AppxPackage "Microsoft.CommsPhone" | Remove-AppxPackage
-Get-AppxPackage "9E2F88E3.Twitter" | Remove-AppxPackage
-Get-AppxPackage "king.com.CandyCrushSodaSaga" | Remove-AppxPackage
-}
 
 if ($ink -like "y") { 
 #Disable INK
@@ -323,15 +603,19 @@ if($?){   write-Host -ForegroundColor Green "Windows INK disabled"  }else{   wri
 
 if ($visual -like "y") { 
 
-
 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
-
+choco install vcredist-all -y 
+choco install vcredist2010 -y
+choco install vcredist2017 -y
+choco install dotnet3.5 -y 
+choco install dotnet4.0 -y 
+choco install dotnet4.5 -y 
+choco install dotnetfx -y
 
 choco install notepadplusplus -y
 choco install 7zip -y
 choco install nomacs
-choco install netbalancer
 
 #FIREFOX
 choco install firefox -y 
@@ -341,14 +625,6 @@ choco install qbittorrent -y
 choco install k-litecodecpackfull -y 
 choco install steam -y
 choco install virtualbox -y
-
-choco install vcredist-all -y 
-choco install vcredist2010 -y
-choco install vcredist2017 -y
-choco install dotnet3.5 -y 
-choco install dotnet4.0 -y 
-choco install dotnet4.5 -y 
-choco install dotnetfx -y
 
 }
 
@@ -612,13 +888,6 @@ If (!(Test-Path "HKCU:\Software\Microsoft\Siuf\Rules")) {
 }
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "NumberOfSIUFInPeriod" -Type DWord -Value 0
  
-# Disable Advertising ID
-Write-Host "Disabling Advertising ID..."
-If (!(Test-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo")) {
-    New-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" | Out-Null
-}
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" -Name "Enabled" -Type DWord -Value 0
- 
 # Disable Cortana
 Write-Host "Disabling Cortana..."
 If (!(Test-Path "HKCU:\Software\Microsoft\Personalization\Settings")) {
@@ -750,38 +1019,6 @@ Function DisableActionCenter {
 }
 DisableActionCenter
 
-# Disable Action Center
-Function DisableCortana {
-	Write-Host "Disabling Cortana..."
-	If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search")) {
-		New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" | Out-Null
-	}
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Experience\AllowCortana")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Experience\AllowCortana" | Out-Null
-	}
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" | Out-Null
-	}
-	If (!(Test-Path "HKCU:\SOFTWARE\Microsoft\Personalization\Settings")) {
-		New-Item -Path "HKCU:\SOFTWARE\Microsoft\Personalization\Settings" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "AllowCortana" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "AllowSearchToUseLocation" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "ConnectedSearchPrivacy" -Type DWord -Value 3
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "ConnectedSearchUseWeb" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "ConnectedSearchUseWebOverMeteredConnections" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "DisableWebSearch" -Type DWord -Value 1
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Experience\AllowCortana" -Name "value" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "CortanaEnabled" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "BingSearchEnabled" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "CortanaEnabled" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "CanCortanaBeEnabled" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Personalization\Settings" -Name "AcceptedPrivacyPolicy" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "DeviceHistoryEnabled" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "HistoryViewEnabled" -Type DWord -Value 0
-}
-DisableCortana
-
 # Disable PEOPLE BAR
 Function PeopleBar {
     Write-Host "Disabling People Bar..."
@@ -847,6 +1084,40 @@ if($?){   write-Host -ForegroundColor Green "Windows firewall service enabled"  
 }
 
 
+$bloat = Read-Host "Debloat all AppxPackages or just the blacklist (like candy crysh saga, bing news, windows maps...) (all/blacklist)"
+switch ($bloat) {
+	all {
+	DebloatAll
+	Remove-Keys
+	}
+	blacklist {
+	DebloatBlack
+	Remove-Keys
+	}
+}
+
+$disablecortana = Read-Host "Disable Cortana? (y/n)"
+switch ($disablecortana) {
+	y {
+	DisableCortana
+	}
+}
+
+$unpin = Read-Host "Unpin all tiles from the start menu? (y/n)"
+switch ($unpin) {
+	y {
+	UnpinStart
+	}
+}
+
+$remove3d = Read-Host "Remove 3D Objects from explorer 'My Computer' submenu? (y/n)"
+switch ($remove3d) {
+	y {
+	Remove3dObjects
+	}
+}
+
+Protect-Privacy
 
 #THINGS TO DO MANUALLY
 #CONFIG FIREFOX
@@ -861,41 +1132,9 @@ if($?){   write-Host -ForegroundColor Green "Windows firewall service enabled"  
 #media.cache_resume_threshold 999
 #media.cache_size 9999999
 
-#UBLOCK ESSENTIALS
-#https://raw.github.com/reek/anti-adblock-killer/master/anti-adblock-killer-filters.txt
-#ENABLE FANBOY ANOYANCE LIST
-
-#UBLOCK PERSONAL FILTER
-<#
-! --------------------------- 
-! ------ Call buttons -------
-! ---------------------------
-||saas-support.com^
-||cdn.saas-support.com^
-
-! --------------------------- 
-! ------- Live chat ---------
-! ---------------------------
-||whitesaas.com^
-||jivochat.com^
-||brightcove.com
-
-||push.connect.digital^$third-party
-||push.esputnik.com^$third-party
-||push.esputnik.com.ua^$third-party
-||push.expert^$third-party
-||push.world^$third-party
-||pushall.ru/widget.php$third-party
-||pushassist.com^$third-party
-||pushcrew.com^$third-party
-||pushengage.com^$third-party
-||pushwoosh.com^$third-party
-||push4site.com^$third-party
-||cleverpush.com^$third-party
-
-
-#>
-
 ## Credits
 ##https://github.com/adolfintel/Windows10-Privacy
+##https://github.com/Sycnex/Windows10Debloater
+
+Remove-PSDrive HKCR
 PAUSE
