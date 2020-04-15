@@ -3,6 +3,19 @@ Set-ExecutionPolicy unrestricted
 Write-Host "Creating PSDrive 'HKCR' (HKEY_CLASSES_ROOT). This will be used for the duration of the script as it is necessary for the removal and modification of specific registry keys."
 New-PSDrive  HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
 
+
+Function RegChange($path, $thing, $value, $desc) {
+	Write-Output ("HKLM:\" + $desc)
+	
+    If (Test-Path ("HKLM:\" + $path)) {
+        Set-ItemProperty ("HKLM:\" + $path) $thing -Value $value 
+    }
+	If (Test-Path ("HKCU:\" + $path)) {
+        Set-ItemProperty ("HKCU:\" + $path) $thing -Value $value 
+    }
+
+}
+
 #This will self elevate the script so with a UAC prompt since this script needs to be run as an Administrator in order to function properly.
 If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {
     Write-Host "You didn't run this script as an Administrator. This script will self elevate to run as an Administrator and continue."
@@ -158,121 +171,32 @@ Function DisableUAC {
 	reg add "HKCU\SOFTWARE\Microsoft\OneDrive" /v "DisablePersonalSync" /t REG_DWORD /d 1 /f > nul
 }
 
+Function ProtectPrivacy {
 
-Function Protect-Privacy {
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "0" "Disabling Windows Feedback Experience program / Advertising ID"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "0" "Stopping Cortana from being used as part of your Windows Search Function" 
+	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "0" "Disabling Windows Feedback" 
+	RegChange "Software\Microsoft\Siuf\Rules" "PeriodInNanoSeconds" "0" "Disabling Windows Feedback"            
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "1" "Adding Registry key to prevent bloatware apps from returning"   			
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "0" "Adding Registry key to prevent bloatware apps from returning"	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "0" "Adding Registry key to prevent bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "0" "Adding Registry key to prevent bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "0" "Adding Registry key to prevent bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "0" "Adding Registry key to prevent bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "0" "Adding Registry key to prevent bloatware apps from returning"  	
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "0" "Disabling Reality Portal"    
+	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting" "Value" "0" "Disabling Wi-Fi Sense"    
+	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots" "Value" "0" "Disabling Wi-Fi Sense"  
+	RegChange "SOFTWARE\Microsoft\WcmSvc\wifinetworkmanager\config" "AutoConnectAllowedOEM" "0" "Disabling Wi-Fi Sense"  
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "1" "Disabling live tiles"  
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
+	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "0" "Disabling Location Tracking"
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "0" "Disabling Location Tracking"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "0" "Disabling People icon on Taskbar"
+	RegChange "Software\Policies\Microsoft\Windows\Explorer" "HidePeopleBar" "1" "Disabling People Bar"
 
-    Write-Output "Disabling Windows Feedback Experience program / Advertising ID"
-    $Advertising = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo"
-    If (Test-Path $Advertising) {
-        Set-ItemProperty $Advertising Enabled -Value 0 
-    }
-            
-    Write-Output "Stopping Cortana from being used as part of your Windows Search Function"
-    $Search = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
-    If (Test-Path $Search) {
-        Set-ItemProperty $Search AllowCortana -Value 0 
-    }
-
-    #Disables Web Search in Start Menu
-    Write-Output "Disabling Bing Search in Start Menu"
-    $WebSearch = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
-    Set-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" BingSearchEnabled -Value 0 
-    If (!(Test-Path $WebSearch)) {
-        New-Item $WebSearch
-    }
-    Set-ItemProperty $WebSearch DisableWebSearch -Value 1 
-            
-    #Stops the Windows Feedback Experience from sending anonymous data
-    Write-Output "Stopping the Windows Feedback Experience program"
-    $Period = "HKCU:\Software\Microsoft\Siuf\Rules"
-    If (!(Test-Path $Period)) { 
-        New-Item $Period
-    }
-    Set-ItemProperty $Period PeriodInNanoSeconds -Value 0 
-
-    #Prevents bloatware applications from returning and removes Start Menu suggestions               
-    Write-Output "Adding Registry key to prevent bloatware apps from returning"
-    $registryPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent"
-    $registryOEM = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-    If (!(Test-Path $registryPath)) { 
-        New-Item $registryPath
-    }
-    Set-ItemProperty $registryPath DisableWindowsConsumerFeatures -Value 1 
-
-    If (!(Test-Path $registryOEM)) {
-        New-Item $registryOEM
-    }
-    Set-ItemProperty $registryOEM  ContentDeliveryAllowed -Value 0 
-    Set-ItemProperty $registryOEM  OemPreInstalledAppsEnabled -Value 0 
-    Set-ItemProperty $registryOEM  PreInstalledAppsEnabled -Value 0 
-    Set-ItemProperty $registryOEM  PreInstalledAppsEverEnabled -Value 0 
-    Set-ItemProperty $registryOEM  SilentInstalledAppsEnabled -Value 0 
-    Set-ItemProperty $registryOEM  SystemPaneSuggestionsEnabled -Value 0          
-    
-    #Preping mixed Reality Portal for removal    
-    Write-Output "Setting Mixed Reality Portal value to 0 so that you can uninstall it in Settings"
-    $Holo = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Holographic"    
-    If (Test-Path $Holo) {
-        Set-ItemProperty $Holo  FirstRunSucceeded -Value 0 
-    }
-
-    #Disables Wi-fi Sense
-    Write-Output "Disabling Wi-Fi Sense"
-    $WifiSense1 = "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting"
-    $WifiSense2 = "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots"
-    $WifiSense3 = "HKLM:\SOFTWARE\Microsoft\WcmSvc\wifinetworkmanager\config"
-    If (!(Test-Path $WifiSense1)) {
-        New-Item $WifiSense1
-    }
-    Set-ItemProperty $WifiSense1  Value -Value 0 
-    If (!(Test-Path $WifiSense2)) {
-        New-Item $WifiSense2
-    }
-    Set-ItemProperty $WifiSense2  Value -Value 0 
-    Set-ItemProperty $WifiSense3  AutoConnectAllowedOEM -Value 0 
-        
-    #Disables live tiles
-    Write-Output "Disabling live tiles"
-    $Live = "HKCU:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications"    
-    If (!(Test-Path $Live)) {      
-        New-Item $Live
-    }
-    Set-ItemProperty $Live  NoTileApplicationNotification -Value 1 
-        
-    #Turns off Data Collection via the AllowTelemtry key by changing it to 0
-    Write-Output "Turning off Data Collection"
-    $DataCollection1 = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection"
-    $DataCollection2 = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
-    $DataCollection3 = "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection"    
-    If (Test-Path $DataCollection1) {
-        Set-ItemProperty $DataCollection1  AllowTelemetry -Value 0 
-    }
-    If (Test-Path $DataCollection2) {
-        Set-ItemProperty $DataCollection2  AllowTelemetry -Value 0 
-    }
-    If (Test-Path $DataCollection3) {
-        Set-ItemProperty $DataCollection3  AllowTelemetry -Value 0 
-    }
-    
-    #Disabling Location Tracking
-    Write-Output "Disabling Location Tracking"
-    $SensorState = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}"
-    $LocationConfig = "HKLM:\SYSTEM\CurrentControlSet\Services\lfsvc\Service\Configuration"
-    If (!(Test-Path $SensorState)) {
-        New-Item $SensorState
-    }
-    Set-ItemProperty $SensorState SensorPermissionState -Value 0 
-    If (!(Test-Path $LocationConfig)) {
-        New-Item $LocationConfig
-    }
-    Set-ItemProperty $LocationConfig Status -Value 0 
-        
-    #Disables People icon on Taskbar
-    Write-Output "Disabling People icon on Taskbar"
-    $People = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People'
-    If (Test-Path $People) {
-        Set-ItemProperty $People -Name PeopleBand -Value 0
-    }
         
     #Disables scheduled tasks that are considered unnecessary 
     Write-Output "Disabling scheduled tasks"
@@ -284,11 +208,16 @@ Function Protect-Privacy {
     Get-ScheduledTask  DmClientOnScenarioDownload | Disable-ScheduledTask
 
     Write-Output "Stopping and disabling Diagnostics Tracking Service"
-    #Disabling the Diagnostics Tracking Service
-    Stop-Service "DiagTrack"
-    Set-Service "DiagTrack" -StartupType Disabled
-
+	Get-Service DiagTrack | Stop-Service -PassThru | Set-Service -StartupType disabled
+	if($?){   write-Host -ForegroundColor Green "Windows Diagnostics Tracking Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Diagnostics Tracking Service not Disabled" } 
     
+	Write-Host "Removing AutoLogger file and restricting directory..."
+	$autoLoggerDir = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
+	If (Test-Path "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl") {
+		Remove-Item -Path "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl"
+	}
+	icacls $autoLoggerDir /deny SYSTEM:`(OI`)`(CI`)F | Out-Null
+	
     Write-Output "Removing CloudStore from registry if it exists"
     $CloudStore = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CloudStore'
     If (Test-Path $CloudStore) {
@@ -613,19 +542,6 @@ choco install dotnet4.0 -y
 choco install dotnet4.5 -y 
 choco install dotnetfx -y
 
-choco install notepadplusplus -y
-choco install 7zip -y
-choco install nomacs
-
-#FIREFOX
-choco install firefox -y 
-choco install ublockorigin-firefox -y
-
-choco install qbittorrent -y 
-choco install k-litecodecpackfull -y 
-choco install steam -y
-choco install virtualbox -y
-
 }
 
 if ($windowsupdate -like "y") { 
@@ -653,10 +569,7 @@ if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Start Disa
 
 
 #DISABLE USELESS SERVICES
-Get-Service diagtrack | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "Windows Diagnostics Tracking Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Diagnostics Tracking Service not Disabled" }
-Get-Service DiagTrack | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "Windows Diagnostics Tracking Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Diagnostics Tracking Service not Disabled" } 
+
 
 Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "Windows Keylogger Disabled"  }else{   write-Host -ForegroundColor red "Windows Keylogger not Disabled" }
@@ -673,9 +586,6 @@ if($?){   write-Host -ForegroundColor Green "WalletService Disabled"  }else{   w
 Get-Service diagnosticshub.standardcollector.service | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "diagnosticshub Disabled"  }else{   write-Host -ForegroundColor red "diagnosticshub not Disabled" }
 
-#DISABLE USELESS SERVICES BY REGISTRY
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows Telemetry Disabled"  }else{   write-Host -ForegroundColor red "Windows Telemetry not Disabled" } 
 
 # REMOVE ONEDRIVE
 kill -processname OneDrive, aaa -Force -Verbose -EA SilentlyContinue
@@ -880,12 +790,7 @@ If (!(Test-Path "HKLM:\Software\Policies\Microsoft\Windows NT\CurrentVersion\Sof
 Set-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" -Name "NoGenTicket " -Type DWord -Value 0
 if($?){   write-Host -ForegroundColor Green "Licence checking disabled"  }else{   write-Host -ForegroundColor red "Licence checking not disabled" } 
 
-# Disable Feedback
-Write-Host "Disabling Feedback..."
-If (!(Test-Path "HKCU:\Software\Microsoft\Siuf\Rules")) {
-    New-Item -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Force | Out-Null
-}
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "NumberOfSIUFInPeriod" -Type DWord -Value 0
+
  
 # Disable Cortana
 Write-Host "Disabling Cortana..."
@@ -940,16 +845,6 @@ Function DisableErrorReporting {
 	Disable-ScheduledTask -TaskName "Microsoft\Windows\Windows Error Reporting\QueueReporting" | Out-Null
 }
 DisableErrorReporting
-
-Function DisableAutoLogger {
-	Write-Host "Removing AutoLogger file and restricting directory..."
-	$autoLoggerDir = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
-	If (Test-Path "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl") {
-		Remove-Item -Path "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl"
-	}
-	icacls $autoLoggerDir /deny SYSTEM:`(OI`)`(CI`)F | Out-Null
-}
-DisableAutoLogger
 
 Function DisableUpdateMSRT {
 	Write-Host "Disabling Malicious Software Removal Tool offering..."
@@ -1018,19 +913,7 @@ Function DisableActionCenter {
 }
 DisableActionCenter
 
-# Disable PEOPLE BAR
-Function PeopleBar {
-    Write-Host "Disabling People Bar..."
-    If (!(Test-Path "HKCU:\Software\Policies\Microsoft\Windows\Explorer")) {
-		New-Item -Path "HKCU:\Software\Policies\Microsoft\Windows\Explorer" | Out-Null
-	}
-	If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer")) {
-		New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer" | Out-Null
-	}
-	Set-ItemProperty -Path "HKCU:\Software\Policies\Microsoft\Windows\Explorer" -Name "HidePeopleBar" -Type DWord -Value 1
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer" -Name "HidePeopleBar" -Type DWord -Value 1
-}
-PeopleBar
+
 
 #DISABLE WINDOWS ARSO
 Function WindowsArso {
@@ -1048,24 +931,6 @@ reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v ct
 #FIX NOT BEING ABLE TO LINK OUTLOOK 365 ACCOUNT ON OFFICE OUTLOOK 2019
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "EnableADAL" -Type DWord -Value 0
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "DisableADALatopWAMOverride" -Type DWord -Value 1
-
-#
-#
-#CAUTION THINGS
-#
-#
-
-#CAUTION - DISABLING Winmgmt CAN PREVENT SOME INSTALATIONS DO WORK PROPERLY - LIKE ACAD
-# Disable Windows Management Instrumentation due transfering a lot of strange data
-
-#Get-Service Winmgmt | Stop-Service -PassThru | Set-Service -StartupType disabled
-
-#if($?){   write-Host -ForegroundColor Green "Windows Management Instrumentation disabled"  }else{   write-Host -ForegroundColor red "Windows Management Instrumentation not disabled" } 
-
-#New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 4 -Force
-
-#if($?){   write-Host -ForegroundColor Green "Windows Management Instrumentation disabled by registry"  }else{   write-Host -ForegroundColor red "Windows Management Instrumentation not disabled by registry" } 
-
 
 if ($reverse -like "y") { 
 
@@ -1116,7 +981,7 @@ switch ($remove3d) {
 	}
 }
 
-Protect-Privacy
+ProtectPrivacy
 
 #THINGS TO DO MANUALLY
 #CONFIG FIREFOX
