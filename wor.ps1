@@ -4,6 +4,8 @@ Write-Host "Creating PSDrive 'HKCR' (HKEY_CLASSES_ROOT). This will be used for t
 New-PSDrive  HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
 
 
+
+
 Function RegChange($path, $thing, $value, $desc) {
 	Write-Output ("HKLM:\" + $desc)
 	
@@ -28,6 +30,10 @@ If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
     Start-Sleep 1
     Start-Process powershell.exe -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
     Exit
+}
+
+Function DarkTheme {
+	New-ItemProperty "HKCU:\HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -Value 0 -PropertyType "DWord"
 }
 
 Function DebloatBlack {
@@ -329,19 +335,62 @@ while("y","n" -notcontains $ink)
 {
 	$ink = Read-Host "y or n?"
 }
+function Takeown-Registry($key) {
+    # TODO does not work for all root keys yet
+    switch ($key.split('\')[0]) {
+        "HKEY_CLASSES_ROOT" {
+            $reg = [Microsoft.Win32.Registry]::ClassesRoot
+            $key = $key.substring(18)
+        }
+        "HKEY_CURRENT_USER" {
+            $reg = [Microsoft.Win32.Registry]::CurrentUser
+            $key = $key.substring(18)
+        }
+        "HKEY_LOCAL_MACHINE" {
+            $reg = [Microsoft.Win32.Registry]::LocalMachine
+            $key = $key.substring(19)
+        }
+    }
 
+    # get administraor group
+    $admins = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
+    $admins = $admins.Translate([System.Security.Principal.NTAccount])
+
+    # set owner
+    $key = $reg.OpenSubKey($key, "ReadWriteSubTree", "TakeOwnership")
+    $acl = $key.GetAccessControl()
+    $acl.SetOwner($admins)
+    $key.SetAccessControl($acl)
+
+    # set FullControl
+    $acl = $key.GetAccessControl()
+    $rule = New-Object System.Security.AccessControl.RegistryAccessRule($admins, "FullControl", "Allow")
+    $acl.SetAccessRule($rule)
+    $key.SetAccessControl($acl)
+}
+Takeown-Registry("HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinDefend")
 
 if ($windowsdefender -like "y") { 
 #DISABLE WINDOWS DEFENDER
+RegChange "Software\Policies\Microsoft\Windows Defender" "DisableConfig" "1" "Disabling Windows Anti Spyware - DisableConfig"
+RegChange "Software\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" "1" "Disabling Windows Anti Spyware - DisableAntiSpyware"
+
+RegChange "SYSTEM\CurrentControlSet\Services\WdBoot" "Start" "4" "Disabling WdBoot (Windows Defender)"
+RegChange "SYSTEM\CurrentControlSet\Services\WdFilter" "Start" "4" "Disabling WdFilter (Windows Defender)"
+RegChange "SYSTEM\CurrentControlSet\Services\WdNisDrv" "Start" "4" "Disabling WdNisDrv (Windows Defender)"
+RegChange "SYSTEM\CurrentControlSet\Services\WdNisSvc" "Start" "4" "Disabling WdNisSvc (Windows Defender)"
+RegChange "SYSTEM\CurrentControlSet\Services\WinDefend" "Start" "4" "Disabling WinDefend (Windows Defender)"
+RegChange "SYSTEM\CurrentControlSet\Services\wscsvc" "Start" "4" "Disabling Windows Security Service Center"
+RegChange "SYSTEM\CurrentControlSet\Services\SecurityHealthService" "Start" "4" "Disabling SecurityHealthService (Windows Defender)"
+RegChange "SYSTEM\CurrentControlSet\Services\Sense" "Start" "4" "Disabling Sense (Windows Defender)"
+
+RegChange "SYSTEM\ControlSet001\Services\WinDefend" "Start" "4" "Disabling WinDefend (Windows Defender)"
 
 sc.exe config WinDefend start=disabled | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows Updates Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Service Not Disabled" }
 
 Set-MpPreference -DisableRealtimeMonitoring $true -EA SilentlyContinue
 if($?){   write-Host -ForegroundColor Green "Windows Defender Current Session Disabled"  }else{   write-Host -ForegroundColor Green "Windows Defender Current Session not running" }
-
-Set-ItemProperty -Path "HKLM:Software\Policies\Microsoft\Windows Defender" -Name "DisableAntiSpyware" -Type DWord -Value 1
-if($?){   write-Host -ForegroundColor Green "Windows Anti Spyware Disabled"  }else{   write-Host -ForegroundColor red "Windows Anti Spyware not Disabled" }
 
 Set-ItemProperty -Path "HKLM:Software\Policies\Microsoft\Windows Defender" -Name "DisableRoutinelyTakingAction" -Type DWord -Value 1
 if($?){   write-Host -ForegroundColor Green "Windows Defender DisableRoutinelyTakingAction Disabled"  }else{   write-Host -ForegroundColor red "Windows Defender DisableRoutinelyTakingAction Not Disabled" }
@@ -357,9 +406,6 @@ if($?){   write-Host -ForegroundColor Green "Windows On Access Protection Disabl
 
 Set-ItemProperty -Path "HKLM:Software\Microsoft\Windows Defender\Real-Time Protection" -Name "DisableScanOnRealtimeEnable" -Type DWord -Value 1
 if($?){   write-Host -ForegroundColor Green "Windows Real Time Protection Disabled"  }else{   write-Host -ForegroundColor red "Windows Real Time Protection not Disabled" }
-
-Set-ItemProperty -Path "HKLM:System\CurrentControlSet\Services\WinDefend" -Name "Start" -Type DWord -Value 4
-if($?){   write-Host -ForegroundColor Green "Windows Defender Startup Disabled"  }else{   write-Host -ForegroundColor red "Windows Defender Startup not Disabled" } 
 
 # Disable AllowUpdateService
 If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Update\AllowUpdateService")) {
@@ -537,7 +583,6 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.We
 choco install vcredist-all -y 
 choco install vcredist2010 -y
 choco install vcredist2017 -y
-choco install dotnet3.5 -y 
 choco install dotnet4.0 -y 
 choco install dotnet4.5 -y 
 choco install dotnetfx -y
@@ -645,8 +690,6 @@ if($?){   write-Host -ForegroundColor Green "Windows Delivery Optimization Servi
 New-ItemProperty -Path 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config' -name DODownloadMode -PropertyType DWord -Value 0 -Force
 if($?){   write-Host -ForegroundColor Green "Windows Delivery Optimization Service Disabled by reg"  }else{   write-Host -ForegroundColor red "Windows Delivery Optimization Service not Disabled by reg" } 
 
-New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\WdBoot' -name Start -PropertyType DWord -Value 4 -Force
-
 # Disable Time Brooker due to huge network usage for spying users
 New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\TimeBrokerSvc' -name Start -PropertyType DWord -Value 4 -Force
 if($?){   write-Host -ForegroundColor Green "Windows Time Brooker Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Time Brooker Service not Disabled" } 
@@ -753,10 +796,6 @@ if($?){   write-Host -ForegroundColor Green "Geo service disabled"  }else{   wri
 Get-Service wlidsvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "wlidsvc disabled"  }else{   write-Host -ForegroundColor red "wlidsvc not disabled" } 
 
-# USELESS SecurityHealthService
-New-ItemProperty -Path HKLM:SYSTEM\CurrentControlSet\Services\SecurityHealthService -Name Start -PropertyType DWord -Value 4 -Force -EA SilentlyContinue | Out-Null
-if($?){   write-Host -ForegroundColor Green "SecurityHealthService service disabled"  }else{   write-Host -ForegroundColor red "SecurityHealthService service not disabled" } 
-
 # USELESS PcaSvc
 Get-Service PcaSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "PcaSvc service disabled"  }else{   write-Host -ForegroundColor red "PcaSvc service not disabled" } 
@@ -773,10 +812,6 @@ if($?){   write-Host -ForegroundColor Green "UsoSvc service disabled"  }else{   
 Write-Host "Disabling SmartScreen Filter..."
 Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer" -Name "SmartScreenEnabled" -Type String -Value "Off"
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AppHost" -Name "EnableWebContentEvaluation" -Type DWord -Value 0
-
-# Disable SecurityHealthService
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SecurityHealthService" -Name "Start" -Type DWord -Value 4
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\wscsvc" -Name "Start" -Type DWord -Value 4
 
 # Disable Location Tracking
 Write-Host "Disabling Location Tracking..."
@@ -981,14 +1016,32 @@ switch ($remove3d) {
 	}
 }
 
+$remove3d = Read-Host "Enable Dark Theme? (y/n)"
+switch ($remove3d) {
+	y {
+	DarkTheme
+	}
+}
+
 ProtectPrivacy
 
 #THINGS TO DO MANUALLY
 #CONFIG FIREFOX
+#https://addons.mozilla.org/pt-BR/firefox/addon/dark-theme-for-firefox/
+
 #geo.enabled false
 #general.warnOnAboutConfig false
 #dom.push.enabled false
 #dom.webnotifications.enabled false
+#app.update.auto false
+#identity.fxaccounts.enabled false
+#privacy.firstparty.isolate true
+#privacy.resistFingerprinting true
+#browser.cache.offline.enable false
+#browser.send_pings false
+#browser.sessionstore.max_tabs_undo 0
+#dom.battery.enabled false
+#dom.event.clipboardevents.enabled = false
 
 
 ## EXTRAS SUBSCRIBE LISTS FOR UBLOCK
