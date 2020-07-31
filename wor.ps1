@@ -2,7 +2,7 @@ $ErrorActionPreference = "SilentlyContinue"
 Set-ExecutionPolicy unrestricted
 Write-Host "Creating PSDrive 'HKCR' (HKEY_CLASSES_ROOT). This will be used for the duration of the script as it is necessary for the removal and modification of specific registry keys."
 New-PSDrive  HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
-
+Set-MpPreference -EnableControlledFolderAccess Enabled
 
 
 
@@ -177,6 +177,14 @@ Function DisableUAC {
 	reg add "HKCU\SOFTWARE\Microsoft\OneDrive" /v "DisablePersonalSync" /t REG_DWORD /d 1 /f > nul
 }
 
+Function DisableBackgroundApps {
+	Write-Output "Disabling Background application access..."
+	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
+		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 1
+		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 1
+	}
+}
+
 Function ProtectPrivacy {
 
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "0" "Disabling Windows Feedback Experience program / Advertising ID"
@@ -202,8 +210,19 @@ Function ProtectPrivacy {
 	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "0" "Disabling Location Tracking"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "0" "Disabling People icon on Taskbar"
 	RegChange "Software\Policies\Microsoft\Windows\Explorer" "HidePeopleBar" "1" "Disabling People Bar"
-
-        
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "0" "Disabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "0" "Disabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "0" "Disabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "1" "Disabling Tailored Experiences"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" "EnableMulticast" "0" "Disabling Link-Local Multicast Name Resolution (LLMNR) protocol"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "0" "Disabling automatic installation of network devices"
+	RegChange "SYSTEM\CurrentControlSet\Control\Remote Assistance" "fAllowToGetHelp" "0" "Disabling Remote Assistance"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "1" "Disabling Remote Desktop"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "1" "Disabling Remote Desktop"
+	
+	Set-NetConnectionProfile -NetworkCategory Public
+	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures\010103000F0000F0010000000F0000F0C967A3643C3AD745950DA7859209176EF5B87C875FA20DF21951640E807D7C24" -Name "Category" -ErrorAction SilentlyContinue
+   
     #Disables scheduled tasks that are considered unnecessary 
     Write-Output "Disabling scheduled tasks"
     Get-ScheduledTask  XblGameSaveTaskLogon | Disable-ScheduledTask
@@ -276,6 +295,18 @@ Function Remove3dObjects {
     If (Test-Path $Objects64) {
         Remove-Item $Objects64 -Recurse 
     }
+}
+
+Function DisablePeek {	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewWindow" "1" "Disabling Windows Peek"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewDesktop" "1" "Disabling Windows Peek"
+	RegChange "SOFTWARE\Microsoft\Windows\DWM" "EnableAeroPeek" "0" "Disabling Windows Peek"
+}
+
+Function DisableThumbnail {	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "IconsOnly" "1" "Disabling Windows Thumbnail"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbnailCache" "1" "Disabling Windows Thumbnail"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbsDBOnNetworkFolders" "1" "Disabling Windows Thumbnail"
 }
 
 $reverse = Read-Host "Reverse mode? (use if having some troubles) (y/n)"
@@ -498,13 +529,6 @@ If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\Disable
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\DisableCatchupQuickScan" -Name "value" -Type DWord -Value 0
 if($?){   write-Host -ForegroundColor Green "Windows Defender DisableCatchupQuickScan disabled"  }else{   write-Host -ForegroundColor red "Windows Defender DisableCatchupQuickScan not disabled" } 
 
-# Disable Windows Defender EnableControlledFolderAccess
-If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\EnableControlledFolderAccess")) {
-    New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\EnableControlledFolderAccess" | Out-Null
-}
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\EnableControlledFolderAccess" -Name "value" -Type DWord -Value 0
-if($?){   write-Host -ForegroundColor Green "Windows Defender EnableControlledFolderAccess disabled"  }else{   write-Host -ForegroundColor red "Windows Defender EnableControlledFolderAccess not disabled" } 
-
 # Disable Windows Defender EnableNetworkProtection
 If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\EnableNetworkProtection")) {
     New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\EnableNetworkProtection" | Out-Null
@@ -610,6 +634,13 @@ if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Options Di
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\wuauserv" /v Start /t REG_DWORD /d 4 /f | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Start Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry Start not Disabled" }
 
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata" -Name "PreventDeviceMetadataFromNetwork" -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DontPromptForWindowsUpdate" -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DontSearchWindowsUpdate" -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DriverUpdateWizardWuSearchEnabled" -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "ExcludeWUDriversInQualityUpdate" -ErrorAction SilentlyContinue
+	
+	
 }
 
 
@@ -982,7 +1013,6 @@ if($?){   write-Host -ForegroundColor Green "Windows firewall service enabled"  
 
 }
 
-
 $bloat = Read-Host "Debloat all AppxPackages or just the blacklist (like candy crysh saga, bing news, windows maps...) (all/blacklist)"
 switch ($bloat) {
 	all {
@@ -1023,6 +1053,27 @@ switch ($remove3d) {
 	}
 }
 
+$removePeek = Read-Host "Disable Windows Peek? (y/n)"
+switch ($removePeek) {
+	y {
+	DisablePeek
+	}
+}
+
+$DisableThumbnail = Read-Host "Disable Windows files thumbnails? (y/n)"
+switch ($DisableThumbnail) {
+	y {
+	DisableThumbnail
+	}
+}
+
+$DisableBack = Read-Host "Disable Background Access? (y/n)"
+switch ($DisableBack) {
+	y {
+	DisableBackgroundApps
+	}
+}
+
 ProtectPrivacy
 
 #THINGS TO DO MANUALLY
@@ -1041,16 +1092,17 @@ ProtectPrivacy
 #browser.send_pings false
 #browser.sessionstore.max_tabs_undo 0
 #dom.battery.enabled false
-#dom.event.clipboardevents.enabled = false
+#dom.event.clipboardevents.enabled false
+#browser.startup.homepage_override.mstone ignore
+
 
 
 ## EXTRAS SUBSCRIBE LISTS FOR UBLOCK
 ## https://filterlists.com/lists/
 ## AdGuard Social Media filter
 ## AdGuard Tracking Protection filter
-## Block Google Fonts
 ## Fanboy's Anti-thirdparty Fonts
-## Fanboy's problematic-sites
+## ABP Anti-Circumvention Filter List
 
 ## Credits
 ##https://github.com/adolfintel/Windows10-Privacy
