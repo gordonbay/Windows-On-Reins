@@ -2,6 +2,9 @@
 
 This project aim is to make windows 10 usable, faster and under control. 
 
+## Warning
+I do not take responsibility for what may happen to your system. This is at your own risk.
+
 ## What it does - General
 
 - Disable windows services that still download updates even if user choose not to
