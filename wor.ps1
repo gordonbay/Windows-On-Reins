@@ -1,3 +1,141 @@
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !!                                         !!
+# !!           SAFE TO EDIT VALUES           !!
+# !!           CONFIGURATION PART            !!
+# !!                                         !!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+# Edit values (Option) to your Choice
+
+# Function = Option
+# List of Options
+
+$troubleshootInstalls = 0
+# 0 = Do nothing. *Recomended.
+# 1 = Enable essential stuff needed for some installations.
+# Note: Set to 0 if you are having trouble installing something on you pc.
+# Note: Known to fix these installations: windows language pack, Autodesk AutoCad and Appxs.
+# Note: Top priority configuration, overrides other settings.
+
+$beXboxSafe = 0
+# 0 = Disable Xbox and Windows Live Games related stuff. *Recomended.
+# 1 = Enable it.
+# Note: Top priority configuration, overrides other settings.
+
+$beBiometricSafe = 0
+# 0 = Disable biometric related stuff. *Recomended.
+# 1 = Enable it.
+# Note: Refers to lockscreen, fingerprint reader, illuminated IR sensor or other biometric sensors.
+# Note: Top priority configuration, overrides other settings.
+
+$telemetry = 0
+# 0 = Disable Telemetry. *Recomended.
+# 1 = Enable Telemetry.
+# Note: Microsoft uses telemetry to periodically collect information about Windows systems. It is possible to acquire information as the computer hardware serial number, the connection records for external storage devices, and traces of executed processes.
+# Note: This tweak may cause Enterprise edition to stop receiving Windows updates.
+
+$bloatware = 0
+# 0 = Remove non commented bloatware in bloatwareList array. *Recomended.
+# 1 = Reinstall Windows Bloatware.
+
+$bloatwareList = @(		
+	# Non commented lines will be uninstalled	
+		
+	# Maybe userful AppX       
+	#"*Microsoft.Advertising.Xaml_10.1712.5.0_x64__8wekyb3d8bbwe*"
+	#"*Microsoft.Advertising.Xaml_10.1712.5.0_x86__8wekyb3d8bbwe*"
+	#"*Microsoft.BingWeather*"
+	#"*Microsoft.MSPaint*"
+	#"*Microsoft.MicrosoftStickyNotes*"
+	#"*Microsoft.Windows.Photos*"
+	#"*Microsoft.WindowsCalculator*"
+	#"*Microsoft.WindowsStore*"
+	#"*Microsoft.WindowsCamera*"
+	
+	# Unnecessary AppX Apps
+	"*Microsoft.DrawboardPDF*"
+	"*E2A4F912-2574-4A75-9BB0-0D023378592B*"
+	"*Microsoft.Appconnector*"
+	"Microsoft.3dbuilder"
+	"Microsoft.3dbuilder"
+	"Microsoft.BingNews"
+	"Microsoft.GetHelp"
+	"Microsoft.Getstarted"
+	"Microsoft.Messaging"
+	"*Microsoft3DViewer*"
+	"Microsoft.MicrosoftOfficeHub"
+	"Microsoft.MicrosoftSolitaireCollection"
+	"Microsoft.NetworkSpeedTest"
+	"Microsoft.News"
+	"Microsoft.Office.Lens"
+	"Microsoft.Office.OneNote"
+	"Microsoft.Office.Sway"
+	"Microsoft.OneConnect"
+	"Microsoft.People"
+	"Microsoft.Print3D"
+	"Microsoft.RemoteDesktop"
+	"Microsoft.SkypeApp"
+	"Microsoft.StorePurchaseApp"
+	"Microsoft.Office.Todo.List"
+	"Microsoft.Whiteboard"
+	"Microsoft.WindowsAlarms"        
+	"microsoft.windowscommunicationsapps"
+	"*Microsoft.WindowsFeedbackHub*"
+	"Microsoft.WindowsMaps"
+	"Microsoft.WindowsSoundRecorder"
+	"Microsoft.ZuneMusic"
+	"Microsoft.ZuneVideo"
+
+	# Sponsored AppX
+	"*DolbyLaboratories.DolbyAccess*"
+	"*Microsoft.Asphalt8Airborne*"
+	"*46928bounde.EclipseManager*"
+	"*ActiproSoftwareLLC*"
+	"*AdobeSystemsIncorporated.AdobePhotoshopExpress*"
+	"*Duolingo-LearnLanguagesforFree*"
+	"*PandoraMediaInc*"
+	"*CandyCrush*"
+	"*BubbleWitch3Saga*"
+	"*Wunderlist*"
+	"*Flipboard.Flipboard*"
+	"*Twitter*"
+	"*Facebook*"
+	"*Spotify*"
+	"*Minecraft*"
+	"*Royal Revolt*"
+	"*Sway*"
+	"*Speed Test*"
+	"*FarmHeroesSaga*"   
+	
+	# Special Cases
+	# Dont Touch
+	if ($beXboxSafe -eq 0) {	
+		"Microsoft.XboxGamingOverlay"
+		"Microsoft.Xbox.TCUI"
+		"Microsoft.XboxApp"
+		"Microsoft.XboxGameOverlay"
+		"Microsoft.XboxIdentityProvider"
+		"Microsoft.XboxSpeechToTextOverlay"
+		
+	} 
+	
+	if ($beBiometricSafe -eq 0) {	
+		"*Microsoft.BioEnrollment*"
+		"*Microsoft.CredDialogHost*"
+		"*Microsoft.ECApp*"
+		"*Microsoft.LockApp*"		
+	} 
+)
+		
+##########
+# Configuration - End
+##########
+#--------------------------------------------------------------------------
+
+##########
+# Global Functions - Start
+##########
+
 $ErrorActionPreference = "SilentlyContinue"
 Set-ExecutionPolicy unrestricted
 Write-Host "Creating PSDrive 'HKCR' (HKEY_CLASSES_ROOT). This will be used for the duration of the script as it is necessary for the removal and modification of specific registry keys."
@@ -7,7 +145,7 @@ Set-MpPreference -EnableControlledFolderAccess Enabled
 
 
 Function RegChange($path, $thing, $value, $desc) {
-	Write-Output ("HKLM:\" + $desc)
+	Write-Output ($desc)
 	
     If (Test-Path ("HKLM:\" + $path)) {
         Set-ItemProperty ("HKLM:\" + $path) $thing -Value $value 
@@ -32,133 +170,22 @@ If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
     Exit
 }
 
+function serviceStatus{ 
+	param($ServiceName)
+	$arrService = Get-Service -Name $ServiceName
+	if ($arrService.Status -ne "Running"){
+		
+	}
+	if ($arrService.Status -eq "running"){ 
+		
+	}
+}
+#serviceStatus("MpsSvc");
+
 Function DarkTheme {
 	New-ItemProperty "HKCU:\HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -Value 0 -PropertyType "DWord"
 }
 
-Function DebloatBlack {
-    $Bloatware = @(
-
-        #Unnecessary Windows 10 AppX Apps
-        "Microsoft.BingNews"
-        "Microsoft.GetHelp"
-        "Microsoft.Getstarted"
-        "Microsoft.Messaging"
-        "Microsoft.Microsoft3DViewer"
-        "Microsoft.MicrosoftOfficeHub"
-        "Microsoft.MicrosoftSolitaireCollection"
-        "Microsoft.NetworkSpeedTest"
-        "Microsoft.News"
-        "Microsoft.Office.Lens"
-        "Microsoft.Office.OneNote"
-        "Microsoft.Office.Sway"
-        "Microsoft.OneConnect"
-        "Microsoft.People"
-        "Microsoft.Print3D"
-        "Microsoft.RemoteDesktop"
-        "Microsoft.SkypeApp"
-        "Microsoft.StorePurchaseApp"
-        "Microsoft.Office.Todo.List"
-        "Microsoft.Whiteboard"
-        "Microsoft.WindowsAlarms"
-        #"Microsoft.WindowsCamera"
-        "microsoft.windowscommunicationsapps"
-        "Microsoft.WindowsFeedbackHub"
-        "Microsoft.WindowsMaps"
-        "Microsoft.WindowsSoundRecorder"
-        "Microsoft.Xbox.TCUI"
-        "Microsoft.XboxApp"
-        "Microsoft.XboxGameOverlay"
-        "Microsoft.XboxIdentityProvider"
-        "Microsoft.XboxSpeechToTextOverlay"
-        "Microsoft.ZuneMusic"
-        "Microsoft.ZuneVideo"
-
-        #Sponsored Windows 10 AppX Apps
-        #Add sponsored/featured apps to remove in the "*AppName*" format
-        "*EclipseManager*"
-        "*ActiproSoftwareLLC*"
-        "*AdobeSystemsIncorporated.AdobePhotoshopExpress*"
-        "*Duolingo-LearnLanguagesforFree*"
-        "*PandoraMediaInc*"
-        "*CandyCrush*"
-        "*BubbleWitch3Saga*"
-        "*Wunderlist*"
-        "*Flipboard*"
-        "*Twitter*"
-        "*Facebook*"
-        "*Spotify*"
-        "*Minecraft*"
-        "*Royal Revolt*"
-        "*Sway*"
-        "*Speed Test*"
-        "*Dolby*"
-             
-        #Optional: Typically not removed but you can if you need to for some reason
-        #"*Microsoft.Advertising.Xaml_10.1712.5.0_x64__8wekyb3d8bbwe*"
-        #"*Microsoft.Advertising.Xaml_10.1712.5.0_x86__8wekyb3d8bbwe*"
-        #"*Microsoft.BingWeather*"
-        #"*Microsoft.MSPaint*"
-        #"*Microsoft.MicrosoftStickyNotes*"
-        #"*Microsoft.Windows.Photos*"
-        #"*Microsoft.WindowsCalculator*"
-        #"*Microsoft.WindowsStore*"
-    )
-    foreach ($Bloat in $Bloatware) {
-        Get-AppxPackage -Name $Bloat| Remove-AppxPackage
-        Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $Bloat | Remove-AppxProvisionedPackage -Online
-        Write-Output "Trying to remove $Bloat."
-    }
-}
-
-Function DebloatAll {
-	# REMOVE GARBAGE BY BULK
-	Get-AppxPackage -AllUsers | Remove-AppxPackage; Get-AppxProvisionedPackage -Online | Remove-AppxProvisionedPackage -Online
-}
-
-Function Remove-Keys {
-        
-    #These are the registry keys that it will delete.
-            
-    $Keys = @(
-            
-        #Remove Background Tasks
-        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\46928bounde.EclipseManager_2.2.4.51_neutral__a5h4egax66k6y"
-        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\ActiproSoftwareLLC.562882FEEB491_2.6.18.18_neutral__24pqs290vpjk0"
-        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\Microsoft.MicrosoftOfficeHub_17.7909.7600.0_x64__8wekyb3d8bbwe"
-        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\Microsoft.PPIProjection_10.0.15063.0_neutral_neutral_cw5n1h2txyewy"
-        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\Microsoft.XboxGameCallableUI_1000.15063.0.0_neutral_neutral_cw5n1h2txyewy"
-        "HKCR:\Extensions\ContractId\Windows.BackgroundTasks\PackageId\Microsoft.XboxGameCallableUI_1000.16299.15.0_neutral_neutral_cw5n1h2txyewy"
-            
-        #Windows File
-        "HKCR:\Extensions\ContractId\Windows.File\PackageId\ActiproSoftwareLLC.562882FEEB491_2.6.18.18_neutral__24pqs290vpjk0"
-            
-        #Registry keys to delete if they aren't uninstalled by RemoveAppXPackage/RemoveAppXProvisionedPackage
-        "HKCR:\Extensions\ContractId\Windows.Launch\PackageId\46928bounde.EclipseManager_2.2.4.51_neutral__a5h4egax66k6y"
-        "HKCR:\Extensions\ContractId\Windows.Launch\PackageId\ActiproSoftwareLLC.562882FEEB491_2.6.18.18_neutral__24pqs290vpjk0"
-        "HKCR:\Extensions\ContractId\Windows.Launch\PackageId\Microsoft.PPIProjection_10.0.15063.0_neutral_neutral_cw5n1h2txyewy"
-        "HKCR:\Extensions\ContractId\Windows.Launch\PackageId\Microsoft.XboxGameCallableUI_1000.15063.0.0_neutral_neutral_cw5n1h2txyewy"
-        "HKCR:\Extensions\ContractId\Windows.Launch\PackageId\Microsoft.XboxGameCallableUI_1000.16299.15.0_neutral_neutral_cw5n1h2txyewy"
-            
-        #Scheduled Tasks to delete
-        "HKCR:\Extensions\ContractId\Windows.PreInstalledConfigTask\PackageId\Microsoft.MicrosoftOfficeHub_17.7909.7600.0_x64__8wekyb3d8bbwe"
-            
-        #Windows Protocol Keys
-        "HKCR:\Extensions\ContractId\Windows.Protocol\PackageId\ActiproSoftwareLLC.562882FEEB491_2.6.18.18_neutral__24pqs290vpjk0"
-        "HKCR:\Extensions\ContractId\Windows.Protocol\PackageId\Microsoft.PPIProjection_10.0.15063.0_neutral_neutral_cw5n1h2txyewy"
-        "HKCR:\Extensions\ContractId\Windows.Protocol\PackageId\Microsoft.XboxGameCallableUI_1000.15063.0.0_neutral_neutral_cw5n1h2txyewy"
-        "HKCR:\Extensions\ContractId\Windows.Protocol\PackageId\Microsoft.XboxGameCallableUI_1000.16299.15.0_neutral_neutral_cw5n1h2txyewy"
-               
-        #Windows Share Target
-        "HKCR:\Extensions\ContractId\Windows.ShareTarget\PackageId\ActiproSoftwareLLC.562882FEEB491_2.6.18.18_neutral__24pqs290vpjk0"
-    )
-        
-    #This writes the output of each key it is removing and also removes the keys listed above.
-    ForEach ($Key in $Keys) {
-        Write-Output "Removing $Key from registry"
-        Remove-Item $Key -Recurse
-    }
-}
 
 Function DisableUAC {
 	New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
@@ -177,35 +204,18 @@ Function DisableUAC {
 	reg add "HKCU\SOFTWARE\Microsoft\OneDrive" /v "DisablePersonalSync" /t REG_DWORD /d 1 /f > nul
 }
 
-Function DisableBackgroundApps {
-	Write-Output "Disabling Background application access..."
-	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
-		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 1
-		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 1
-	}
-}
-
 Function ProtectPrivacy {
 
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "0" "Disabling Windows Feedback Experience program / Advertising ID"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "0" "Stopping Cortana from being used as part of your Windows Search Function" 
-	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "0" "Disabling Windows Feedback" 
+	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "0" "Disabling Windows Feedback Experience from sending anonymous data" 
 	RegChange "Software\Microsoft\Siuf\Rules" "PeriodInNanoSeconds" "0" "Disabling Windows Feedback"            
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "1" "Adding Registry key to prevent bloatware apps from returning"   			
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "0" "Adding Registry key to prevent bloatware apps from returning"	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "0" "Adding Registry key to prevent bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "0" "Adding Registry key to prevent bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "0" "Adding Registry key to prevent bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "0" "Adding Registry key to prevent bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "0" "Adding Registry key to prevent bloatware apps from returning"  	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "1" "Adding Registry key to prevent bloatware apps from returning"	
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "0" "Disabling Reality Portal"    
 	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting" "Value" "0" "Disabling Wi-Fi Sense"    
 	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots" "Value" "0" "Disabling Wi-Fi Sense"  
 	RegChange "SOFTWARE\Microsoft\WcmSvc\wifinetworkmanager\config" "AutoConnectAllowedOEM" "0" "Disabling Wi-Fi Sense"  
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "1" "Disabling live tiles"  
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
-	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
 	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "0" "Disabling Location Tracking"
 	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "0" "Disabling Location Tracking"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "0" "Disabling People icon on Taskbar"
@@ -223,6 +233,12 @@ Function ProtectPrivacy {
 	Set-NetConnectionProfile -NetworkCategory Public
 	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures\010103000F0000F0010000000F0000F0C967A3643C3AD745950DA7859209176EF5B87C875FA20DF21951640E807D7C24" -Name "Category" -ErrorAction SilentlyContinue
    
+   Write-Output "Disabling Background application access..."
+	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
+		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 1
+		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 1
+	}
+	
     #Disables scheduled tasks that are considered unnecessary 
     Write-Output "Disabling scheduled tasks"
     Get-ScheduledTask  XblGameSaveTaskLogon | Disable-ScheduledTask
@@ -309,12 +325,122 @@ Function DisableThumbnail {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbsDBOnNetworkFolders" "1" "Disabling Windows Thumbnail"
 }
 
-$reverse = Read-Host "Reverse mode? (use if having some troubles) (y/n)"
 
-while("y","n" -notcontains $reverse)
-{
-	$reverse = Read-Host "y or n?"
+##########
+# Global Functions - End
+##########
+#--------------------------------------------------------------------------
+
+##########
+# Program - Start
+##########
+
+if ($telemetry -eq 0) {	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
+	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
+	Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
+	Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
+	Disable-ScheduledTask -TaskName "Microsoft\Windows\Autochk\Proxy" | Out-Null
+	Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\Consolidator" | Out-Null
+	Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" | Out-Null
+	Disable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
 }
+
+if ($telemetry -eq 1) {	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
+	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
+	Enable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
+	Enable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
+	Enable-ScheduledTask -TaskName "Microsoft\Windows\Autochk\Proxy" | Out-Null
+	Enable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\Consolidator" | Out-Null
+	Enable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" | Out-Null
+	Enable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
+}
+
+if ($bloatware -eq 0) {			
+	foreach ($Bloat in $bloatwareList) {
+		Get-AppxPackage -Name $Bloat| Remove-AppxPackage
+		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $Bloat | Remove-AppxProvisionedPackage -Online
+		Write-Output "Trying to remove $Bloat."
+	}	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "0" "Adding Registry key to PREVENT bloatware apps from returning"	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" 
+}	
+
+if ($bloatware -eq 1) {	
+	foreach ($Bloat in $bloatwareList) {
+		Get-AppxPackage -Name $Bloat| Add-AppxPackage
+		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $Bloat | Add-AppxProvisionedPackage -Online
+		Write-Output "Trying to INSTALL $Bloat."
+	}	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "1" "Adding Registry key to ALLOW bloatware apps from returning"	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning" 
+}	
+
+if ($beXboxSafe -eq 1) {
+	$safeXboxBloatware = @(	
+		"Microsoft.XboxGamingOverlay"
+		"Microsoft.Xbox.TCUI"
+		"Microsoft.XboxApp"
+		"Microsoft.XboxGameOverlay"
+		"Microsoft.XboxIdentityProvider"
+		"Microsoft.XboxSpeechToTextOverlay"
+	)
+	foreach ($safeXboxBloatware1 in $safeXboxBloatware) {
+		Get-AppxPackage -Name $safeXboxBloatware1| Add-AppxPackage
+		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safeXboxBloatware1 | Add-AppxProvisionedPackage -Online
+		Write-Output "Trying to install $safeXboxBloatware1."
+	}
+}
+
+if ($beBiometricSafe -eq 1) {
+	$safebeBiometricSafe = @(	
+		"*Microsoft.BioEnrollment*"
+		"*Microsoft.CredDialogHost*"
+		"*Microsoft.ECApp*"
+		"*Microsoft.LockApp*"
+	)
+	foreach ($safebeBiometricSafe1 in $safebeBiometricSafe) {
+		Get-AppxPackage -Name $safebeBiometricSafe1| Add-AppxPackage
+		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safebeBiometricSafe1 | Add-AppxProvisionedPackage -Online
+		Write-Output "Trying to install $safebeBiometricSafe1."
+	}
+}
+
+if ($troubleshootInstalls -eq 1) {
+	Write-Output "Troubleshoot Install: Windows Management Instrumentation service enabled."
+	Get-Service Winmgmt | Stop-Service -PassThru | Set-Service -StartupType automatic
+	
+	Write-Output "Troubleshoot Install: Windows Management Instrumentation enabled by registry."
+	New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 2 -Force
+	
+	Write-Output "Troubleshoot Install: Windows firewall service enabled by registry."
+	New-ItemProperty -Path HKLM:SYSTEM\CurrentControlSet\Services\MpsSvc -Name Start -PropertyType DWord -Value 2 -Force -EA SilentlyContinue | Out-Null	
+	
+	Write-Output "Troubleshoot Install: Windows Firewall enabled by registry."
+	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" "0" "Enabling Windows Anti Spyware - DisableAntiSpyware - Windows Firewall"
+	
+	Write-Output "Troubleshoot Install: Windows Firewall enabled by Get-Service."
+	Get-Service MpsSvc | Stop-Service -PassThru | Set-Service -StartupType automatic
+	
+	Write-Output "Troubleshoot Install: Windows Firewall enabled by Get-NetFirewallProfile."
+	Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled True
+}
+
+##########
+# Program - End
+##########
+#--------------------------------------------------------------------------
 
 
 $visual = Read-Host "Install Initial Packages? (y/n)"
@@ -998,32 +1124,7 @@ reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v ct
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "EnableADAL" -Type DWord -Value 0
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "DisableADALatopWAMOverride" -Type DWord -Value 1
 
-if ($reverse -like "y") { 
 
-#CAUTION - DISABLING Winmgmt CAN PREVENT SOME INSTALATIONS DO WORK PROPERLY - LIKE ACAD
-Get-Service Winmgmt | Stop-Service -PassThru | Set-Service -StartupType automatic
-if($?){   write-Host -ForegroundColor DarkYellow "Windows Management Instrumentation enabled"  }else{   write-Host -ForegroundColor red "Windows Management Instrumentation not enabled" } 
-New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 2 -Force
-if($?){   write-Host -ForegroundColor DarkYellow "Windows Management Instrumentation enabled by registry"  }else{   write-Host -ForegroundColor red "Windows Management Instrumentation not enabled by registry" } 
-
-#CAUTION - DISABLING WIN FIREWALL CAN PREVENT PRINT NETWORK SHARING
-New-ItemProperty -Path HKLM:SYSTEM\CurrentControlSet\Services\MpsSvc -Name Start -PropertyType DWord -Value 2 -Force -EA SilentlyContinue | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows firewall service enabled"  }else{   write-Host -ForegroundColor red "Windows firewall service disabled" } 
-
-
-}
-
-$bloat = Read-Host "Debloat all AppxPackages or just the blacklist (like candy crysh saga, bing news, windows maps...) (all/blacklist)"
-switch ($bloat) {
-	all {
-	DebloatAll
-	Remove-Keys
-	}
-	blacklist {
-	DebloatBlack
-	Remove-Keys
-	}
-}
 
 $disablecortana = Read-Host "Disable Cortana? (y/n)"
 switch ($disablecortana) {
@@ -1087,6 +1188,7 @@ ProtectPrivacy
 #app.update.auto false
 #identity.fxaccounts.enabled false
 #privacy.firstparty.isolate true
+#privacy.firstparty.isolate.block_post_message true
 #privacy.resistFingerprinting true
 #browser.cache.offline.enable false
 #browser.send_pings false
@@ -1094,7 +1196,9 @@ ProtectPrivacy
 #dom.battery.enabled false
 #dom.event.clipboardevents.enabled false
 #browser.startup.homepage_override.mstone ignore
-
+#browser.cache.disk.smart_size false
+#browser.cache.disk.capacity
+#dom.event.contextmenu.enabled false
 
 
 ## EXTRAS SUBSCRIBE LISTS FOR UBLOCK
@@ -1104,9 +1208,20 @@ ProtectPrivacy
 ## Fanboy's Anti-thirdparty Fonts
 ## ABP Anti-Circumvention Filter List
 
+## NOTES
+## DHCP REQUIRED FOR VPN
+## TELEPHONY REQUIRED FOR PPOE
+## DISABLE wisvc
+## DISABLING WIN FIREWALL CAN PREVENT PRINT NETWORK SHARING
+
+
 ## Credits
-##https://github.com/adolfintel/Windows10-Privacy
-##https://github.com/Sycnex/Windows10Debloater
+## https://github.com/builtbybel/debotnet
+## https://github.com/Disassembler0/Win10-Initial-Setup-Script
+## https://gist.github.com/alirobe/7f3b34ad89a159e6daa1
+## https://github.com/adolfintel/Windows10-Privacy
+## https://github.com/Sycnex/Windows10Debloater
+## http://www.blackviper.com/service-configurations/black-vipers-windows-10-service-configurations/
 
 Remove-PSDrive HKCR
 PAUSE
