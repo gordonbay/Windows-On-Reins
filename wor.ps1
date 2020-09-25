@@ -18,7 +18,7 @@ $troubleshootInstalls = 0
 # Note: Top priority configuration, overrides other settings.
 
 $beXboxSafe = 0
-# 0 = Disable Xbox and Windows Live Games related stuff. *Recomended.
+# 0 = Disable Xbox and Windows Live Games related stuff like Game Bar. *Recomended.
 # 1 = Enable it.
 # Note: Top priority configuration, overrides other settings.
 
@@ -28,15 +28,39 @@ $beBiometricSafe = 0
 # Note: Refers to lockscreen, fingerprint reader, illuminated IR sensor or other biometric sensors.
 # Note: Top priority configuration, overrides other settings.
 
+$beAeroPeekSafe = 0
+# 0 = Disable Windows Aero Peek. *Recomended.
+# 1 = Enable it to Windows deafaults.
+# Note: Top priority configuration, overrides other settings.
+
+$beThumbnailSafe = 0
+# 0 = Disable Windows Thumbnails. *Recomended.
+# 1 = Enable it to Windows deafaults.
+# Note: Refers to the use of thumbnails instead of icon to some files.
+# Note: Top priority configuration, overrides other settings.
+
 $telemetry = 0
 # 0 = Disable Telemetry. *Recomended.
 # 1 = Enable Telemetry.
 # Note: Microsoft uses telemetry to periodically collect information about Windows systems. It is possible to acquire information as the computer hardware serial number, the connection records for external storage devices, and traces of executed processes.
 # Note: This tweak may cause Enterprise edition to stop receiving Windows updates.
 
+$disablelastaccess = 0
+# 0 = Disable last file access date. *Recomended.
+# 1 = Enable it.
+
 $bloatware = 0
 # 0 = Remove non commented bloatware in bloatwareList array. *Recomended.
-# 1 = Reinstall Windows Bloatware.
+# 1 = Install Windows Bloatware that are not commented in bloatwareList array.
+# Note: On bloatwareList comment the lines on Appxs that you want to keep/install.
+
+$doPerformanceStuff = 1
+# 0 = Perform routines to increase system performance. *Recomended.
+# 1 = Reverse system settings to default.
+
+$doPrivacyStuff = 1
+# 0 = Perform routines to increase system privacy. *Recomended.
+# 1 = Reverse system settings to default.
 
 $bloatwareList = @(		
 	# Non commented lines will be uninstalled	
@@ -127,6 +151,7 @@ $bloatwareList = @(
 	} 
 )
 		
+
 ##########
 # Configuration - End
 ##########
@@ -140,18 +165,35 @@ $ErrorActionPreference = "SilentlyContinue"
 Set-ExecutionPolicy unrestricted
 Write-Host "Creating PSDrive 'HKCR' (HKEY_CLASSES_ROOT). This will be used for the duration of the script as it is necessary for the removal and modification of specific registry keys."
 New-PSDrive  HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
-Set-MpPreference -EnableControlledFolderAccess Enabled
+
+# Enable Controlled Folder Access (Defender Exploit Guard feature) - Applicable since 1709, requires Windows Defender to be enabled
+Write-Output "Enabling Controlled Folder Access..."
+Set-MpPreference -EnableControlledFolderAccess Enabled -ErrorAction SilentlyContinue
 
 
 
-Function RegChange($path, $thing, $value, $desc) {
-	Write-Output ($desc)
+Function RegChange($path, $thing, $value, $desc, $type) {
+	Write-Output ($desc)	
+	
+   # String: Specifies a null-terminated string. Equivalent to REG_SZ.
+   # ExpandString: Specifies a null-terminated string that contains unexpanded references to environment variables that are expanded when the value is retrieved. Equivalent to REG_EXPAND_SZ.
+   # Binary: Specifies binary data in any form. Equivalent to REG_BINARY.
+   # DWord: Specifies a 32-bit binary number. Equivalent to REG_DWORD.
+   # MultiString: Specifies an array of null-terminated strings terminated by two null characters. Equivalent to REG_MULTI_SZ.
+   # Qword: Specifies a 64-bit binary number. Equivalent to REG_QWORD.
+   # Unknown: Indicates an unsupported registry data type, such as REG_RESOURCE_LIST.
+
+	$type2 = "String"
+	if (-not ([string]::IsNullOrEmpty($type)))
+	{
+		$type2 = $type
+	}
 	
     If (Test-Path ("HKLM:\" + $path)) {
-        Set-ItemProperty ("HKLM:\" + $path) $thing -Value $value 
+        Set-ItemProperty ("HKLM:\" + $path) $thing -Value $value -Type $type2
     }
 	If (Test-Path ("HKCU:\" + $path)) {
-        Set-ItemProperty ("HKCU:\" + $path) $thing -Value $value 
+        Set-ItemProperty ("HKCU:\" + $path) $thing -Value $value -Type $type2
     }
 
 }
@@ -313,17 +355,48 @@ Function Remove3dObjects {
     }
 }
 
+Function EnablePeek {	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewWindow" "0" "Enabling Windows Peek Thumbnail" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewDesktop" "0" "Enabling Windows Peek Desktop Preview" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\DWM" "EnableAeroPeek" "0" "Enabling Windows Peek" "DWord"
+}
+
 Function DisablePeek {	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewWindow" "1" "Disabling Windows Peek"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewDesktop" "1" "Disabling Windows Peek"
-	RegChange "SOFTWARE\Microsoft\Windows\DWM" "EnableAeroPeek" "0" "Disabling Windows Peek"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewWindow" "1" "Disabling Windows Peek Thumbnail" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewDesktop" "1" "Disabling Windows Peek Desktop Preview" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\DWM" "EnableAeroPeek" "0" "Disabling Windows Peek" "DWord"
+}
+
+Function EnablingThumbnail {	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "IconsOnly" "0" "Enabling Windows Thumbnail" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbnailCache" "0" "Enabling Windows Thumbnail" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbsDBOnNetworkFolders" "0" "Enabling Windows Thumbnail" "DWord"
 }
 
 Function DisableThumbnail {	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "IconsOnly" "1" "Disabling Windows Thumbnail"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbnailCache" "1" "Disabling Windows Thumbnail"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbsDBOnNetworkFolders" "1" "Disabling Windows Thumbnail"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "IconsOnly" "1" "Disabling Windows Thumbnail" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbnailCache" "1" "Disabling Windows Thumbnail" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbsDBOnNetworkFolders" "1" "Disabling Windows Thumbnail" "DWord"
 }
+
+# Disable Xbox features - Not applicable to Server
+Function DisableXboxFeatures {
+	Write-Output "Disabling Xbox features..."
+	Get-AppxPackage "Microsoft.XboxApp" | Remove-AppxPackage
+	Get-AppxPackage "Microsoft.XboxIdentityProvider" | Remove-AppxPackage -ErrorAction SilentlyContinue
+	Get-AppxPackage "Microsoft.XboxSpeechToTextOverlay" | Remove-AppxPackage
+	Get-AppxPackage "Microsoft.XboxGameOverlay" | Remove-AppxPackage
+	Get-AppxPackage "Microsoft.XboxGamingOverlay" | Remove-AppxPackage
+	Get-AppxPackage "Microsoft.Xbox.TCUI" | Remove-AppxPackage
+	Set-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AutoGameModeEnabled" -Type DWord -Value 0
+	Set-ItemProperty -Path "HKCU:\System\GameConfigStore" -Name "GameDVR_Enabled" -Type DWord -Value 0
+	If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR")) {
+		New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR" | Out-Null
+	}
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR" -Name "AllowGameDVR" -Type DWord -Value 0
+}
+
+
 
 
 ##########
@@ -362,7 +435,6 @@ if ($telemetry -eq 1) {
 if ($bloatware -eq 0) {			
 	foreach ($Bloat in $bloatwareList) {
 		Get-AppxPackage -Name $Bloat| Remove-AppxPackage
-		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $Bloat | Remove-AppxProvisionedPackage -Online
 		Write-Output "Trying to remove $Bloat."
 	}	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "0" "Adding Registry key to PREVENT bloatware apps from returning"	
@@ -387,6 +459,11 @@ if ($bloatware -eq 1) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning" 
 }	
 
+
+if ($beXboxSafe -eq 0) {
+
+}
+
 if ($beXboxSafe -eq 1) {
 	$safeXboxBloatware = @(	
 		"Microsoft.XboxGamingOverlay"
@@ -397,10 +474,18 @@ if ($beXboxSafe -eq 1) {
 		"Microsoft.XboxSpeechToTextOverlay"
 	)
 	foreach ($safeXboxBloatware1 in $safeXboxBloatware) {
-		Get-AppxPackage -Name $safeXboxBloatware1| Add-AppxPackage
-		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safeXboxBloatware1 | Add-AppxProvisionedPackage -Online
 		Write-Output "Trying to install $safeXboxBloatware1."
+		Get-AppxPackage -Name $safeXboxBloatware1| Add-AppxPackage
+		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safeXboxBloatware1 | Add-AppxProvisionedPackage -Online		
 	}
+	
+	RegChange "System\GameConfigStore" "GameDVR_Enabled" "1" "Changing Registry key to ENABLE Game DVR - GameDVR_Enabled" 
+	
+	# The Game bar is a Xbox app Game DVR feature that makes it simple to take control of your gaming activities—such as broadcasting, capturing clips, and sharing captures
+	# (delete) = Enable
+	# 0 = Disable
+	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR" -Name "AllowGameDVR" -ErrorAction SilentlyContinue
+	Remove-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AutoGameModeEnabled" -ErrorAction SilentlyContinue
 }
 
 if ($beBiometricSafe -eq 1) {
@@ -436,6 +521,74 @@ if ($troubleshootInstalls -eq 1) {
 	Write-Output "Troubleshoot Install: Windows Firewall enabled by Get-NetFirewallProfile."
 	Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled True
 }
+
+if ($disablelastaccess -eq 0) {
+	Write-Output "Disabling last file access."
+	fsutil behavior set disablelastaccess 3
+}
+
+if ($disablelastaccess -eq 1) {
+	Write-Output "Enabling last file access."
+	fsutil behavior set disablelastaccess 2
+}
+
+if ($doPerformanceStuff -eq 0) {
+	Write-Output "Reverse performance stuff."
+	EnableThumbnail
+	EnablePeek
+}
+
+if ($doPerformanceStuff -eq 1) {
+	Write-Output "Doing performance stuff."
+	
+	if ($beAeroPeekSafe -eq 0) {		
+		DisablePeek
+	}
+	
+	if ($beAeroPeekSafe -eq 1) {
+		Write-Host "Performance optimization on Aero Peek disabled because of the beAeroPeekSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+		EnablePeek
+	}	
+	
+	if ($beThumbnailSafe -eq 0) {		
+		DisableThumbnail
+	}
+	
+	if ($beThumbnailSafe -eq 1) {
+		Write-Host "Performance optimization on Windows Thumbnails disabled because of the beThumbnailSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+		EnableThumbnail
+	}
+}
+
+if ($doPrivacyStuff -eq 0) {
+	Write-Output "Reverse performance stuff."
+	EnableThumbnail
+	EnablePeek
+}
+
+if ($doPrivacyStuff -eq 1) {
+	Write-Output "Doing performance stuff."
+	
+	if ($beAeroPeekSafe -eq 0) {		
+		DisablePeek
+	}
+	
+	if ($beAeroPeekSafe -eq 1) {
+		Write-Host "Privacy optimization on Aero Peek disabled because of the beAeroPeekSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+		EnablePeek
+	}
+	
+	if ($beThumbnailSafe -eq 0) {		
+		DisableThumbnail
+	}
+	
+	if ($beThumbnailSafe -eq 1) {
+		Write-Host "Privacy optimization on Windows Thumbnails disabled because of the beThumbnailSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+		EnableThumbnail
+	}
+
+}
+
 
 ##########
 # Program - End
@@ -1154,19 +1307,6 @@ switch ($remove3d) {
 	}
 }
 
-$removePeek = Read-Host "Disable Windows Peek? (y/n)"
-switch ($removePeek) {
-	y {
-	DisablePeek
-	}
-}
-
-$DisableThumbnail = Read-Host "Disable Windows files thumbnails? (y/n)"
-switch ($DisableThumbnail) {
-	y {
-	DisableThumbnail
-	}
-}
 
 $DisableBack = Read-Host "Disable Background Access? (y/n)"
 switch ($DisableBack) {
@@ -1203,9 +1343,9 @@ ProtectPrivacy
 
 ## EXTRAS SUBSCRIBE LISTS FOR UBLOCK
 ## https://filterlists.com/lists/
-## AdGuard Social Media filter
-## AdGuard Tracking Protection filter
-## Fanboy's Anti-thirdparty Fonts
+## Block the EU Cookie Shit List
+## EasyList Cookie List
+## I Don't Care about Cookies
 ## ABP Anti-Circumvention Filter List
 
 ## NOTES
