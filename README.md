@@ -5,18 +5,15 @@ This project aim is to make windows 10 usable, faster and under control.
 ## Warning
 I do not take responsibility for what may happen to your system. This is at your own risk.
 
-## What it does - General
+## What it does - Quality of Life
 
-- Disable windows services that still download updates even if user choose not to
-- Disable windows services with unusual data traffic
-- Disable windows services with unusual disk usage
-- Disable useless and questionable services like "Windows Telemetry"
 - Allow users to definitively disable windows updades
 - Allow users to definitively disable windows defender
-- Installation of those VC++ resources that should came with windows anyway
-- Allow users to clear all the bloatware that came with windows installation
+- Installation of those VC++ resources
+- Allow users to clear all the bloatware that cames with Windows installation
 - Enable dark mode
-
+- Install Nvidia control panel
+- Dracula's dark mode for Notepad++
 
 ## What it does - Performance details
 
@@ -49,6 +46,10 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Adobe updates
 - Disable NvTelemetryContainer, Nvidia telemetry agent 
 
+## What it does - Security
+
+- Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
+- Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya
 
 ## What it does - Annoyances details
 
