@@ -1,7 +1,7 @@
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # !!                                         !!
-# !!           SAFE TO EDIT VALUES           !!
-# !!           CONFIGURATION PART            !!
+# !!          SAFE TO EDIT VALUES            !!
+# !!          CONFIGURATION START            !!
 # !!                                         !!
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -39,11 +39,36 @@ $beThumbnailSafe = 0
 # Note: Refers to the use of thumbnails instead of icon to some files.
 # Note: Top priority configuration, overrides other settings.
 
+$beCastSafe = 0
+# 0 = Disable Casting. *Recomended.
+# 1 = Enable it.  
+# Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
+# Note: Top priority configuration, overrides other settings.
+
+$NvidiaControlPanel = 1
+# 0 = Remove Nvidia Appx.
+# 1 = Install Nvidia control panel. *Recomended.
+# Note: The script will check if your GPU vendor is Nvidia
+# Note: Refers to the new Nvidia Appx. Nvidia driver install dont cames with control panel anymore.
+
+$darkTheme = 1
+# 0 = Use Windows and apps default light theme.
+# 1 = Enable dark theme. *Recomended.
+
+$draculaThemeNotepad = 1
+# 0 = Disable Dracula theme for Notepad++.
+# 1 = Enable Dracula theme for Notepad++. *Recomended.
+
 $telemetry = 0
 # 0 = Disable Telemetry. *Recomended.
 # 1 = Enable Telemetry.
 # Note: Microsoft uses telemetry to periodically collect information about Windows systems. It is possible to acquire information as the computer hardware serial number, the connection records for external storage devices, and traces of executed processes.
 # Note: This tweak may cause Enterprise edition to stop receiving Windows updates.
+
+$disableSMBServer = 1
+# 0 = Enable SMB Server. 
+# 1 = Disable it. *Recomended.
+# Note: SMB Server is used for file and printer sharing.
 
 $disablelastaccess = 0
 # 0 = Disable last file access date. *Recomended.
@@ -149,6 +174,14 @@ $bloatwareList = @(
 		"*Microsoft.ECApp*"
 		"*Microsoft.LockApp*"		
 	} 
+	
+	if ($NvidiaControlPanel -eq 0) {
+		"*NVIDIACorp.NVIDIAControlPanel*"
+	}
+	
+	if ($beCastSafe -eq 0) {
+		"*Microsoft.PPIP*"
+	}
 )
 		
 
@@ -161,6 +194,7 @@ $bloatwareList = @(
 # Global Functions - Start
 ##########
 
+$env:POWERSHELL_TELEMETRY_OPTOUT = 'yes';
 $ErrorActionPreference = "SilentlyContinue"
 Set-ExecutionPolicy unrestricted
 Write-Host "Creating PSDrive 'HKCR' (HKEY_CLASSES_ROOT). This will be used for the duration of the script as it is necessary for the removal and modification of specific registry keys."
@@ -214,20 +248,30 @@ If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
 
 function serviceStatus{ 
 	param($ServiceName)
-	$arrService = Get-Service -Name $ServiceName
-	if ($arrService.Status -ne "Running"){
-		
-	}
-	if ($arrService.Status -eq "running"){ 
-		
+	Write-Output $("Checking service " + $ServiceName + " status...")
+	$arrService = Get-Service -Name $ServiceName	
+	if ($arrService.Status -eq "Stopped"){
+		Write-Output $("Service " + $ServiceName + " is stopped.")
+		return "stopped"
 	}
 }
-#serviceStatus("MpsSvc");
+#serviceStatus("Schedule");
 
-Function DarkTheme {
-	New-ItemProperty "HKCU:\HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -Value 0 -PropertyType "DWord"
+function killProcess{ 
+	param($processName)
+	Write-Output $("Trying to gracefully close " + $processName + " ...")
+
+	$firefox = Get-Process $processName -ErrorAction SilentlyContinue
+	if ($firefox) {
+		$firefox.CloseMainWindow()
+		Sleep 3
+		if (!$firefox.HasExited) {
+			Write-Output $("Killing " + $processName + " ...")
+			$firefox | Stop-Process -Force
+		}
+	}
+	return
 }
-
 
 Function DisableUAC {
 	New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
@@ -265,8 +309,7 @@ Function ProtectPrivacy {
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "0" "Disabling Activity History Feed"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "0" "Disabling Activity History Feed"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "0" "Disabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "1" "Disabling Tailored Experiences"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" "EnableMulticast" "0" "Disabling Link-Local Multicast Name Resolution (LLMNR) protocol"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "1" "Disabling Tailored Experiences"	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "0" "Disabling automatic installation of network devices"
 	RegChange "SYSTEM\CurrentControlSet\Control\Remote Assistance" "fAllowToGetHelp" "0" "Disabling Remote Assistance"
 	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "1" "Disabling Remote Desktop"
@@ -282,9 +325,7 @@ Function ProtectPrivacy {
 	}
 	
     #Disables scheduled tasks that are considered unnecessary 
-    Write-Output "Disabling scheduled tasks"
-    Get-ScheduledTask  XblGameSaveTaskLogon | Disable-ScheduledTask
-    Get-ScheduledTask  XblGameSaveTask | Disable-ScheduledTask
+    Write-Output "Disabling scheduled tasks"    
     Get-ScheduledTask  Consolidator | Disable-ScheduledTask
     Get-ScheduledTask  UsbCeip | Disable-ScheduledTask
     Get-ScheduledTask  DmClient | Disable-ScheduledTask
@@ -358,13 +399,17 @@ Function Remove3dObjects {
 Function EnablePeek {	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewWindow" "0" "Enabling Windows Peek Thumbnail" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewDesktop" "0" "Enabling Windows Peek Desktop Preview" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\DWM" "EnableAeroPeek" "0" "Enabling Windows Peek" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\DWM" "EnableAeroPeek" "1" "Enabling Windows Peek" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ExtendedUIHoverTime" "0" "Enabling Windows Peek Taskbar Thumbnail" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\DWM" "AlwaysHibernateThumbnails" "1" "Enabling Windows Peek Taskbar Thumbnail Cache" "DWord"
 }
 
 Function DisablePeek {	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewWindow" "1" "Disabling Windows Peek Thumbnail" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewDesktop" "1" "Disabling Windows Peek Desktop Preview" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\DWM" "EnableAeroPeek" "0" "Disabling Windows Peek" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ExtendedUIHoverTime" "30000" "Disabling Windows Peek Taskbar Thumbnail" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\DWM" "AlwaysHibernateThumbnails" "0" "Disabling Windows Peek Taskbar Thumbnail Cache" "DWord"
 }
 
 Function EnablingThumbnail {	
@@ -379,7 +424,7 @@ Function DisableThumbnail {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbsDBOnNetworkFolders" "1" "Disabling Windows Thumbnail" "DWord"
 }
 
-# Disable Xbox features - Not applicable to Server
+# Disable Xbox features
 Function DisableXboxFeatures {
 	Write-Output "Disabling Xbox features..."
 	Get-AppxPackage "Microsoft.XboxApp" | Remove-AppxPackage
@@ -388,6 +433,13 @@ Function DisableXboxFeatures {
 	Get-AppxPackage "Microsoft.XboxGameOverlay" | Remove-AppxPackage
 	Get-AppxPackage "Microsoft.XboxGamingOverlay" | Remove-AppxPackage
 	Get-AppxPackage "Microsoft.Xbox.TCUI" | Remove-AppxPackage
+	
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Disabling Xbox scheduled tasks..."
+		Get-ScheduledTask  XblGameSaveTaskLogon | Disable-ScheduledTask
+		Get-ScheduledTask  XblGameSaveTask | Disable-ScheduledTask
+	}
+	
 	Set-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AutoGameModeEnabled" -Type DWord -Value 0
 	Set-ItemProperty -Path "HKCU:\System\GameConfigStore" -Name "GameDVR_Enabled" -Type DWord -Value 0
 	If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR")) {
@@ -396,8 +448,120 @@ Function DisableXboxFeatures {
 	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR" -Name "AllowGameDVR" -Type DWord -Value 0
 }
 
+# Prefetch-files contain metadata information about the last run of the program, how many times it was run, which logical drive a program was run and dlls used.
+Function EnablePrefetcher {	
+	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" "EnablePrefetcher" "3" "Enabling Prefetcher" "DWord"
+}
+Function DisablePrefetcher {	
+	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" "EnablePrefetcher" "0" "Disabling Prefetcher" "DWord"
+}
+
+# 
+Function DisableDnsCache {	
+	Write-Output "Flushing DNS."
+	ipconfig /flushDNS	
+
+	RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "4" "Disabling DNS Cache Service" "DWord"
+}
+
+Function EnableDnsCache {	
+	RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "2" "Enabling DNS Cache Service" "DWord"
+}
+
+Function EnableMemoryDump {
+	RegChange "SYSTEM\CurrentControlSet\Control\CrashControl" "CrashDumpEnabled" "1" "Enabling Memory Dump" "DWord"
+}
+
+Function DisableMemoryDump {
+	RegChange "SYSTEM\CurrentControlSet\Control\CrashControl" "CrashDumpEnabled" "0" "Disabling Memory Dump" "DWord"
+}
+
+Function GPUVendor {
+	Write-Output "Checking your GPU vendor..."
+	$myGPU = Get-WmiObject win32_VideoController
+	if ($myGPU.name -like '*nvidia*') {
+		write-host 'GPU vendor is Nvidia'
+		return "nvidia"				
+	}
+}
 
 
+Function installDraculaNotepad {
+	Write-Output "Checking if Notepad++ is running..." 	
+	if((get-process "Notepad++" -ea SilentlyContinue) -eq $Null){        
+		Write-Output "Notepad++ not running." 
+	} else { 
+		$restartNeeded = 1
+		Write-Host "Notepad++ is running and will be killed. Press any key to continue..." -ForegroundColor Yellow -BackgroundColor DarkGreen
+		$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
+		killProcess("notepad++");
+	}
+
+	Write-Output "Downloading Dracula Theme for Notepad++..." 
+	$url = "https://raw.githubusercontent.com/dracula/notepad-plus-plus/master/Dracula.xml"
+	$output = "$Env:USERPROFILE\AppData\Roaming\Notepad++\themes\Dracula.xml"
+	$start_time = Get-Date
+
+	$wc = New-Object System.Net.WebClient
+	$wc.DownloadFile($url, $output)
+
+	Write-Output "Time taken: $((Get-Date).Subtract($start_time).Seconds) second(s)" 
+
+	$file = "$Env:USERPROFILE\AppData\Roaming\Notepad++\config.xml"
+	$OpenTag = 'name="stylerTheme" path="'
+	$CloseTag = '" />'
+	$NewText = $OpenTag + "$Env:USERPROFILE\AppData\Roaming\Notepad++\themes\Dracula.xml" + $CloseTag
+	(Get-Content $file) | Foreach-Object {$_ -replace "$OpenTag.*$CloseTag", $NewText} | Set-Content $file
+	
+	if ($restartNeeded -eq 1) {	
+		Write-Output "Starting Notepad++" 
+		Start notepad++
+	}
+}
+
+Function uninstallDraculaNotepad {
+	Write-Output "Checking if Notepad++ is running..." 	
+	if((get-process "Notepad++" -ea SilentlyContinue) -eq $Null){
+		Write-Output "Notepad++ not running." 
+	} else { 
+		$restartNeeded = 1
+		Write-Host "Notepad++ is running and will be killed. Press any key to continue..." -ForegroundColor Yellow -BackgroundColor DarkGreen
+		$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
+		killProcess("notepad++");
+	}
+	
+	$file = "$Env:USERPROFILE\AppData\Roaming\Notepad++\config.xml"
+	$OpenTag = 'name="stylerTheme" path="'
+	$CloseTag = '" />'
+	$NewText = $OpenTag + "$Env:USERPROFILE\AppData\Roaming\Notepad++\stylers.xml" + $CloseTag
+	(Get-Content $file) | Foreach-Object {$_ -replace "$OpenTag.*$CloseTag", $NewText} | Set-Content $file
+	
+	if ($restartNeeded -eq 1) {	
+		Write-Output "Starting Notepad++" 
+		Start notepad++
+	}
+}	
+
+
+# Imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
+Function DisableNetBIOS {
+	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "2" "Disabling NetBIOS over TCP/IP..." "DWord"	
+}
+
+Function EnableNetBIOS {
+	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "0" "Disabling NetBIOS over TCP/IP..." "DWord"
+}
+
+# Link-Local Multicast Name Resolution (LLMNR) protocol, a protocol that allow name resolution without the requirement of a DNS server. LLMNR is a secondary name resolution protocol. 
+# With LLMNR, queries are sent using multicast over a local network link on a single subnet from a client computer to another client computer on the same subnet that also has LLMNR enabled.
+# Imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
+Function DisableLLMNR {
+	RegChange "SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" "EnableMulticast" "0" "Disabling Link-Local Multicast Name Resolution (LLMNR) protocol" "DWord"
+}
+
+Function EnableLLMNR {
+	RegChange "SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" "EnableMulticast" "1" "Enabling Link-Local Multicast Name Resolution (LLMNR) protocol" "DWord"
+}		
 
 ##########
 # Global Functions - End
@@ -407,6 +571,46 @@ Function DisableXboxFeatures {
 ##########
 # Program - Start
 ##########
+
+if (GPUVendor -eq "nvidia" -and NvidiaControlPanel -eq 1) {	
+	Get-AppxPackage -Name "*NVIDIACorp.NVIDIAControlPanel*" | Add-AppxPackage
+	Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like "*NVIDIACorp.NVIDIAControlPanel*" | Add-AppxProvisionedPackage -Online
+	Write-Output "Trying to install Nvidia control panel."
+}
+
+if ($draculaThemeNotepad -eq 0) {	
+	Write-Output "Checking if Notepad++ is installed..."	
+	$fileToCheck = "$Env:USERPROFILE\AppData\Roaming\Notepad++\config.xml"
+	if (Test-Path $fileToCheck -PathType leaf)	{
+		uninstallDraculaNotepad	
+	} else { 		
+		Write-Output "Notepad++ is not installed." 
+	}
+}
+
+if ($draculaThemeNotepad -eq 1) {	
+	Write-Output "Checking if Notepad++ is installed..."	
+	$fileToCheck = "$Env:USERPROFILE\AppData\Roaming\Notepad++\config.xml"
+	if (Test-Path $fileToCheck -PathType leaf)	{
+		installDraculaNotepad	
+	} else { 		
+		Write-Output "Notepad++ is not installed." 
+	}
+}
+
+# SMB Server is known for opening doors for mass ransomware attacks - WannaCry and NotPetya
+if ($disableSMBServer -eq 0) {	
+	Write-Output "Enabling SMB Server..."	
+	Set-SmbServerConfiguration -EnableSMB2Protocol $true -Force
+	Enable-NetAdapterBinding -Name "*" -ComponentID "ms_server"
+}
+
+if ($disableSMBServer -eq 1) {	
+	Write-Output "Disabling SMB Server..."	
+	Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force
+	Set-SmbServerConfiguration -EnableSMB2Protocol $false -Force
+	Disable-NetAdapterBinding -Name "*" -ComponentID "ms_server"
+}
 
 if ($telemetry -eq 0) {	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
@@ -420,7 +624,7 @@ if ($telemetry -eq 0) {
 	Disable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
 }
 
-if ($telemetry -eq 1) {	
+if ($telemetry -eq 1) {		
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
 	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
@@ -434,8 +638,8 @@ if ($telemetry -eq 1) {
 
 if ($bloatware -eq 0) {			
 	foreach ($Bloat in $bloatwareList) {
-		Get-AppxPackage -Name $Bloat| Remove-AppxPackage
 		Write-Output "Trying to remove $Bloat."
+		Get-AppxPackage -Name $Bloat| Remove-AppxPackage
 	}	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "0" "Adding Registry key to PREVENT bloatware apps from returning"	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
@@ -447,9 +651,9 @@ if ($bloatware -eq 0) {
 
 if ($bloatware -eq 1) {	
 	foreach ($Bloat in $bloatwareList) {
-		Get-AppxPackage -Name $Bloat| Add-AppxPackage
-		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $Bloat | Add-AppxProvisionedPackage -Online
 		Write-Output "Trying to INSTALL $Bloat."
+		Get-AppxPackage -Name $Bloat| Add-AppxPackage
+		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $Bloat | Add-AppxProvisionedPackage -Online		
 	}	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "1" "Adding Registry key to ALLOW bloatware apps from returning"	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning"  
@@ -459,9 +663,8 @@ if ($bloatware -eq 1) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning" 
 }	
 
-
 if ($beXboxSafe -eq 0) {
-
+	DisableXboxFeatures
 }
 
 if ($beXboxSafe -eq 1) {
@@ -486,6 +689,12 @@ if ($beXboxSafe -eq 1) {
 	# 0 = Disable
 	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR" -Name "AllowGameDVR" -ErrorAction SilentlyContinue
 	Remove-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AutoGameModeEnabled" -ErrorAction SilentlyContinue
+	
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Enabling Xbox scheduled tasks..."
+		Get-ScheduledTask  XblGameSaveTaskLogon | Enable-ScheduledTask
+		Get-ScheduledTask  XblGameSaveTask | Enable-ScheduledTask
+	}
 }
 
 if ($beBiometricSafe -eq 1) {
@@ -500,6 +709,12 @@ if ($beBiometricSafe -eq 1) {
 		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safebeBiometricSafe1 | Add-AppxProvisionedPackage -Online
 		Write-Output "Trying to install $safebeBiometricSafe1."
 	}
+}
+
+if ($beCastSafe -eq 1) {
+	Write-Output "Trying to install Microsoft.PPIP."
+	Get-AppxPackage -Name "*Microsoft.PPIP*" | Add-AppxPackage
+	Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like "*Microsoft.PPIP*" | Add-AppxProvisionedPackage -Online
 }
 
 if ($troubleshootInstalls -eq 1) {
@@ -535,7 +750,7 @@ if ($disablelastaccess -eq 1) {
 if ($doPerformanceStuff -eq 0) {
 	Write-Output "Reverse performance stuff."
 	EnableThumbnail
-	EnablePeek
+	EnablePeek	
 }
 
 if ($doPerformanceStuff -eq 1) {
@@ -557,17 +772,32 @@ if ($doPerformanceStuff -eq 1) {
 	if ($beThumbnailSafe -eq 1) {
 		Write-Host "Performance optimization on Windows Thumbnails disabled because of the beThumbnailSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
 		EnableThumbnail
-	}
+	}	
+	
 }
 
 if ($doPrivacyStuff -eq 0) {
-	Write-Output "Reverse performance stuff."
+	Write-Output "Reverse privacy stuff..."
 	EnableThumbnail
 	EnablePeek
+	EnablePrefetcher
+	EnableDnsCache
+	EnableMemoryDump
+	EnableLLMNR
+	EnableNetBIOS
+	
 }
 
 if ($doPrivacyStuff -eq 1) {
-	Write-Output "Doing performance stuff."
+	Write-Output "Doing privacy stuff..."
+	
+	Remove-Item $env:TEMP\*.* -confirm:$false -Recurse -Force
+	Get-ChildItem $env:TEMP\*.* | Remove-Item -confirm:$false -Recurse -Force
+	Remove-Item $env:WINDIR\Prefetch\*.* -confirm:$false -Recurse -Force
+	Get-ChildItem $env:WINDIR\Prefetch\*.* | Remove-Item -confirm:$false -Recurse -Force
+	Remove-Item $env:WINDIR\*.dmp -confirm:$false -Recurse -Force
+	
+	
 	
 	if ($beAeroPeekSafe -eq 0) {		
 		DisablePeek
@@ -586,9 +816,24 @@ if ($doPrivacyStuff -eq 1) {
 		Write-Host "Privacy optimization on Windows Thumbnails disabled because of the beThumbnailSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
 		EnableThumbnail
 	}
+	
+	DisablePrefetcher
+	DisableDnsCache
+	DisableMemoryDump
+	DisableLLMNR
+	DisableNetBIOS
 
 }
 
+if ($darkTheme -eq 0) {
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "AppsUseLightTheme" "1" "Disabling dark theme mode" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "SystemUsesLightTheme" "1" "Disabling dark theme for system" "DWord"
+}
+
+if ($darkTheme -eq 1) {
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "AppsUseLightTheme" "0" "Enabling dark theme mode" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "SystemUsesLightTheme" "0" "Enabling dark theme for system" "DWord"
+}
 
 ##########
 # Program - End
@@ -1300,14 +1545,6 @@ switch ($remove3d) {
 	}
 }
 
-$remove3d = Read-Host "Enable Dark Theme? (y/n)"
-switch ($remove3d) {
-	y {
-	DarkTheme
-	}
-}
-
-
 $DisableBack = Read-Host "Disable Background Access? (y/n)"
 switch ($DisableBack) {
 	y {
@@ -1361,7 +1598,7 @@ ProtectPrivacy
 ## https://gist.github.com/alirobe/7f3b34ad89a159e6daa1
 ## https://github.com/adolfintel/Windows10-Privacy
 ## https://github.com/Sycnex/Windows10Debloater
-## http://www.blackviper.com/service-configurations/black-vipers-windows-10-service-configurations/
+## https://github.com/dracula/dracula-theme
 
 Remove-PSDrive HKCR
 PAUSE
