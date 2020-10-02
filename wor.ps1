@@ -39,11 +39,16 @@ $beThumbnailSafe = 0
 # Note: Refers to the use of thumbnails instead of icon to some files.
 # Note: Top priority configuration, overrides other settings.
 
-$beCastSafe = 0
+$beCastSafe = 1
 # 0 = Disable Casting. *Recomended.
 # 1 = Enable it.  
 # Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
 # Note: Top priority configuration, overrides other settings.
+
+$beVpnPppoeSafe = 1
+# 0 = Will make the system safer against DNS cache poisoning but VPN or PPPOE conns may stop working. *Recomended.
+# 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
+# Note: Set it to 1 if you pretend to use VPN, PPP conns or having trouble with internet.
 
 $NvidiaControlPanel = 1
 # 0 = Remove Nvidia Appx.
@@ -80,12 +85,16 @@ $bloatware = 0
 # Note: On bloatwareList comment the lines on Appxs that you want to keep/install.
 
 $doPerformanceStuff = 1
-# 0 = Perform routines to increase system performance. *Recomended.
-# 1 = Reverse system settings to default.
+# 0 = Reverse system settings to default.
+# 1 = Perform routines to increase system performance. *Recomended.
 
 $doPrivacyStuff = 1
-# 0 = Perform routines to increase system privacy. *Recomended.
-# 1 = Reverse system settings to default.
+# 0 = Reverse system settings to default.
+# 1 = Perform routines to increase system privacy. *Recomended.
+
+$doSecurityStuff = 1
+# 0 = Reverse system settings to default.
+# 1 = Perform routines to increase system security. *Recomended.
 
 $bloatwareList = @(		
 	# Non commented lines will be uninstalled	
@@ -405,6 +414,10 @@ Function EnablePeek {
 }
 
 Function DisablePeek {	
+	if ($beAeroPeekSafe -eq 1) {
+		Write-Host "Aero Peek NOT disabled because of the beAeroPeekSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+		return
+	}	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewWindow" "1" "Disabling Windows Peek Thumbnail" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewDesktop" "1" "Disabling Windows Peek Desktop Preview" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\DWM" "EnableAeroPeek" "0" "Disabling Windows Peek" "DWord"
@@ -412,13 +425,17 @@ Function DisablePeek {
 	RegChange "SOFTWARE\Microsoft\Windows\DWM" "AlwaysHibernateThumbnails" "0" "Disabling Windows Peek Taskbar Thumbnail Cache" "DWord"
 }
 
-Function EnablingThumbnail {	
+Function EnableThumbnail {	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "IconsOnly" "0" "Enabling Windows Thumbnail" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbnailCache" "0" "Enabling Windows Thumbnail" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbsDBOnNetworkFolders" "0" "Enabling Windows Thumbnail" "DWord"
 }
 
 Function DisableThumbnail {	
+	if ($beThumbnailSafe -eq 1) {
+		Write-Host "Windows Thumbnails NOT disabled because of the beThumbnailSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+		return
+	}
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "IconsOnly" "1" "Disabling Windows Thumbnail" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbnailCache" "1" "Disabling Windows Thumbnail" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbsDBOnNetworkFolders" "1" "Disabling Windows Thumbnail" "DWord"
@@ -457,10 +474,14 @@ Function DisablePrefetcher {
 }
 
 # 
-Function DisableDnsCache {	
+Function DisableDnsCache {
+	if ($beVpnPppoeSafe -eq 1) {
+		Write-Host "DNS cache NOT disabled because of the beVpnPppoeSafe option" -ForegroundColor Yellow -BackgroundColor DarkGreen
+		return
+	}
+	
 	Write-Output "Flushing DNS."
-	ipconfig /flushDNS	
-
+	ipconfig /flushDNS
 	RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "4" "Disabling DNS Cache Service" "DWord"
 }
 
@@ -487,6 +508,24 @@ Function GPUVendor {
 
 
 Function installDraculaNotepad {
+	Write-Output "Checking internet connection..." 
+	
+	$HTTP_Request = [System.Net.WebRequest]::Create('http://google.com')
+	$HTTP_Response = $HTTP_Request.GetResponse()
+	$HTTP_Status = [int]$HTTP_Response.StatusCode
+
+	If ($HTTP_Status -eq 200) {
+		Write-Output "Conected to the internet." 
+	}
+	Else {
+		Write-Output "NOT conected to the internet." 
+		return
+	}
+
+	If ($HTTP_Response -eq $null) { } 
+	Else { $HTTP_Response.Close() }
+
+	
 	Write-Output "Checking if Notepad++ is running..." 	
 	if((get-process "Notepad++" -ea SilentlyContinue) -eq $Null){        
 		Write-Output "Notepad++ not running." 
@@ -549,7 +588,7 @@ Function DisableNetBIOS {
 }
 
 Function EnableNetBIOS {
-	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "0" "Disabling NetBIOS over TCP/IP..." "DWord"
+	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "0" "Enabling NetBIOS over TCP/IP..." "DWord"
 }
 
 # Link-Local Multicast Name Resolution (LLMNR) protocol, a protocol that allow name resolution without the requirement of a DNS server. LLMNR is a secondary name resolution protocol. 
@@ -749,42 +788,20 @@ if ($disablelastaccess -eq 1) {
 
 if ($doPerformanceStuff -eq 0) {
 	Write-Output "Reverse performance stuff."
-	EnableThumbnail
-	EnablePeek	
+		
 }
 
 if ($doPerformanceStuff -eq 1) {
 	Write-Output "Doing performance stuff."
-	
-	if ($beAeroPeekSafe -eq 0) {		
-		DisablePeek
-	}
-	
-	if ($beAeroPeekSafe -eq 1) {
-		Write-Host "Performance optimization on Aero Peek disabled because of the beAeroPeekSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-		EnablePeek
-	}	
-	
-	if ($beThumbnailSafe -eq 0) {		
-		DisableThumbnail
-	}
-	
-	if ($beThumbnailSafe -eq 1) {
-		Write-Host "Performance optimization on Windows Thumbnails disabled because of the beThumbnailSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-		EnableThumbnail
-	}	
-	
+		
 }
 
 if ($doPrivacyStuff -eq 0) {
 	Write-Output "Reverse privacy stuff..."
 	EnableThumbnail
 	EnablePeek
-	EnablePrefetcher
-	EnableDnsCache
-	EnableMemoryDump
-	EnableLLMNR
-	EnableNetBIOS
+	EnablePrefetcher	
+	EnableMemoryDump	
 	
 }
 
@@ -796,34 +813,27 @@ if ($doPrivacyStuff -eq 1) {
 	Remove-Item $env:WINDIR\Prefetch\*.* -confirm:$false -Recurse -Force
 	Get-ChildItem $env:WINDIR\Prefetch\*.* | Remove-Item -confirm:$false -Recurse -Force
 	Remove-Item $env:WINDIR\*.dmp -confirm:$false -Recurse -Force
-	
-	
-	
-	if ($beAeroPeekSafe -eq 0) {		
-		DisablePeek
-	}
-	
-	if ($beAeroPeekSafe -eq 1) {
-		Write-Host "Privacy optimization on Aero Peek disabled because of the beAeroPeekSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-		EnablePeek
-	}
-	
-	if ($beThumbnailSafe -eq 0) {		
-		DisableThumbnail
-	}
-	
-	if ($beThumbnailSafe -eq 1) {
-		Write-Host "Privacy optimization on Windows Thumbnails disabled because of the beThumbnailSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-		EnableThumbnail
-	}
-	
-	DisablePrefetcher
-	DisableDnsCache
-	DisableMemoryDump
-	DisableLLMNR
-	DisableNetBIOS
 
+	DisableThumbnail
+	DisablePeek
+	DisablePrefetcher	
+	DisableMemoryDump
 }
+
+if ($doSecurityStuff -eq 0) {
+	Write-Output "Reverse security stuff..."
+	EnableDnsCache
+	EnableLLMNR
+	EnableNetBIOS	
+}
+
+if ($doSecurityStuff -eq 1) {
+	Write-Output "Doing security stuff..."
+	DisableDnsCache
+	DisableLLMNR
+	DisableNetBIOS	
+}
+
 
 if ($darkTheme -eq 0) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "AppsUseLightTheme" "1" "Disabling dark theme mode" "DWord"
@@ -1591,6 +1601,9 @@ ProtectPrivacy
 ## DISABLE wisvc
 ## DISABLING WIN FIREWALL CAN PREVENT PRINT NETWORK SHARING
 
+## SUVIVAL FOR THE MOST ANOYING THING ON THE INTERNET:
+## www.google.*##div[jscontroller]:if(h4:has-text(People also search for))
+## THANKS 113669/mint https://webapps.stackexchange.com/users/113669/mint
 
 ## Credits
 ## https://github.com/builtbybel/debotnet
