@@ -39,7 +39,7 @@ $beThumbnailSafe = 0
 # Note: Refers to the use of thumbnails instead of icon to some files.
 # Note: Top priority configuration, overrides other settings.
 
-$beCastSafe = 1
+$beCastSafe = 0
 # 0 = Disable Casting. *Recomended.
 # 1 = Enable it.  
 # Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
@@ -75,14 +75,13 @@ $disableSMBServer = 1
 # 1 = Disable it. *Recomended.
 # Note: SMB Server is used for file and printer sharing.
 
-$disablelastaccess = 0
-# 0 = Disable last file access date. *Recomended.
-# 1 = Enable it.
+$disablelastaccess = 1
+# 0 = Enable it.
+# 1 = Disable last file access date. *Recomended.
 
-$bloatware = 0
-# 0 = Remove non commented bloatware in bloatwareList array. *Recomended.
-# 1 = Install Windows Bloatware that are not commented in bloatwareList array.
-# Note: On bloatwareList comment the lines on Appxs that you want to keep/install.
+$doQualityOfLifeStuff = 1
+# 0 = Reverse system settings to default.
+# 1 = Perform routines to increase quality of life. *Recomended.
 
 $doPerformanceStuff = 1
 # 0 = Reverse system settings to default.
@@ -95,6 +94,11 @@ $doPrivacyStuff = 1
 $doSecurityStuff = 1
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system security. *Recomended.
+
+$disableBloatware = 1
+# 0 = Install Windows Bloatware that are not commented in bloatwareList array.
+# 1 = Remove non commented bloatware in bloatwareList array. *Recomended.
+# Note: On bloatwareList comment the lines on Appxs that you want to keep/install.
 
 $bloatwareList = @(		
 	# Non commented lines will be uninstalled	
@@ -213,8 +217,29 @@ New-PSDrive  HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
 Write-Output "Enabling Controlled Folder Access..."
 Set-MpPreference -EnableControlledFolderAccess Enabled -ErrorAction SilentlyContinue
 
+	
+Function regDelete($path, $desc) {
+	Write-Output ($desc)  	
+	
+    If (Test-Path ("HKLM:\" + $path)) {
+        Remove-Item ("HKLM:\" + $path) -Recurse -Force
+    }
+	If (Test-Path ("HKCU:\" + $path)) {
+         Remove-Item ("HKLM:\" + $path) -Recurse -Force
+    }
 
+}
 
+Function clearCaches {
+	regDelete "Software\Microsoft\Windows\CurrentVersion\CloudStore" "Removing CloudStore from registry if it exists, will clear all start menu items." 
+	
+	Remove-Item $env:TEMP\*.* -confirm:$false -Recurse -Force
+	Get-ChildItem $env:TEMP\*.* | Remove-Item -confirm:$false -Recurse -Force
+	Remove-Item $env:WINDIR\Prefetch\*.* -confirm:$false -Recurse -Force
+	Get-ChildItem $env:WINDIR\Prefetch\*.* | Remove-Item -confirm:$false -Recurse -Force
+	Remove-Item $env:WINDIR\*.dmp -confirm:$false -Recurse -Force
+}
+	
 Function RegChange($path, $thing, $value, $desc, $type) {
 	Write-Output ($desc)	
 	
@@ -231,6 +256,13 @@ Function RegChange($path, $thing, $value, $desc, $type) {
 	{
 		$type2 = $type
 	}
+	
+	If (Test-Path ("HKLM:\" + $path)) {
+		New-Item -Path ("HKLM:\" + $path) | Out-Null
+	}
+	If (Test-Path ("HKCU:\" + $path)) {
+        New-Item -Path ("HKCU:\" + $path) | Out-Null
+    }
 	
     If (Test-Path ("HKLM:\" + $path)) {
         Set-ItemProperty ("HKLM:\" + $path) $thing -Value $value -Type $type2
@@ -300,16 +332,11 @@ Function DisableUAC {
 }
 
 Function ProtectPrivacy {
-
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "0" "Disabling Windows Feedback Experience program / Advertising ID"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "0" "Stopping Cortana from being used as part of your Windows Search Function" 
-	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "0" "Disabling Windows Feedback Experience from sending anonymous data" 
-	RegChange "Software\Microsoft\Siuf\Rules" "PeriodInNanoSeconds" "0" "Disabling Windows Feedback"            
+	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "0" "Disabling Windows Feedback Experience from sending anonymous data"         
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "1" "Adding Registry key to prevent bloatware apps from returning"	
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "0" "Disabling Reality Portal"    
-	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting" "Value" "0" "Disabling Wi-Fi Sense"    
-	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots" "Value" "0" "Disabling Wi-Fi Sense"  
-	RegChange "SOFTWARE\Microsoft\WcmSvc\wifinetworkmanager\config" "AutoConnectAllowedOEM" "0" "Disabling Wi-Fi Sense"  
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "0" "Disabling Reality Portal"	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "1" "Disabling live tiles"  
 	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "0" "Disabling Location Tracking"
 	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "0" "Disabling Location Tracking"
@@ -325,39 +352,117 @@ Function ProtectPrivacy {
 	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "1" "Disabling Remote Desktop"
 	
 	Set-NetConnectionProfile -NetworkCategory Public
-	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures\010103000F0000F0010000000F0000F0C967A3643C3AD745950DA7859209176EF5B87C875FA20DF21951640E807D7C24" -Name "Category" -ErrorAction SilentlyContinue
    
-   Write-Output "Disabling Background application access..."
+	Write-Output "Disabling Background application access..."
 	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
 		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 1
 		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 1
-	}
-	
-    #Disables scheduled tasks that are considered unnecessary 
+	}	
+
     Write-Output "Disabling scheduled tasks"    
     Get-ScheduledTask  Consolidator | Disable-ScheduledTask
     Get-ScheduledTask  UsbCeip | Disable-ScheduledTask
     Get-ScheduledTask  DmClient | Disable-ScheduledTask
     Get-ScheduledTask  DmClientOnScenarioDownload | Disable-ScheduledTask
-
-    Write-Output "Stopping and disabling Diagnostics Tracking Service"
+	
+	write-Host "Diagnostics Tracking Service is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
+    Write-Output "Stopping and disabling DiagTrack"
 	Get-Service DiagTrack | Stop-Service -PassThru | Set-Service -StartupType disabled
-	if($?){   write-Host -ForegroundColor Green "Windows Diagnostics Tracking Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Diagnostics Tracking Service not Disabled" } 
     
-	Write-Host "Removing AutoLogger file and restricting directory..."
+	write-Host "dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
+	Write-Output "Stopping and disabling dmwappushservice"
+	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType disabled
+
+	Write-Host "Removing AutoLogger logs..."
 	$autoLoggerDir = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
 	If (Test-Path "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl") {
 		Remove-Item -Path "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl"
 	}
-	icacls $autoLoggerDir /deny SYSTEM:`(OI`)`(CI`)F | Out-Null
+	icacls $autoLoggerDir /deny SYSTEM:`(OI`)`(CI`)F | Out-Null    
+}
+
+Function unProtectPrivacy {
+
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "1" "Enabling Windows Feedback Experience program / Advertising ID"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "1" "Enabling Cortana from being used as part of your Windows Search Function" 
+	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "1" "Enabling Windows Feedback Experience from sending anonymous data"      
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "0" "Adding Registry key to allow bloatware apps from returning"	
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "1" "Enabling Reality Portal" 
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "0" "Enabling live tiles"  
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "1" "Enabling Location Tracking"
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "1" "Enabling Location Tracking"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "1" "Enabling People icon on Taskbar"
+	RegChange "Software\Policies\Microsoft\Windows\Explorer" "HidePeopleBar" "0" "Enabling People Bar"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "1" "Enabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "1" "Enabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "1" "Enabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "0" "Enabling Tailored Experiences"	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "1" "Enabling automatic installation of network devices"
+	RegChange "SYSTEM\CurrentControlSet\Control\Remote Assistance" "fAllowToGetHelp" "1" "Enabling Remote Assistance"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop"
 	
-    Write-Output "Removing CloudStore from registry if it exists"
-    $CloudStore = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CloudStore'
-    If (Test-Path $CloudStore) {
-        Stop-Process Explorer.exe -Force
-        Remove-Item $CloudStore -Recurse -Force
-        Start-Process Explorer.exe -Wait
-    }
+	Write-Output "Setting network to private..."
+	Set-NetConnectionProfile -NetworkCategory Private
+   
+   Write-Output "Enabling Background application access..."
+	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
+		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 0
+		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 0
+	}
+	
+    Write-Output "Enabling scheduled tasks"    
+    Get-ScheduledTask  Consolidator | Enable-ScheduledTask
+    Get-ScheduledTask  UsbCeip | Enable-ScheduledTask
+    Get-ScheduledTask  DmClient | Enable-ScheduledTask
+    Get-ScheduledTask  DmClientOnScenarioDownload | Enable-ScheduledTask
+
+    write-Host "Diagnostics Tracking Service is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
+    Write-Output "Enabling DiagTrack..."
+	Get-Service DiagTrack | Stop-Service -PassThru | Set-Service -StartupType automatic
+    
+	write-Host "dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
+	Write-Output "Enabling dmwappushservice"
+	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType automatic
+    
+  
+}
+
+Function qualityOfLife {
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "1" "Disabling Windows Winlogon Automatic Restart Sign-On..." "DWord"	
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "0" "Disabling Action Center global toasts..." "DWord"	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "1" "Disabling Action Center notification center..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "0" "Disabling Action Center toast push notifications..." "DWord"
+	
+	write-Host "RAZER services that allows third party software to ness with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
+	Write-Output "Disabling Razer Chroma SDK Server..."
+	Get-Service Razer Chroma SDK Server | Stop-Service -PassThru | Set-Service -StartupType disabled
+	Write-Output "Disabling Razer Chroma SDK Service..."
+	Get-Service Razer Chroma SDK Service | Stop-Service -PassThru | Set-Service -StartupType disabled
+
+	Write-Output "Disabling WpnService, push notification anoyance service..."
+	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Disabling WpnUserService, push notification anoyance service..." "DWord"
+	
+}
+
+Function qualityOfLifeOff {
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "0" "Enabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "1" "Enabling Action Center toasts..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "0" "Enabling Action Center notification center..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "1" "Enabling Action Center toast push notifications..." "DWord"
+	
+	write-Host "RAZER services that allows third party software to ness with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
+	Write-Output "Enabling Razer Chroma SDK Server..."
+	Get-Service Razer Chroma SDK Server | Stop-Service -PassThru | Set-Service -StartupType automatic
+	Write-Output "Enabling Razer Chroma SDK Service..."
+	Get-Service Razer Chroma SDK Service | Stop-Service -PassThru | Set-Service -StartupType automatic
+
+	Write-Output "Enabling WpnService, push notification anoyance service..."
+	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType automatic
+	
+	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "2" "Enabling WpnUserService, push notification anoyance service..." "DWord"
 }
 
 Function DisableCortana {
@@ -476,7 +581,7 @@ Function DisablePrefetcher {
 # 
 Function DisableDnsCache {
 	if ($beVpnPppoeSafe -eq 1) {
-		Write-Host "DNS cache NOT disabled because of the beVpnPppoeSafe option" -ForegroundColor Yellow -BackgroundColor DarkGreen
+		Write-Host "DNS cache NOT disabled because of the beVpnPppoeSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
 		return
 	}
 	
@@ -611,6 +716,64 @@ Function EnableLLMNR {
 # Program - Start
 ##########
 
+if ($beXboxSafe -eq 0) {
+	DisableXboxFeatures
+}
+
+if ($beXboxSafe -eq 1) {
+	$safeXboxBloatware = @(	
+		"Microsoft.XboxGamingOverlay"
+		"Microsoft.Xbox.TCUI"
+		"Microsoft.XboxApp"
+		"Microsoft.XboxGameOverlay"
+		"Microsoft.XboxIdentityProvider"
+		"Microsoft.XboxSpeechToTextOverlay"
+	)
+	foreach ($safeXboxBloatware1 in $safeXboxBloatware) {
+		Write-Output "Trying to install $safeXboxBloatware1."
+		Get-AppxPackage -Name $safeXboxBloatware1| Add-AppxPackage
+		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safeXboxBloatware1 | Add-AppxProvisionedPackage -Online		
+	}
+	
+	RegChange "System\GameConfigStore" "GameDVR_Enabled" "1" "Changing Registry key to ENABLE Game DVR - GameDVR_Enabled" 
+	
+	# The Game bar is a Xbox app Game DVR feature that makes it simple to take control of your gaming activities—such as broadcasting, capturing clips, and sharing captures
+	# (delete) = Enable
+	# 0 = Disable
+	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR" -Name "AllowGameDVR" -ErrorAction SilentlyContinue
+	Remove-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AutoGameModeEnabled" -ErrorAction SilentlyContinue
+	
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Enabling Xbox scheduled tasks..."
+		Get-ScheduledTask  XblGameSaveTaskLogon | Enable-ScheduledTask
+		Get-ScheduledTask  XblGameSaveTask | Enable-ScheduledTask
+	}
+}
+
+if ($beBiometricSafe -eq 1) {
+	$safebeBiometricSafe = @(	
+		"*Microsoft.BioEnrollment*"
+		"*Microsoft.CredDialogHost*"
+		"*Microsoft.ECApp*"
+		"*Microsoft.LockApp*"
+	)
+	foreach ($safebeBiometricSafe1 in $safebeBiometricSafe) {
+		Get-AppxPackage -Name $safebeBiometricSafe1| Add-AppxPackage
+		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safebeBiometricSafe1 | Add-AppxProvisionedPackage -Online
+		Write-Output "Trying to install $safebeBiometricSafe1."
+	}
+}
+
+if ($beCastSafe -eq 1) {
+	Write-Output "Trying to install Microsoft.PPIP."
+	Get-AppxPackage -Name "*Microsoft.PPIP*" | Add-AppxPackage
+	Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like "*Microsoft.PPIP*" | Add-AppxProvisionedPackage -Online
+}
+
+if ($beVpnPppoeSafe -eq 1) {
+	RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "2" "Enabling DNS Cache Service" "DWord"	
+}
+	
 if (GPUVendor -eq "nvidia" -and NvidiaControlPanel -eq 1) {	
 	Get-AppxPackage -Name "*NVIDIACorp.NVIDIAControlPanel*" | Add-AppxPackage
 	Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like "*NVIDIACorp.NVIDIAControlPanel*" | Add-AppxProvisionedPackage -Online
@@ -675,20 +838,7 @@ if ($telemetry -eq 1) {
 	Enable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
 }
 
-if ($bloatware -eq 0) {			
-	foreach ($Bloat in $bloatwareList) {
-		Write-Output "Trying to remove $Bloat."
-		Get-AppxPackage -Name $Bloat| Remove-AppxPackage
-	}	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "0" "Adding Registry key to PREVENT bloatware apps from returning"	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" 
-}	
-
-if ($bloatware -eq 1) {	
+if ($disableBloatware -eq 0) {	
 	foreach ($Bloat in $bloatwareList) {
 		Write-Output "Trying to INSTALL $Bloat."
 		Get-AppxPackage -Name $Bloat| Add-AppxPackage
@@ -700,65 +850,26 @@ if ($bloatware -eq 1) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning"  
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning"  
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning" 
+}
+
+if ($disableBloatware -eq 1) {			
+	foreach ($Bloat in $bloatwareList) {
+		Write-Output "Trying to remove $Bloat."
+		Get-AppxPackage -Name $Bloat| Remove-AppxPackage
+	}	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "0" "Adding Registry key to PREVENT bloatware apps from returning"	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" 
+	regDelete "Software\Microsoft\Windows\CurrentVersion\CloudStore" "Removing CloudStore from registry if it exists, will clear all start menu items." 
+	UnpinStart
 }	
-
-if ($beXboxSafe -eq 0) {
-	DisableXboxFeatures
-}
-
-if ($beXboxSafe -eq 1) {
-	$safeXboxBloatware = @(	
-		"Microsoft.XboxGamingOverlay"
-		"Microsoft.Xbox.TCUI"
-		"Microsoft.XboxApp"
-		"Microsoft.XboxGameOverlay"
-		"Microsoft.XboxIdentityProvider"
-		"Microsoft.XboxSpeechToTextOverlay"
-	)
-	foreach ($safeXboxBloatware1 in $safeXboxBloatware) {
-		Write-Output "Trying to install $safeXboxBloatware1."
-		Get-AppxPackage -Name $safeXboxBloatware1| Add-AppxPackage
-		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safeXboxBloatware1 | Add-AppxProvisionedPackage -Online		
-	}
-	
-	RegChange "System\GameConfigStore" "GameDVR_Enabled" "1" "Changing Registry key to ENABLE Game DVR - GameDVR_Enabled" 
-	
-	# The Game bar is a Xbox app Game DVR feature that makes it simple to take control of your gaming activities—such as broadcasting, capturing clips, and sharing captures
-	# (delete) = Enable
-	# 0 = Disable
-	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR" -Name "AllowGameDVR" -ErrorAction SilentlyContinue
-	Remove-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AutoGameModeEnabled" -ErrorAction SilentlyContinue
-	
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Enabling Xbox scheduled tasks..."
-		Get-ScheduledTask  XblGameSaveTaskLogon | Enable-ScheduledTask
-		Get-ScheduledTask  XblGameSaveTask | Enable-ScheduledTask
-	}
-}
-
-if ($beBiometricSafe -eq 1) {
-	$safebeBiometricSafe = @(	
-		"*Microsoft.BioEnrollment*"
-		"*Microsoft.CredDialogHost*"
-		"*Microsoft.ECApp*"
-		"*Microsoft.LockApp*"
-	)
-	foreach ($safebeBiometricSafe1 in $safebeBiometricSafe) {
-		Get-AppxPackage -Name $safebeBiometricSafe1| Add-AppxPackage
-		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safebeBiometricSafe1 | Add-AppxProvisionedPackage -Online
-		Write-Output "Trying to install $safebeBiometricSafe1."
-	}
-}
-
-if ($beCastSafe -eq 1) {
-	Write-Output "Trying to install Microsoft.PPIP."
-	Get-AppxPackage -Name "*Microsoft.PPIP*" | Add-AppxPackage
-	Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like "*Microsoft.PPIP*" | Add-AppxProvisionedPackage -Online
-}
 
 if ($troubleshootInstalls -eq 1) {
 	Write-Output "Troubleshoot Install: Windows Management Instrumentation service enabled."
-	Get-Service Winmgmt | Stop-Service -PassThru | Set-Service -StartupType automatic
+	Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType automatic
 	
 	Write-Output "Troubleshoot Install: Windows Management Instrumentation enabled by registry."
 	New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 2 -Force
@@ -788,12 +899,70 @@ if ($disablelastaccess -eq 1) {
 
 if ($doPerformanceStuff -eq 0) {
 	Write-Output "Reverse performance stuff."
-		
+	
+	RegChange "System\CurrentControlSet\Control\Session Manager\Power" "HibernteEnabled" "1" "Enabling hibernation..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings" "ShowHibernateOption" "1" "Making visible hibernation..." "DWord"
+	
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		write-Host -ForegroundColor Green -BackgroundColor Black "Defragmentation cause unnecessary wear on SSDs"
+		Write-Host "Enabling scheduled defragmentation..."
+		Enable-ScheduledTask -TaskName "Microsoft\Windows\Defrag\ScheduledDefrag" | Out-Null
+	}
+	
+	write-Host "Superfetch is known to cause all kinds of problems: slow boot times, disk wear, bottleneck, RAM consumption" -ForegroundColor Green -BackgroundColor Black 
+	Write-Host "Enabling Superfetch service..."
+	Get-Service SysMain | Stop-Service -PassThru | Set-Service -StartupType automatic
+	
+	Write-Host "Enabling SSDPSRV service..."
+	Get-Service SSDPSRV | Stop-Service -PassThru | Set-Service -StartupType automatic
+	
+	Write-Host "Enabling AxInstSV service..."
+	Get-Service AxInstSV | Stop-Service -PassThru | Set-Service -StartupType automatic
+	
+	Write-Host "Enabling MapsBroker (Downloaded Maps Manager) service..."
+	Get-Service MapsBroker | Stop-Service -PassThru | Set-Service -StartupType automatic
+	
+	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "2" "Enabling Edge updates..." "DWord"
 }
 
 if ($doPerformanceStuff -eq 1) {
 	Write-Output "Doing performance stuff."
-		
+	
+	RegChange "System\CurrentControlSet\Control\Session Manager\Power" "HibernteEnabled" "0" "Disabling hibernation..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings" "ShowHibernateOption" "0" "Hiding hibernation..." "DWord"
+	
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		write-Host -ForegroundColor Green -BackgroundColor Black "Defragmentation cause unnecessary wear on SSDs"
+		Write-Host "Disabling scheduled defragmentation..."
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\Defrag\ScheduledDefrag" | Out-Null
+	}
+	
+	write-Host "Superfetch is known to cause all kinds of problems: slow boot times, disk wear, bottleneck, RAM consumption" -ForegroundColor Green -BackgroundColor Black 
+	Write-Host "Stopping and disabling Superfetch service..."
+	Get-Service SysMain | Stop-Service -PassThru | Set-Service -StartupType disabled	
+	
+	Write-Host "Stopping and disabling SSDPSRV service..."
+	Get-Service SSDPSRV | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	Write-Host "Stopping and disabling AxInstSV service..."
+	Get-Service AxInstSV | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	Write-Host "Stopping and disabling MapsBroker (Downloaded Maps Manager) service..."
+	Get-Service MapsBroker | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "4" "Disabling Edge updates..." "DWord"
+}
+
+if ($doQualityOfLifeStuff -eq 0) {
+	Write-Output "Reverse quality of life stuff."
+	qualityOfLifeOff
+	
+}
+
+if ($doQualityOfLifeStuff -eq 1) {
+	Write-Output "Doing quality of life stuff."
+	qualityOfLife
+	
 }
 
 if ($doPrivacyStuff -eq 0) {
@@ -801,30 +970,40 @@ if ($doPrivacyStuff -eq 0) {
 	EnableThumbnail
 	EnablePeek
 	EnablePrefetcher	
-	EnableMemoryDump	
+	EnableMemoryDump
+	unProtectPrivacy
+	
+	write-Host "Windows Insider Service contact web servers by its own" -ForegroundColor Green -BackgroundColor Black 
+	Write-Host "Enabling wisvc (Windows Insider Service)..."
+	Get-Service wisvc | Stop-Service -PassThru | Set-Service -StartupType automatic
 	
 }
 
 if ($doPrivacyStuff -eq 1) {
 	Write-Output "Doing privacy stuff..."
 	
-	Remove-Item $env:TEMP\*.* -confirm:$false -Recurse -Force
-	Get-ChildItem $env:TEMP\*.* | Remove-Item -confirm:$false -Recurse -Force
-	Remove-Item $env:WINDIR\Prefetch\*.* -confirm:$false -Recurse -Force
-	Get-ChildItem $env:WINDIR\Prefetch\*.* | Remove-Item -confirm:$false -Recurse -Force
-	Remove-Item $env:WINDIR\*.dmp -confirm:$false -Recurse -Force
-
+	clearCaches
 	DisableThumbnail
 	DisablePeek
 	DisablePrefetcher	
 	DisableMemoryDump
+	ProtectPrivacy
+	
+	write-Host "Windows Insider Service contact web servers by its own" -ForegroundColor Green -BackgroundColor Black 
+	Write-Host "Stopping and disabling wisvc (Windows Insider Service)..."
+	Get-Service wisvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 }
 
 if ($doSecurityStuff -eq 0) {
 	Write-Output "Reverse security stuff..."
 	EnableDnsCache
 	EnableLLMNR
-	EnableNetBIOS	
+	EnableNetBIOS
+	
+	# Wi-Fi Sense connects you to Open hotspots that are "greenlighted" through crowdsourcing. Open door to Lure10 MITM attack and phishing.
+	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting" "Value" "1" "Enabling Wi-Fi Sense" "Dword"  
+	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots" "Value" "1" "Enabling Wi-Fi Sense" "Dword" 
+	RegChange "SOFTWARE\Microsoft\WcmSvc\wifinetworkmanager\config" "AutoConnectAllowedOEM" "1" "Enabling Wi-Fi Sense" 
 }
 
 if ($doSecurityStuff -eq 1) {
@@ -832,6 +1011,11 @@ if ($doSecurityStuff -eq 1) {
 	DisableDnsCache
 	DisableLLMNR
 	DisableNetBIOS	
+	
+	# Wi-Fi Sense connects you to Open hotspots that are "greenlighted" through crowdsourcing. Open door to Lure10 MITM attack and phishing.
+	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting" "Value" "0" "Disabling Wi-Fi Sense" "Dword"   
+	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots" "Value" "0" "Disabling Wi-Fi Sense" "Dword"
+	RegChange "SOFTWARE\Microsoft\WcmSvc\wifinetworkmanager\config" "AutoConnectAllowedOEM" "0" "Disabling Wi-Fi Sense"  
 }
 
 
@@ -845,10 +1029,23 @@ if ($darkTheme -eq 1) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "SystemUsesLightTheme" "0" "Enabling dark theme for system" "DWord"
 }
 
+EnableDnsCache
+
 ##########
 # Program - End
 ##########
 #--------------------------------------------------------------------------
+
+##########
+# Fixes - Start
+##########
+
+# FIX NOT BEING ABLE TO TYPE ON WINDOWS SEARCH
+# reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v ctfmon /t REG_SZ /d CTFMON.EXE /f | Out-Null
+
+# FIX NOT BEING ABLE TO LINK OUTLOOK 365 ACCOUNT ON OFFICE OUTLOOK 2019
+# Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "EnableADAL" -Type DWord -Value 0
+# Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "DisableADALatopWAMOverride" -Type DWord -Value 1
 
 
 $visual = Read-Host "Install Initial Packages? (y/n)"
@@ -1181,8 +1378,7 @@ Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpda
 #DISABLE USELESS SERVICES
 
 
-Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "Windows Keylogger Disabled"  }else{   write-Host -ForegroundColor red "Windows Keylogger not Disabled" }
+
 
 Get-Service DcpSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "DcpSvc Disabled"  }else{   write-Host -ForegroundColor red "DcpSvc not Disabled" }
@@ -1330,16 +1526,9 @@ if($?){   write-Host -ForegroundColor Green "SgrmBroker disabled"  }else{   writ
 # xbox dvr causing fps issues
 reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR /v value /t REG_DWORD /d 0 /f
 
-# RAZER THINGS THAT NOBODY USES
-Get-Service Razer Chroma SDK Server | Stop-Service -PassThru | Set-Service -StartupType disabled
-Get-Service Razer Chroma SDK Service | Stop-Service -PassThru | Set-Service -StartupType disabled
 
 
-# ANOYING PUSH NOTIFICATIONS
-Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType disabled
 
-# SUPERFETCH IS KNOWN TO CAUSE SLOW BOOT TIME
-Get-Service SysMain | Stop-Service -PassThru | Set-Service -StartupType disabled
 
 # WE DONT NEED TELEMETRY AGENT NVIDIA!
 Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -StartupType disabled
@@ -1470,67 +1659,8 @@ Function DisableAutorun {
 }
 DisableAutorun
 
-# Disable scheduled defragmentation task
-Function DisableDefragmentation {
-	Write-Host "Disabling scheduled defragmentation..."
-	Disable-ScheduledTask -TaskName "Microsoft\Windows\Defrag\ScheduledDefrag" | Out-Null
-}
-DisableDefragmentation
-
-Function DisableSuperfetch {
-	Write-Host "Stopping and disabling Superfetch service..."
-	Stop-Service "SysMain" -WarningAction SilentlyContinue
-	Set-Service "SysMain" -StartupType Disabled
-}
-DisableSuperfetch
-
-Function DisableHibernation {
-	Write-Host "Disabling Hibernation..."
-	Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Session Manager\Power" -Name "HibernteEnabled" -Type Dword -Value 0
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings" -Name "ShowHibernateOption" -Type Dword -Value 0
-}
-DisableHibernation
-
-# Disable Action Center
-Function DisableActionCenter {
-	Write-Host "Disabling Action Center..."
-	If (!(Test-Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer")) {
-		New-Item -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer" | Out-Null
-	}
-	If (!(Test-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings")) {
-		New-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" | Out-Null
-	}
-	If (!(Test-Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications")) {
-		New-Item -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" | Out-Null
-	}
-
-	Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" -Name "NOC_GLOBAL_SETTING_TOASTS_ENABLED" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer" -Name "DisableNotificationCenter" -Type DWord -Value 1
-	Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" -Name "ToastEnabled" -Type DWord -Value 0
-}
-DisableActionCenter
 
 
-
-#DISABLE WINDOWS ARSO
-Function WindowsArso {
-    Write-Host "Disabling Windows Winlogon Automatic Restart Sign-On..."
-    If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "DisableAutomaticRestartSignOn" -Type DWord -Value 1
-}
-WindowsArso
-
-#FIX NOT BEING ABLE TO TYPE ON WINDOWS SEARCH
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v ctfmon /t REG_SZ /d CTFMON.EXE /f | Out-Null
-
-#FIX NOT BEING ABLE TO LINK OUTLOOK 365 ACCOUNT ON OFFICE OUTLOOK 2019
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "EnableADAL" -Type DWord -Value 0
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "DisableADALatopWAMOverride" -Type DWord -Value 1
 
 
 
@@ -1538,13 +1668,6 @@ $disablecortana = Read-Host "Disable Cortana? (y/n)"
 switch ($disablecortana) {
 	y {
 	DisableCortana
-	}
-}
-
-$unpin = Read-Host "Unpin all tiles from the start menu? (y/n)"
-switch ($unpin) {
-	y {
-	UnpinStart	
 	}
 }
 
@@ -1562,7 +1685,7 @@ switch ($DisableBack) {
 	}
 }
 
-ProtectPrivacy
+
 
 #THINGS TO DO MANUALLY
 #CONFIG FIREFOX
@@ -1598,7 +1721,6 @@ ProtectPrivacy
 ## NOTES
 ## DHCP REQUIRED FOR VPN
 ## TELEPHONY REQUIRED FOR PPOE
-## DISABLE wisvc
 ## DISABLING WIN FIREWALL CAN PREVENT PRINT NETWORK SHARING
 
 ## SUVIVAL FOR THE MOST ANOYING THING ON THE INTERNET:
