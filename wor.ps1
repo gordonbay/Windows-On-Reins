@@ -95,6 +95,10 @@ $doSecurityStuff = 1
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system security. *Recomended.
 
+$disableSystemRestore = 1
+# 0 = Enable system restore
+# 1 = Disable system restore. *Recomended.
+
 $disableBloatware = 1
 # 0 = Install Windows Bloatware that are not commented in bloatwareList array.
 # 1 = Remove non commented bloatware in bloatwareList array. *Recomended.
@@ -217,6 +221,27 @@ New-PSDrive  HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
 Write-Output "Enabling Controlled Folder Access..."
 Set-MpPreference -EnableControlledFolderAccess Enabled -ErrorAction SilentlyContinue
 
+Function hardenPath($path, $desc) {
+	Write-Output ($desc) 
+	$object = "System"
+	$permission = "Modify, ChangePermissions"
+	
+	$FileSystemRights = [System.Security.AccessControl.FileSystemRights]$permission
+    $InheritanceFlag = [System.Security.AccessControl.InheritanceFlags]"ContainerInherit, ObjectInherit"
+    $PropagationFlag = [System.Security.AccessControl.PropagationFlags]"None"
+    $AccessControlType =[System.Security.AccessControl.AccessControlType]::Allow
+    $Account = New-Object System.Security.Principal.NTAccount($object)
+    $FileSystemAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($Account, $FileSystemRights, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+    $DirectorySecurity = Get-ACL $path
+    $DirectorySecurity.RemoveAccessRuleAll($FileSystemAccessRule)
+    Set-ACL $path -AclObject $DirectorySecurity
+		
+	$Acl = Get-ACL $path
+	$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule("System","FullControl","ContainerInherit,Objectinherit","none","Deny")
+	$Acl.AddAccessRule($AccessRule)
+	Set-Acl $path $Acl
+}
+
 	
 Function regDelete($path, $desc) {
 	Write-Output ($desc)  	
@@ -225,19 +250,95 @@ Function regDelete($path, $desc) {
         Remove-Item ("HKLM:\" + $path) -Recurse -Force
     }
 	If (Test-Path ("HKCU:\" + $path)) {
-         Remove-Item ("HKLM:\" + $path) -Recurse -Force
+        Remove-Item ("HKCU:\" + $path) -Recurse -Force
     }
+}	
 
+Function itemDelete($path, $desc) {
+	Write-Output ($desc) 
+	
+	if(![System.IO.File]::Exists($path)){
+		return
+	}
+
+	takeown /F $path	
+
+	$Acl = Get-ACL $path
+	$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule("everyone","FullControl","ContainerInherit,Objectinherit","none","Allow")
+	$Acl.AddAccessRule($AccessRule)
+	Set-Acl $path $Acl
+
+	$Acl = Get-ACL $path
+	$username = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+	$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule($username,"FullControl","ContainerInherit,Objectinherit","none","Allow")
+	$Acl.AddAccessRule($AccessRule)
+	Set-Acl $path $Acl
+
+	$files = Get-ChildItem $path
+	foreach ($file in $files) {
+		$Item = $path + "\" + $file.name
+
+		takeown /F $Item
+
+		$Acl = Get-ACL $Item
+		$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule("everyone","FullControl","Allow")
+		$Acl.AddAccessRule($AccessRule)
+		Set-Acl $Item $Acl
+
+		$Acl = Get-ACL $Item
+		$username = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+		$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule($username,"FullControl","Allow")
+		$Acl.AddAccessRule($AccessRule)
+		Set-Acl $Item $Acl
+
+		$whatIs = (Get-Item $Item) -is [System.IO.DirectoryInfo]
+
+		if ($whatIs -eq $False){
+			Set-ItemProperty $Item -name IsReadOnly -value $false
+			try {
+				Remove-Item -Path $Item -Recurse -Force -ErrorAction Stop;
+				write-Host -ForegroundColor Green ($file.name + " deleted.")
+			}
+			catch {			
+				write-Host -ForegroundColor red ($file.name + " NOT deleted.") 
+
+			}
+		}
+	}
 }
 
 Function clearCaches {
-	regDelete "Software\Microsoft\Windows\CurrentVersion\CloudStore" "Removing CloudStore from registry if it exists, will clear all start menu items." 
+	regDelete "Software\Microsoft\Windows\CurrentVersion\CloudStore\*" "Clearing all start menu items..." 
+	regDelete "SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles\*" "Clearing network profiles..."
+	regDelete "SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures\Managed\*" "Clearing managed network profiles..."
+	regDelete "SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures\Unmanaged\*" "Clearing managed network profiles..."
+	regDelete "SYSTEM\CurrentControlSet\Enum\USBSTOR\*" "Clearing USB history..."
+	regDelete "SYSTEM\CurrentControlSet\Control\usbflags\*" "Clearing USB history..."
+	regDelete "SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Nla\Cache\Intranet\*" "Clearing intranet history..."
+	regDelete "Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU\*" "Clearing commands history..."
+	regDelete "Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths\*" "Clearing typed paths cache..."
+	regDelete "Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs\*" "Clearing recent docs cache..."
+	regDelete "SYSTEM\CurrentControlSet\Control\Session Manager\AppCompatCache\*" "Clearing compat cache..."
+	regDelete "Software\Microsoft\Windows\CurrentVersion\Explorer\MountPoints2\*" "Clearing mapped drives cache..."
+	
+	Stop-Process -ProcessName explorer -Force
 	
 	Remove-Item $env:TEMP\*.* -confirm:$false -Recurse -Force
 	Get-ChildItem $env:TEMP\*.* | Remove-Item -confirm:$false -Recurse -Force
 	Remove-Item $env:WINDIR\Prefetch\*.* -confirm:$false -Recurse -Force
 	Get-ChildItem $env:WINDIR\Prefetch\*.* | Remove-Item -confirm:$false -Recurse -Force
 	Remove-Item $env:WINDIR\*.dmp -confirm:$false -Recurse -Force
+	
+	
+	taskkill /F /IM explorer.exe
+	Start-Sleep -Seconds 3
+		
+	itemDelete "$env:LocalAppData\Microsoft\Windows\Explorer" "Clearing thumbs files cache..."
+	itemDelete "$env:LocalAppData\Microsoft\Windows\Recent" "Clearing recent folder cache..."
+	itemDelete "$env:LocalAppData\Microsoft\Windows\Recent\AutomaticDestinations" "Clearing automatic destinations folder cache..."
+	itemDelete "$env:LocalAppData\Microsoft\Windows\Recent\CustomDestinations" "Clearing custom destinations folder cache..."
+	
+	start explorer.exe	
 }
 	
 Function RegChange($path, $thing, $value, $desc, $type) {
@@ -257,19 +358,19 @@ Function RegChange($path, $thing, $value, $desc, $type) {
 		$type2 = $type
 	}
 	
-	If (Test-Path ("HKLM:\" + $path)) {
-		New-Item -Path ("HKLM:\" + $path) | Out-Null
+	If (!(Test-Path ("HKLM:\" + $path))) {
+		New-Item -Path ("HKLM:\" + $path) -Force
 	}
-	If (Test-Path ("HKCU:\" + $path)) {
-        New-Item -Path ("HKCU:\" + $path) | Out-Null
+	If (!(Test-Path ("HKCU:\" + $path))) {
+        New-Item -Path ("HKCU:\" + $path) -Force
     }
 	
     If (Test-Path ("HKLM:\" + $path)) {
-        Set-ItemProperty ("HKLM:\" + $path) $thing -Value $value -Type $type2
+        Set-ItemProperty ("HKLM:\" + $path) $thing -Value $value -Type $type2 -PassThru:$false
     }
 	If (Test-Path ("HKCU:\" + $path)) {
-        Set-ItemProperty ("HKCU:\" + $path) $thing -Value $value -Type $type2
-    }
+        Set-ItemProperty ("HKCU:\" + $path) $thing -Value $value -Type $type2 -PassThru:$false
+    }	
 
 }
 
@@ -358,12 +459,14 @@ Function ProtectPrivacy {
 		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 1
 		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 1
 	}	
-
-    Write-Output "Disabling scheduled tasks"    
-    Get-ScheduledTask  Consolidator | Disable-ScheduledTask
-    Get-ScheduledTask  UsbCeip | Disable-ScheduledTask
-    Get-ScheduledTask  DmClient | Disable-ScheduledTask
-    Get-ScheduledTask  DmClientOnScenarioDownload | Disable-ScheduledTask
+	
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Disabling scheduled tasks, Consolidator, UsbCeip, DmClient..."
+		Get-ScheduledTask  Consolidator | Disable-ScheduledTask
+		Get-ScheduledTask  UsbCeip | Disable-ScheduledTask
+		Get-ScheduledTask  DmClient | Disable-ScheduledTask
+		Get-ScheduledTask  DmClientOnScenarioDownload | Disable-ScheduledTask
+	}
 	
 	write-Host "Diagnostics Tracking Service is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
     Write-Output "Stopping and disabling DiagTrack"
@@ -372,13 +475,10 @@ Function ProtectPrivacy {
 	write-Host "dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
 	Write-Output "Stopping and disabling dmwappushservice"
 	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType disabled
-
-	Write-Host "Removing AutoLogger logs..."
-	$autoLoggerDir = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
-	If (Test-Path "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl") {
-		Remove-Item -Path "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl"
-	}
-	icacls $autoLoggerDir /deny SYSTEM:`(OI`)`(CI`)F | Out-Null    
+	
+	$path = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
+	itemDelete $path "Clearing ETL Autologs..."
+	hardenPath $path "Hardening ETL Autologs folder..."
 }
 
 Function unProtectPrivacy {
@@ -411,12 +511,14 @@ Function unProtectPrivacy {
 		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 0
 	}
 	
-    Write-Output "Enabling scheduled tasks"    
-    Get-ScheduledTask  Consolidator | Enable-ScheduledTask
-    Get-ScheduledTask  UsbCeip | Enable-ScheduledTask
-    Get-ScheduledTask  DmClient | Enable-ScheduledTask
-    Get-ScheduledTask  DmClientOnScenarioDownload | Enable-ScheduledTask
-
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Enabling scheduled tasks, Consolidator, UsbCeip, DmClient..."  
+		Get-ScheduledTask  Consolidator | Enable-ScheduledTask
+		Get-ScheduledTask  UsbCeip | Enable-ScheduledTask
+		Get-ScheduledTask  DmClient | Enable-ScheduledTask
+		Get-ScheduledTask  DmClientOnScenarioDownload | Enable-ScheduledTask
+	}
+	
     write-Host "Diagnostics Tracking Service is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
     Write-Output "Enabling DiagTrack..."
 	Get-Service DiagTrack | Stop-Service -PassThru | Set-Service -StartupType automatic
@@ -705,7 +807,7 @@ Function DisableLLMNR {
 
 Function EnableLLMNR {
 	RegChange "SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" "EnableMulticast" "1" "Enabling Link-Local Multicast Name Resolution (LLMNR) protocol" "DWord"
-}		
+}	
 
 ##########
 # Global Functions - End
@@ -814,28 +916,56 @@ if ($disableSMBServer -eq 1) {
 	Disable-NetAdapterBinding -Name "*" -ComponentID "ms_server"
 }
 
+if ($disableSystemRestore -eq 0) {
+	Write-Output "Enabling system restore..."
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Enabling system restore scheduled task..."
+		Enable-ScheduledTask -TaskName "Microsoft\Windows\SystemRestore\SR" -EA SilentlyContinue | Out-Null
+	}
+	
+	Get-Service swprv | Set-Service -StartupType automatic
+	Get-Service VSS | Set-Service -StartupType automatic
+}
+
+if ($disableSystemRestore -eq 1) {
+	Write-Output "Disabling system restore..."
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Disabling system restore scheduled task..."
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\SystemRestore\SR" -EA SilentlyContinue | Out-Null
+	}
+
+	Get-Service swprv | Stop-Service -PassThru | Set-Service -StartupType disabled
+	Get-Service VSS | Stop-Service -PassThru | Set-Service -StartupType disabled
+}
+
 if ($telemetry -eq 0) {	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
-	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
-	Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
-	Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
-	Disable-ScheduledTask -TaskName "Microsoft\Windows\Autochk\Proxy" | Out-Null
-	Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\Consolidator" | Out-Null
-	Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" | Out-Null
-	Disable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
+	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Disabling telemetry scheduled tasks..."
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\Autochk\Proxy" | Out-Null
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\Consolidator" | Out-Null
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" | Out-Null
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
+	}	
 }
 
 if ($telemetry -eq 1) {		
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
 	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
-	Enable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
-	Enable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
-	Enable-ScheduledTask -TaskName "Microsoft\Windows\Autochk\Proxy" | Out-Null
-	Enable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\Consolidator" | Out-Null
-	Enable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" | Out-Null
-	Enable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Enabling telemetry scheduled tasks..."
+		Enable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
+		Enable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
+		Enable-ScheduledTask -TaskName "Microsoft\Windows\Autochk\Proxy" | Out-Null
+		Enable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\Consolidator" | Out-Null
+		Enable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" | Out-Null
+		Enable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
+	}
 }
 
 if ($disableBloatware -eq 0) {	
@@ -900,7 +1030,7 @@ if ($disablelastaccess -eq 1) {
 if ($doPerformanceStuff -eq 0) {
 	Write-Output "Reverse performance stuff."
 	
-	RegChange "System\CurrentControlSet\Control\Session Manager\Power" "HibernteEnabled" "1" "Enabling hibernation..." "DWord"
+	RegChange "System\CurrentControlSet\Control\Session Manager\Power" "HibernateEnabled" "1" "Enabling hibernation..." "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings" "ShowHibernateOption" "1" "Making visible hibernation..." "DWord"
 	
 	if ($(serviceStatus("Schedule")) -eq "running") {
@@ -928,7 +1058,7 @@ if ($doPerformanceStuff -eq 0) {
 if ($doPerformanceStuff -eq 1) {
 	Write-Output "Doing performance stuff."
 	
-	RegChange "System\CurrentControlSet\Control\Session Manager\Power" "HibernteEnabled" "0" "Disabling hibernation..." "DWord"
+	RegChange "System\CurrentControlSet\Control\Session Manager\Power" "HibernateEnabled" "0" "Disabling hibernation..." "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings" "ShowHibernateOption" "0" "Hiding hibernation..." "DWord"
 	
 	if ($(serviceStatus("Schedule")) -eq "running") {
@@ -1414,25 +1544,10 @@ Remove-Item "$env:LOCALAPPDATA\Microsoft\OneDrive\" -Force -EA SilentlyContinue 
 if($?){   write-Host -ForegroundColor Green "One Drive appdata folder removed"  }else{   write-Host -ForegroundColor green "One Drive appdata folder not present" } 
 
 
-Remove-Item "$env:APPDATA\Microsoft\Windows\Recent\*" -recurse -EA SilentlyContinue | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows recent folder cleared"  }else{   write-Host -ForegroundColor red "Windows recent folder not cleared" } 
-
-Remove-Item "$env:APPDATA\Microsoft\Windows\Recent\AutomaticDestinations\*" -recurse -EA SilentlyContinue | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows automatic destinations folder cleared"  }else{   write-Host -ForegroundColor green "Windows automatic destinations folder not found" } 
-
-Remove-Item "$env:APPDATA\Microsoft\Windows\Recent\CustomDestinations\*" -recurse -EA SilentlyContinue | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows custom destinations folder cleared"  }else{   write-Host -ForegroundColor green "Windows custom destinations not found" } 
-
 # Disable ShadowCopy
 vssadmin delete shadows /all /quiet | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows Shadowcopy removed"  }else{   write-Host -ForegroundColor green "Windows Shadowcopy already disabled" } 
 
-# Disable SystemRestore
-Disable-ScheduledTask -TaskName "Microsoft\Windows\SystemRestore\SR" -EA SilentlyContinue | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows system restore disabled"  }else{   write-Host -ForegroundColor green "Windows system restore already disabled" } 
-
-Get-Service swprv | Stop-Service -PassThru | Set-Service -StartupType disabled
-Get-Service VSS | Stop-Service -PassThru | Set-Service -StartupType disabled
 
 # Disable BITS service due still download windows updates even if the user does not want it
 Get-Service BITS | Stop-Service -PassThru | Set-Service -StartupType disabled
