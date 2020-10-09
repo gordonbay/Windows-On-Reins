@@ -26,7 +26,8 @@ I do not take responsibility for what may happen to your system. This is at your
 - Allow user to disable Cortana
 - Disable Software Protection Platform, licence checking
 - Disable SmartScreen Filter, it has a massive impact on running a program because its checks online how often people run this same program. By concept its weak, wont offer great security and has huge performance impact. Its non configurable too.
-- Disable BITS - Background Intelligent Transfer Service, DoSvc - Delivery Optimization, UsoSvc - Update Orchestrator Service, DusmSvc - Data Usage, the all showed the same behavior, its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
+- Disable BITS - Background Intelligent Transfer Service, UsoSvc - Update Orchestrator Service, DusmSvc - Data Usage, the all showed the same behavior, its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan.
+- Disable DoSvc (Delivery Optimization), it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation.
 - Disable wlidsvc service, due to conflicts with some games
 - Disable Fax service
 - Disable Xbox Dvr, its may cause fps problems on some games
