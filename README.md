@@ -14,6 +14,7 @@ I do not take responsibility for what may happen to your system. This is at your
 - Enable dark mode
 - Install Nvidia control panel
 - Dracula's dark mode for Notepad++
+- Disable websites access to crossdomains cookies in Firefox. Like Quora having knowledge about you google account info.
 
 ## What it does - Performance details
 
