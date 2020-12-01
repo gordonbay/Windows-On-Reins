@@ -65,7 +65,7 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Windows from asking your feedback
 - Disable SecurityHealthService, due to anoying and non configurable popups
 - Disable WpnService, push notification service
-- Disable Razer Chroma SDK Server, yeah, its night and you have that game with Razer SDK enabled running and messing up you keys light and you cant see the keys
+- Disable Razer Chroma SDK Server. Its night and you have that game with Razer SDK enabled running and messing up you keys light and you cant see the keys
 
 
 Usage
