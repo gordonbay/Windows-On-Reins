@@ -33,7 +33,7 @@ $beAeroPeekSafe = 0
 # 1 = Enable it to Windows deafaults.
 # Note: Top priority configuration, overrides other settings.
 
-$beThumbnailSafe = 0
+$beThumbnailSafe = 1
 # 0 = Disable Windows Thumbnails. *Recomended.
 # 1 = Enable it to Windows deafaults.
 # Note: Refers to the use of thumbnails instead of icon to some files.
@@ -98,6 +98,10 @@ $doSecurityStuff = 1
 $disableSystemRestore = 1
 # 0 = Enable system restore
 # 1 = Disable system restore. *Recomended.
+
+$firefoxSettings = 1
+# 0 = Keep Firefox settings unchanged.
+# 1 = Apply my Firefox settings. *Recomended.
 
 $disableBloatware = 1
 # 0 = Install Windows Bloatware that are not commented in bloatwareList array.
@@ -257,10 +261,11 @@ Function regDelete($path, $desc) {
 Function itemDelete($path, $desc) {
 	Write-Output ($desc) 
 	
-	if(![System.IO.File]::Exists($path)){
-		return
+	if (!($path | Test-Path)) { 
+		write-Host -ForegroundColor Green ($path + " dont exists.")
+		return	
 	}
-
+	
 	takeown /F $path	
 
 	$Acl = Get-ACL $path
@@ -337,7 +342,7 @@ Function clearCaches {
 	itemDelete "$env:LocalAppData\Microsoft\Windows\Recent" "Clearing recent folder cache..."
 	itemDelete "$env:LocalAppData\Microsoft\Windows\Recent\AutomaticDestinations" "Clearing automatic destinations folder cache..."
 	itemDelete "$env:LocalAppData\Microsoft\Windows\Recent\CustomDestinations" "Clearing custom destinations folder cache..."
-	
+
 	start explorer.exe	
 }
 	
@@ -482,7 +487,6 @@ Function ProtectPrivacy {
 }
 
 Function unProtectPrivacy {
-
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "1" "Enabling Windows Feedback Experience program / Advertising ID"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "1" "Enabling Cortana from being used as part of your Windows Search Function" 
 	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "1" "Enabling Windows Feedback Experience from sending anonymous data"      
@@ -525,16 +529,23 @@ Function unProtectPrivacy {
     
 	write-Host "dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
 	Write-Output "Enabling dmwappushservice"
-	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType automatic
-    
-  
+	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType automatic  
 }
 
 Function qualityOfLife {
+	Get-Service VMwareHostd | Stop-Service -PassThru | Set-Service -StartupType disabled
+	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "4" "Disabling VMware host..." "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "1" "Disabling Windows Winlogon Automatic Restart Sign-On..." "DWord"	
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "0" "Disabling Action Center global toasts..." "DWord"	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "1" "Disabling Action Center notification center..." "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "0" "Disabling Action Center toast push notifications..." "DWord"
+	RegChange "Control Panel\Accessibility" "DynamicScrollbars " "0" "Disabling dynamic scrollbars..." "DWord"
+	
+	write-Host "Fast Boot is known to cause problems with steam" -ForegroundColor Green -BackgroundColor Black 
+	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Power" "HiberbootEnabled" "0" "Disabling Fast boot..." "DWord"
+	powercfg /hibernate OFF
+	
+	New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Control\Session Manager\Power' -name HiberbootEnabled -PropertyType DWord -Value 0 -Force
 	
 	write-Host "RAZER services that allows third party software to ness with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
 	Write-Output "Disabling Razer Chroma SDK Server..."
@@ -550,10 +561,17 @@ Function qualityOfLife {
 }
 
 Function qualityOfLifeOff {
+	Get-Service VMwareHostd | Set-Service -StartupType automatic
+	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "2" "Enabling VMware host..." "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "0" "Enabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "1" "Enabling Action Center toasts..." "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "0" "Enabling Action Center notification center..." "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "1" "Enabling Action Center toast push notifications..." "DWord"
+	RegChange "Control Panel\Accessibility" "DynamicScrollbars " "1" "Enabling dynamic scrollbars..." "DWord"
+	
+	write-Host "Fast Boot is known to cause problems with steam" -ForegroundColor Green -BackgroundColor Black 
+	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Power" "HiberbootEnabled" "1" "Enabling Fast boot..." "DWord"
+	powercfg /hibernate ON
 	
 	write-Host "RAZER services that allows third party software to ness with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
 	Write-Output "Enabling Razer Chroma SDK Server..."
@@ -1050,7 +1068,17 @@ if ($doPerformanceStuff -eq 0) {
 	Get-Service AxInstSV | Stop-Service -PassThru | Set-Service -StartupType automatic
 	
 	Write-Host "Enabling MapsBroker (Downloaded Maps Manager) service..."
-	Get-Service MapsBroker | Stop-Service -PassThru | Set-Service -StartupType automatic
+	Get-Service MapsBroker | Set-Service -StartupType automatic
+	
+	write-Host "Disabling BITS Background Intelligent Transfer Service, its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan" -ForegroundColor Green -BackgroundColor Black 
+	Get-Service BITS | Set-Service -StartupType automatic
+	
+	write-Host "DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation." -ForegroundColor Green -BackgroundColor Black
+	Write-Host "Enabling DoSvc (Delivery Optimization)..."
+	Get-Service DoSvc | Set-Service -StartupType automatic
+	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" "DODownloadMode" "3" "Enabling DeliveryOptimization download mode HTTP blended with Internet Peering..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "3" "Enabling DeliveryOptimization download mode HTTP blended with Internet Peering..." "DWord"
 	
 	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "2" "Enabling Edge updates..." "DWord"
 }
@@ -1079,6 +1107,17 @@ if ($doPerformanceStuff -eq 1) {
 	
 	Write-Host "Stopping and disabling MapsBroker (Downloaded Maps Manager) service..."
 	Get-Service MapsBroker | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	write-Host "BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan" -ForegroundColor Green -BackgroundColor Black
+	Write-Host "Disabling BITS Background Intelligent Transfer Service"
+	Get-Service BITS | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	write-Host "DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation." -ForegroundColor Green -BackgroundColor Black
+	Write-Host "Disabling DoSvc (Delivery Optimization)..."
+	Get-Service DoSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" "DODownloadMode" "100" "Disabling DeliveryOptimization Peering and HTTP download mode (bypass mode)..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "100" "Disabling DeliveryOptimization Peering and HTTP download mode (bypass mode)..." "DWord"
 	
 	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "4" "Disabling Edge updates..." "DWord"
 }
@@ -1124,6 +1163,7 @@ if ($doPrivacyStuff -eq 1) {
 	Get-Service wisvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 }
 
+EnableDnsCache
 if ($doSecurityStuff -eq 0) {
 	Write-Output "Reverse security stuff..."
 	EnableDnsCache
@@ -1159,7 +1199,65 @@ if ($darkTheme -eq 1) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "SystemUsesLightTheme" "0" "Enabling dark theme for system" "DWord"
 }
 
-EnableDnsCache
+
+if ($firefoxSettings -eq 1) {
+	killProcess("notepad++");
+	
+	$PrefsFiles = Get-Item -Path ($env:SystemDrive+"\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*\prefs.js")
+	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
+
+	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*')
+
+	foreach ($file in $PrefsFiles) {
+	$path = Get-ItemProperty -Path $file
+	Write-Output "editing $path"
+	$out = @()
+
+	#Clean selected values
+
+	foreach ($line in Get-Content $file){
+		$matchAboutConfig = 0
+		foreach ($aboutConfigArr2 in $aboutConfigArr){
+			if ($line -like $aboutConfigArr2) {
+				$matchAboutConfig = 1 
+			}	
+		}	
+
+		if ($matchAboutConfig -eq 0) {				
+				$out+= $line  
+		}
+	}
+
+	$out+= 'user_pref("geo.enabled", false);'
+	$out+= 'user_pref("general.warnOnAboutConfig", false);'
+	$out+= 'user_pref("dom.push.enabled", false);'
+	$out+= 'user_pref("dom.webnotifications.enabled", false);'
+	$out+= 'user_pref("app.update.auto", false);'
+	$out+= 'user_pref("identity.fxaccounts.enabled", false);'
+	$out+= 'user_pref("privacy.firstparty.isolate", true);'
+	$out+= 'user_pref("privacy.firstparty.isolate.block_post_message", true);'
+	$out+= 'user_pref("privacy.resistFingerprinting", true);'
+	$out+= 'user_pref("browser.cache.offline.enable", false);'
+	$out+= 'user_pref("browser.send_pings", false);'
+	$out+= 'user_pref("browser.sessionstore.max_tabs_undo", 0);'
+	$out+= 'user_pref("dom.battery.enabled", false);'
+	$out+= 'user_pref("dom.event.clipboardevents.enabled", false);'
+	$out+= 'user_pref("browser.startup.homepage_override.mstone", ignore);'
+	$out+= 'user_pref("browser.cache.disk.smart_size", false);'
+	$out+= 'user_pref("browser.cache.disk.capacity", 1048576);'
+	$out+= 'user_pref("dom.event.contextmenu.enabled", false);'
+	$out+= 'user_pref("media.videocontrols.picture-in-picture.video-toggle.enabled", false);'
+	
+	Copy-Item $file $file$currentDate".txt"
+
+	Clear-Content $file
+	Add-Content $file $out
+
+	Write-Output "Updated $path"
+	}
+}
+
+
 
 ##########
 # Program - End
@@ -1170,13 +1268,20 @@ EnableDnsCache
 # Fixes - Start
 ##########
 
-# FIX NOT BEING ABLE TO TYPE ON WINDOWS SEARCH
-# reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v ctfmon /t REG_SZ /d CTFMON.EXE /f | Out-Null
 
-# FIX NOT BEING ABLE TO LINK OUTLOOK 365 ACCOUNT ON OFFICE OUTLOOK 2019
-# Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "EnableADAL" -Type DWord -Value 0
-# Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "DisableADALatopWAMOverride" -Type DWord -Value 1
+<# FIX NOT BEING ABLE TO LINK OUTLOOK 365 ACCOUNT ON OFFICE OUTLOOK 2019
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "EnableADAL" -Type DWord -Value 0
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "DisableADALatopWAMOverride" -Type DWord -Value 1
+#>
 
+<# FIX NOT BEING ABLE TO TYPE ON WINDOWS SEARCH AND FREEZED START MENU
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v ctfmon /t REG_SZ /d CTFMON.EXE /f | Out-Null
+killProcess("explorer");
+killProcess("SearchUI");
+RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Fixing WpnUserService freezing start menu..." "DWord"
+itemDelete "$env:LocalAppData\Packages\Microsoft.Windows.Cortana_cw5n1h2txyewy\Settings" "Clearing Cortana settings..."
+start explorer.exe	
+#>
 
 $visual = Read-Host "Install Initial Packages? (y/n)"
 
@@ -1471,6 +1576,8 @@ choco install vcredist2017 -y
 choco install dotnet4.0 -y 
 choco install dotnet4.5 -y 
 choco install dotnetfx -y
+choco install directx
+choco install dotnetcore -y
 
 }
 
@@ -1548,31 +1655,15 @@ if($?){   write-Host -ForegroundColor Green "One Drive appdata folder removed"  
 vssadmin delete shadows /all /quiet | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows Shadowcopy removed"  }else{   write-Host -ForegroundColor green "Windows Shadowcopy already disabled" } 
 
-
-# Disable BITS service due still download windows updates even if the user does not want it
-Get-Service BITS | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "BITS service disabled"  }else{   write-Host -ForegroundColor red "BITS service not disabled" } 
 Get-Service netsvcs | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "BITS service disabled"  }else{   write-Host -ForegroundColor red "BITS service not disabled" } 
 
 # Disable Ip helper due transfering a lot of strange data
 Get-Service iphlpsvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 
-# Disable Delivery Optimization (DoSvc) due overriding the windows updates disable state
-Get-Service DoSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "Windows Delivery Optimization Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Delivery Optimization Service not Disabled" } 
-New-ItemProperty -Path 'HKLM:Software\Policies\Microsoft\Windows\DeliveryOptimization' -name DODownloadMode -PropertyType DWord -Value 3 -Force
-if($?){   write-Host -ForegroundColor Green "Windows Delivery Optimization Service Disabled by reg"  }else{   write-Host -ForegroundColor red "Windows Delivery Optimization Service not Disabled by reg" } 
-New-ItemProperty -Path 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config' -name DODownloadMode -PropertyType DWord -Value 0 -Force
-if($?){   write-Host -ForegroundColor Green "Windows Delivery Optimization Service Disabled by reg"  }else{   write-Host -ForegroundColor red "Windows Delivery Optimization Service not Disabled by reg" } 
-
 # Disable Time Brooker due to huge network usage for spying users
 New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\TimeBrokerSvc' -name Start -PropertyType DWord -Value 4 -Force
 if($?){   write-Host -ForegroundColor Green "Windows Time Brooker Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Time Brooker Service not Disabled" } 
-
-# Disable fastboot due conflicts with steam
-powercfg /hibernate OFF
-New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Control\Session Manager\Power' -name HiberbootEnabled -PropertyType DWord -Value 0 -Force
 
 # Disable notifications
 reg add 'HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Explorer' /v DisableNotificationCenter /t REG_DWORD /d 1 /f
@@ -1804,27 +1895,8 @@ switch ($DisableBack) {
 
 #THINGS TO DO MANUALLY
 #CONFIG FIREFOX
-#https://addons.mozilla.org/pt-BR/firefox/addon/dark-theme-for-firefox/
-
-#geo.enabled false
-#general.warnOnAboutConfig false
-#dom.push.enabled false
-#dom.webnotifications.enabled false
-#app.update.auto false
-#identity.fxaccounts.enabled false
-#privacy.firstparty.isolate true
-#privacy.firstparty.isolate.block_post_message true
-#privacy.resistFingerprinting true
-#browser.cache.offline.enable false
-#browser.send_pings false
-#browser.sessionstore.max_tabs_undo 0
-#dom.battery.enabled false
-#dom.event.clipboardevents.enabled false
-#browser.startup.homepage_override.mstone ignore
-#browser.cache.disk.smart_size false
-#browser.cache.disk.capacity
-#dom.event.contextmenu.enabled false
-
+# darkreader
+# uBlock Origin
 
 ## EXTRAS SUBSCRIBE LISTS FOR UBLOCK
 ## https://filterlists.com/lists/
@@ -1838,9 +1910,11 @@ switch ($DisableBack) {
 ## TELEPHONY REQUIRED FOR PPOE
 ## DISABLING WIN FIREWALL CAN PREVENT PRINT NETWORK SHARING
 
-## SUVIVAL FOR THE MOST ANOYING THING ON THE INTERNET:
-## www.google.*##div[jscontroller]:if(h4:has-text(People also search for))
-## THANKS 113669/mint https://webapps.stackexchange.com/users/113669/mint
+<# UBLOCK FILTERS
+www.google.*##div[jscontroller]:if(h4:has-text(People also search for))
+||youtube.com/comment_service_ajax*
+||youtube.com###comments
+ #>
 
 ## Credits
 ## https://github.com/builtbybel/debotnet
