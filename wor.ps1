@@ -33,7 +33,7 @@ $beAeroPeekSafe = 0
 # 1 = Enable it to Windows deafaults.
 # Note: Top priority configuration, overrides other settings.
 
-$beThumbnailSafe = 1
+$beThumbnailSafe = 0
 # 0 = Disable Windows Thumbnails. *Recomended.
 # 1 = Enable it to Windows deafaults.
 # Note: Refers to the use of thumbnails instead of icon to some files.
@@ -102,6 +102,10 @@ $disableSystemRestore = 1
 $firefoxSettings = 1
 # 0 = Keep Firefox settings unchanged.
 # 1 = Apply my Firefox settings. *Recomended.
+
+$remove3dObjFolder = 1
+# 0 = Keep 3d object folder.
+# 1 = Remove 3d object folder. *Recomended.
 
 $disableBloatware = 1
 # 0 = Install Windows Bloatware that are not commented in bloatwareList array.
@@ -305,8 +309,7 @@ Function itemDelete($path, $desc) {
 				write-Host -ForegroundColor Green ($file.name + " deleted.")
 			}
 			catch {			
-				write-Host -ForegroundColor red ($file.name + " NOT deleted.") 
-
+				write-Host -ForegroundColor red ($file.name + " NOT deleted.")
 			}
 		}
 	}
@@ -332,8 +335,7 @@ Function clearCaches {
 	Get-ChildItem $env:TEMP\*.* | Remove-Item -confirm:$false -Recurse -Force
 	Remove-Item $env:WINDIR\Prefetch\*.* -confirm:$false -Recurse -Force
 	Get-ChildItem $env:WINDIR\Prefetch\*.* | Remove-Item -confirm:$false -Recurse -Force
-	Remove-Item $env:WINDIR\*.dmp -confirm:$false -Recurse -Force
-	
+	Remove-Item $env:WINDIR\*.dmp -confirm:$false -Recurse -Force	
 	
 	taskkill /F /IM explorer.exe
 	Start-Sleep -Seconds 3
@@ -407,14 +409,16 @@ function serviceStatus{
 function killProcess{ 
 	param($processName)
 	Write-Output $("Trying to gracefully close " + $processName + " ...")
-
-	$firefox = Get-Process $processName -ErrorAction SilentlyContinue
-	if ($firefox) {
-		$firefox.CloseMainWindow()
-		Sleep 3
-		if (!$firefox.HasExited) {
-			Write-Output $("Killing " + $processName + " ...")
-			$firefox | Stop-Process -Force
+	
+	for ($i=1; $i -le 10; $i++){
+		$firefox = Get-Process $processName -ErrorAction SilentlyContinue
+		if ($firefox) {
+			$firefox.CloseMainWindow()
+			Sleep 3
+			if (!$firefox.HasExited) {
+				Write-Output $("Killing " + $processName + " ...")
+				$firefox | Stop-Process -Force
+			}
 		}
 	}
 	return
@@ -423,7 +427,6 @@ function killProcess{
 Function DisableUAC {
 	New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
 	if($?){   write-Host -ForegroundColor Green "Windows UAC disabled"  }else{   write-Host -ForegroundColor green "Windows UAC not disabled" } 
-	# REMOVE ONE DRIVE
 	rd "%UserProfile%\OneDrive" /q /s > nul 2>&1
 	rd "%SystemDrive%\OneDriveTemp" /q /s > nul 2>&1
 	rd "%LocalAppData%\Microsoft\OneDrive" /q /s > nul 2>&1
@@ -456,6 +459,82 @@ Function ProtectPrivacy {
 	RegChange "SYSTEM\CurrentControlSet\Control\Remote Assistance" "fAllowToGetHelp" "0" "Disabling Remote Assistance"
 	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "1" "Disabling Remote Desktop"
 	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "1" "Disabling Remote Desktop"
+	RegChange "SYSTEM\CurrentControlSet001\Control\Remote Assistance" "fAllowToGetHelp" "0" "Disabling Remote Assistance"
+	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server" "fDenyTSConnections" "1" "Disabling Remote Desktop"
+	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "1" "Disabling Remote Desktop"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" "1" "Disabling handwriting personalization data sharing..." "DWord"
+	
+	RegChange "SOFTWARE\Policies\Microsoft\SQMClient\Windows" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\AppV\CEIP" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "DisableOptinExperience" "1" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AppModel" "Start" "0" "Disabling AutoLogger\AppModel..." "DWord"
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "0" "Disabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "0" "Disabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DataMarket" "Start" "0" "Disabling AutoLogger\DataMarket..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "0" "Disabling AutoLogger\DefenderApiLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "0" "Disabling AutoLogger\DefenderAuditLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DiagLog" "Start" "0" "Disabling AutoLogger\DiagLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Application" "Start" "0" "Disabling AutoLogger\EventLog-Application..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Security" "Start" "0" "Disabling AutoLogger\EventLog-Security..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-System" "Start" "0" "Disabling AutoLogger\EventLog-System..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\LwtNetLog" "Start" "0" "Disabling AutoLogger\LwtNetLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "0" "Disabling AutoLogger\Mellanox-Kernel..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "0" "Disabling AutoLogger\NBSMBLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NtfsLog" "Start" "0" "Disabling AutoLogger\NtfsLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\PEAuthLog" "Start" "0" "Disabling AutoLogger\PEAuthLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\RdrLog" "Start" "0" "Disabling AutoLogger\RdrLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\ReadyBoot" "Start" "0" "Disabling AutoLogger\ReadyBoot..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatform" "Start" "0" "Disabling AutoLogger\SetupPlatform..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "0" "Disabling AutoLogger\SetupPlatformTel..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SpoolerLogger" "Start" "0" "Disabling AutoLogger\SpoolerLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SQMLogger" "Start" "0" "Disabling AutoLogger\SQMLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "0" "Disabling AutoLogger\TCPIPLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TileStore" "Start" "0" "Disabling AutoLogger\TileStore..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\UBPM" "Start" "0" "Disabling AutoLogger\UBPM..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WdiContextLog" "Start" "0" "Disabling AutoLogger\WdiContextLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "0" "Disabling AutoLogger\WFP-IPsec Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "0" "Disabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"
+	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AppModel" "Start" "0" "Disabling AutoLogger\AppModel..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "0" "Disabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "0" "Disabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DataMarket" "Start" "0" "Disabling AutoLogger\DataMarket..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "0" "Disabling AutoLogger\DefenderApiLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "0" "Disabling AutoLogger\DefenderAuditLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "0" "Disabling AutoLogger\DiagLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Application" "Start" "0" "Disabling AutoLogger\EventLog-Application..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Security" "Start" "0" "Disabling AutoLogger\EventLog-Security..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-System" "Start" "0" "Disabling AutoLogger\EventLog-System..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\LwtNetLog" "Start" "0" "Disabling AutoLogger\LwtNetLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "0" "Disabling AutoLogger\Mellanox-Kernel..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "0" "Disabling AutoLogger\NBSMBLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NtfsLog" "Start" "0" "Disabling AutoLogger\NtfsLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\PEAuthLog" "Start" "0" "Disabling AutoLogger\PEAuthLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\RdrLog" "Start" "0" "Disabling AutoLogger\RdrLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\ReadyBoot" "Start" "0" "Disabling AutoLogger\ReadyBoot..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatform" "Start" "0" "Disabling AutoLogger\SetupPlatform..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "0" "Disabling AutoLogger\SetupPlatformTel..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SpoolerLogger" "Start" "0" "Disabling AutoLogger\SpoolerLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SQMLogger" "Start" "0" "Disabling AutoLogger\SQMLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "0" "Disabling AutoLogger\TCPIPLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TileStore" "Start" "0" "Disabling AutoLogger\TileStore..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\UBPM" "Start" "0" "Disabling AutoLogger\UBPM..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WdiContextLog" "Start" "0" "Disabling AutoLogger\WdiContextLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "0" "Disabling AutoLogger\WFP-IPsec Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "0" "Disabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"
 	
 	Set-NetConnectionProfile -NetworkCategory Public
    
@@ -505,6 +584,79 @@ Function unProtectPrivacy {
 	RegChange "SYSTEM\CurrentControlSet\Control\Remote Assistance" "fAllowToGetHelp" "1" "Enabling Remote Assistance"
 	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop"
 	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" "0" "Enabling handwriting personalization data sharing..." "DWord"
+	
+	RegChange "SOFTWARE\Policies\Microsoft\SQMClient\Windows" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\AppV\CEIP" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "DisableOptinExperience" "0" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AppModel" "Start" "1" "Enabling AutoLogger\AppModel..." "DWord"
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "1" "Enabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "1" "Enabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DataMarket" "Start" "1" "Enabling AutoLogger\DataMarket..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "1" "Enabling AutoLogger\DefenderApiLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "1" "Enabling AutoLogger\DefenderAuditLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DiagLog" "Start" "1" "Enabling AutoLogger\DiagLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\LwtNetLog" "Start" "1" "Enabling AutoLogger\LwtNetLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "1" "Enabling AutoLogger\Mellanox-Kernel..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "1" "Enabling AutoLogger\NBSMBLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NtfsLog" "Start" "1" "Enabling AutoLogger\NtfsLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\PEAuthLog" "Start" "1" "Enabling AutoLogger\PEAuthLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\RdrLog" "Start" "1" "Enabling AutoLogger\RdrLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\ReadyBoot" "Start" "1" "Enabling AutoLogger\ReadyBoot..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatform" "Start" "1" "Enabling AutoLogger\SetupPlatform..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "1" "Enabling AutoLogger\SetupPlatformTel..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SpoolerLogger" "Start" "1" "Enabling AutoLogger\SpoolerLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SQMLogger" "Start" "1" "Enabling AutoLogger\SQMLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "1" "Enabling AutoLogger\TCPIPLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TileStore" "Start" "1" "Enabling AutoLogger\TileStore..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\UBPM" "Start" "1" "Enabling AutoLogger\UBPM..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WdiContextLog" "Start" "1" "Enabling AutoLogger\WdiContextLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "1" "Enabling AutoLogger\WFP-IPsec Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "1" "Enabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"
+	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AppModel" "Start" "1" "Enabling AutoLogger\AppModel..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "1" "Enabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "1" "Enabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DataMarket" "Start" "1" "Enabling AutoLogger\DataMarket..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "1" "Enabling AutoLogger\DefenderApiLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "1" "Enabling AutoLogger\DefenderAuditLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "1" "Enabling AutoLogger\DiagLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\LwtNetLog" "Start" "1" "Enabling AutoLogger\LwtNetLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "1" "Enabling AutoLogger\Mellanox-Kernel..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "1" "Enabling AutoLogger\NBSMBLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NtfsLog" "Start" "1" "Enabling AutoLogger\NtfsLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\PEAuthLog" "Start" "1" "Enabling AutoLogger\PEAuthLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\RdrLog" "Start" "1" "Enabling AutoLogger\RdrLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\ReadyBoot" "Start" "1" "Enabling AutoLogger\ReadyBoot..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatform" "Start" "1" "Enabling AutoLogger\SetupPlatform..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "1" "Enabling AutoLogger\SetupPlatformTel..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SpoolerLogger" "Start" "1" "Enabling AutoLogger\SpoolerLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SQMLogger" "Start" "1" "Enabling AutoLogger\SQMLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "1" "Enabling AutoLogger\TCPIPLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TileStore" "Start" "1" "Enabling AutoLogger\TileStore..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\UBPM" "Start" "1" "Enabling AutoLogger\UBPM..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WdiContextLog" "Start" "1" "Enabling AutoLogger\WdiContextLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "1" "Enabling AutoLogger\WFP-IPsec Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "1" "Enabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"
 	
 	Write-Output "Setting network to private..."
 	Set-NetConnectionProfile -NetworkCategory Private
@@ -535,7 +687,7 @@ Function unProtectPrivacy {
 Function qualityOfLife {
 	Get-Service VMwareHostd | Stop-Service -PassThru | Set-Service -StartupType disabled
 	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "4" "Disabling VMware host..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "1" "Disabling Windows Winlogon Automatic Restart Sign-On..." "DWord"	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "1" "Disabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "0" "Disabling Action Center global toasts..." "DWord"	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "1" "Disabling Action Center notification center..." "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "0" "Disabling Action Center toast push notifications..." "DWord"
@@ -615,19 +767,6 @@ Function UnpinStart {
         % { $_.Verbs() } |
         ? {$_.Name -match 'Un.*pin from Start'} |
         % {$_.DoIt()}
-}
-
-Function Remove3dObjects {
-    #Removes 3D Objects from the 'My Computer' submenu in explorer
-    Write-Host "Removing 3D Objects from explorer 'My Computer' submenu"
-    $Objects32 = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}"
-    $Objects64 = "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}"
-    If (Test-Path $Objects32) {
-        Remove-Item $Objects32 -Recurse 
-    }
-    If (Test-Path $Objects64) {
-        Remove-Item $Objects64 -Recurse 
-    }
 }
 
 Function EnablePeek {	
@@ -1201,7 +1340,7 @@ if ($darkTheme -eq 1) {
 
 
 if ($firefoxSettings -eq 1) {
-	killProcess("notepad++");
+	killProcess("firefox");
 	
 	$PrefsFiles = Get-Item -Path ($env:SystemDrive+"\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
@@ -1257,7 +1396,16 @@ if ($firefoxSettings -eq 1) {
 	}
 }
 
+if ($remove3dObjFolder -eq 0) {
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "a" "1" "Enabling 3D Objects from explorer My Computer submenu" "DWord"
+	RegChange "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "a" "1" "Enabling 3D Objects from explorer My Computer submenu" "DWord"
+}
 
+if ($remove3dObjFolder -eq 1) {	
+    Write-Host "Removing 3D Objects from explorer 'My Computer' submenu"
+	regDelete "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "Removing 3D Objects from explorer My Computer submenu"
+	regDelete "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "Removing 3D Objects from explorer My Computer submenu"
+}
 
 ##########
 # Program - End
@@ -1865,11 +2013,6 @@ Function DisableAutorun {
 }
 DisableAutorun
 
-
-
-
-
-
 $disablecortana = Read-Host "Disable Cortana? (y/n)"
 switch ($disablecortana) {
 	y {
@@ -1877,19 +2020,6 @@ switch ($disablecortana) {
 	}
 }
 
-$remove3d = Read-Host "Remove 3D Objects from explorer 'My Computer' submenu? (y/n)"
-switch ($remove3d) {
-	y {
-	Remove3dObjects
-	}
-}
-
-$DisableBack = Read-Host "Disable Background Access? (y/n)"
-switch ($DisableBack) {
-	y {
-	DisableBackgroundApps
-	}
-}
 
 
 
