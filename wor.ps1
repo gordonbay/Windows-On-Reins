@@ -45,7 +45,7 @@ $beCastSafe = 0
 # Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
 # Note: Top priority configuration, overrides other settings.
 
-$beVpnPppoeSafe = 1
+$beVpnPppoeSafe = 0
 # 0 = Will make the system safer against DNS cache poisoning but VPN or PPPOE conns may stop working. *Recomended.
 # 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
 # Note: Set it to 1 if you pretend to use VPN, PPP conns or having trouble with internet.
@@ -64,7 +64,7 @@ $draculaThemeNotepad = 1
 # 0 = Disable Dracula theme for Notepad++.
 # 1 = Enable Dracula theme for Notepad++. *Recomended.
 
-$telemetry = 0
+$telemetry = 1
 # 0 = Disable Telemetry. *Recomended.
 # 1 = Enable Telemetry.
 # Note: Microsoft uses telemetry to periodically collect information about Windows systems. It is possible to acquire information as the computer hardware serial number, the connection records for external storage devices, and traces of executed processes.
@@ -101,7 +101,7 @@ $disableSystemRestore = 1
 
 $firefoxSettings = 1
 # 0 = Keep Firefox settings unchanged.
-# 1 = Apply my Firefox settings. *Recomended.
+# 1 = Apply pro Firefox settings. *Recomended.
 
 $remove3dObjFolder = 1
 # 0 = Keep 3d object folder.
@@ -481,9 +481,6 @@ Function ProtectPrivacy {
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "0" "Disabling AutoLogger\DefenderApiLogger..." "DWord"	
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "0" "Disabling AutoLogger\DefenderAuditLogger..." "DWord"	
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DiagLog" "Start" "0" "Disabling AutoLogger\DiagLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Application" "Start" "0" "Disabling AutoLogger\EventLog-Application..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Security" "Start" "0" "Disabling AutoLogger\EventLog-Security..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-System" "Start" "0" "Disabling AutoLogger\EventLog-System..." "DWord"	
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\LwtNetLog" "Start" "0" "Disabling AutoLogger\LwtNetLog..." "DWord"	
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "0" "Disabling AutoLogger\Mellanox-Kernel..." "DWord"	
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
@@ -511,10 +508,7 @@ Function ProtectPrivacy {
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DataMarket" "Start" "0" "Disabling AutoLogger\DataMarket..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "0" "Disabling AutoLogger\DefenderApiLogger..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "0" "Disabling AutoLogger\DefenderAuditLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "0" "Disabling AutoLogger\DiagLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Application" "Start" "0" "Disabling AutoLogger\EventLog-Application..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Security" "Start" "0" "Disabling AutoLogger\EventLog-Security..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-System" "Start" "0" "Disabling AutoLogger\EventLog-System..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "0" "Disabling AutoLogger\DiagLog..." "DWord"
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\LwtNetLog" "Start" "0" "Disabling AutoLogger\LwtNetLog..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "0" "Disabling AutoLogger\Mellanox-Kernel..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
@@ -534,7 +528,7 @@ Function ProtectPrivacy {
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WdiContextLog" "Start" "0" "Disabling AutoLogger\WdiContextLog..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "0" "Disabling AutoLogger\WFP-IPsec Trace..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "0" "Disabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"	
 	
 	Set-NetConnectionProfile -NetworkCategory Public
    
@@ -603,9 +597,6 @@ Function unProtectPrivacy {
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "1" "Enabling AutoLogger\DefenderApiLogger..." "DWord"	
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "1" "Enabling AutoLogger\DefenderAuditLogger..." "DWord"	
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DiagLog" "Start" "1" "Enabling AutoLogger\DiagLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"	
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\LwtNetLog" "Start" "1" "Enabling AutoLogger\LwtNetLog..." "DWord"	
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "1" "Enabling AutoLogger\Mellanox-Kernel..." "DWord"	
 	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
@@ -633,10 +624,7 @@ Function unProtectPrivacy {
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DataMarket" "Start" "1" "Enabling AutoLogger\DataMarket..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "1" "Enabling AutoLogger\DefenderApiLogger..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "1" "Enabling AutoLogger\DefenderAuditLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "1" "Enabling AutoLogger\DiagLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "1" "Enabling AutoLogger\DiagLog..." "DWord"
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\LwtNetLog" "Start" "1" "Enabling AutoLogger\LwtNetLog..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "1" "Enabling AutoLogger\Mellanox-Kernel..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
@@ -656,7 +644,7 @@ Function unProtectPrivacy {
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WdiContextLog" "Start" "1" "Enabling AutoLogger\WdiContextLog..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "1" "Enabling AutoLogger\WFP-IPsec Trace..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "1" "Enabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"	
 	
 	Write-Output "Setting network to private..."
 	Set-NetConnectionProfile -NetworkCategory Private
@@ -1172,6 +1160,14 @@ if ($troubleshootInstalls -eq 1) {
 	
 	Write-Output "Troubleshoot Install: Windows Firewall enabled by Get-NetFirewallProfile."
 	Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled True
+	
+	Write-Output "Troubleshoot Install: Enabling connection related dependency services."
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"
 }
 
 if ($disablelastaccess -eq 0) {
@@ -1345,14 +1341,12 @@ if ($firefoxSettings -eq 1) {
 	$PrefsFiles = Get-Item -Path ($env:SystemDrive+"\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
 
-	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*')
+	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*')
 
 	foreach ($file in $PrefsFiles) {
 	$path = Get-ItemProperty -Path $file
 	Write-Output "editing $path"
 	$out = @()
-
-	#Clean selected values
 
 	foreach ($line in Get-Content $file){
 		$matchAboutConfig = 0
@@ -1360,13 +1354,13 @@ if ($firefoxSettings -eq 1) {
 			if ($line -like $aboutConfigArr2) {
 				$matchAboutConfig = 1 
 			}	
-		}	
+		}
 
 		if ($matchAboutConfig -eq 0) {				
-				$out+= $line  
+			$out+= $line  
 		}
-	}
-
+	}	
+	
 	$out+= 'user_pref("geo.enabled", false);'
 	$out+= 'user_pref("general.warnOnAboutConfig", false);'
 	$out+= 'user_pref("dom.push.enabled", false);'
@@ -1386,6 +1380,8 @@ if ($firefoxSettings -eq 1) {
 	$out+= 'user_pref("browser.cache.disk.capacity", 1048576);'
 	$out+= 'user_pref("dom.event.contextmenu.enabled", false);'
 	$out+= 'user_pref("media.videocontrols.picture-in-picture.video-toggle.enabled", false);'
+	$out+= 'user_pref("browser.download.skipConfirmLaunchExecutable", true);'
+	$out+= 'user_pref("browser.newtabpage.activity-stream.disableSnippets", true);'
 	
 	Copy-Item $file $file$currentDate".txt"
 
@@ -1759,11 +1755,7 @@ Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpda
 	
 }
 
-
 #DISABLE USELESS SERVICES
-
-
-
 
 Get-Service DcpSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "DcpSvc Disabled"  }else{   write-Host -ForegroundColor red "DcpSvc not Disabled" }
@@ -1879,10 +1871,6 @@ if($?){   write-Host -ForegroundColor Green "SgrmBroker disabled"  }else{   writ
 
 # xbox dvr causing fps issues
 reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR /v value /t REG_DWORD /d 0 /f
-
-
-
-
 
 # WE DONT NEED TELEMETRY AGENT NVIDIA!
 Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -StartupType disabled
@@ -2021,13 +2009,6 @@ switch ($disablecortana) {
 }
 
 
-
-
-#THINGS TO DO MANUALLY
-#CONFIG FIREFOX
-# darkreader
-# uBlock Origin
-
 ## EXTRAS SUBSCRIBE LISTS FOR UBLOCK
 ## https://filterlists.com/lists/
 ## Block the EU Cookie Shit List
@@ -2035,15 +2016,15 @@ switch ($disablecortana) {
 ## I Don't Care about Cookies
 ## ABP Anti-Circumvention Filter List
 
-## NOTES
-## DHCP REQUIRED FOR VPN
-## TELEPHONY REQUIRED FOR PPOE
-## DISABLING WIN FIREWALL CAN PREVENT PRINT NETWORK SHARING
-
-<# UBLOCK FILTERS
+<# UBLOCK PERSONAL FILTERS
 www.google.*##div[jscontroller]:if(h4:has-text(People also search for))
 ||youtube.com/comment_service_ajax*
 ||youtube.com###comments
+
+! 2020-12-03 https://www.youtube.com
+www.youtube.com##.paper-spinner.style-scope.layer-4.spinner-layer > .paper-spinner.style-scope.left.circle-clipper > .paper-spinner.style-scope.circle
+www.youtube.com##.yt-next-continuation.style-scope
+www.youtube.com###clarify-box
  #>
 
 ## Credits
