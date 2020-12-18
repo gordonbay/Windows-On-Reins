@@ -545,7 +545,8 @@ Function ProtectPrivacy {
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Disabling Windows Insider Program..." "DWord"	
 	
 	if ($beTaskScheduleSafe -eq 1) {
-		Write-Host "TimeBrokerSvc NOT disabled because of the beTaskScheduleSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen			
+		Write-Host "TimeBrokerSvc NOT disabled because of the beTaskScheduleSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+		RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "3" "Enabling Time Brooker..." "DWord"
 	} else {	
 		RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "4" "Disabling Time Brooker due to huge network usage and for spying users..." "DWord"
 	}
