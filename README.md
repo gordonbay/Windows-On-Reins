@@ -14,7 +14,6 @@ I do not take responsibility for what may happen to your system. This is at your
 - Enable dark mode
 - Install Nvidia control panel
 - Dracula's dark mode for Notepad++
-- Disable websites access to crossdomains cookies in Firefox. Like Quora having knowledge about you google account info.
 
 ## What it does - Performance details
 
@@ -47,6 +46,7 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Windows lfsvc service, Geofence service, a cute name for a location tracking service
 - Disable Adobe updates
 - Disable NvTelemetryContainer, Nvidia telemetry agent 
+- Disable websites access to crossdomains cookies in Firefox. Like Quora having knowledge about you google account info.
 
 ## What it does - Security
 
@@ -58,7 +58,6 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable error reporting
 - Disable Action Center 
 - Disable People's Bar
-- Fix not being able to link outlook 365 account on office outlook 2019
 - Show Computer shortcut on desktop
 - Remove all pinned bloatware from your start menu
 - Disable sticky keys
@@ -66,7 +65,7 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable SecurityHealthService, due to anoying and non configurable popups
 - Disable WpnService, push notification service
 - Disable Razer Chroma SDK Server. Its night and you have that game with Razer SDK enabled running and messing up you keys light and you cant see the keys
-
+- Disable Windows Licence check
 
 Usage
 ============
