@@ -50,7 +50,12 @@ $beVpnPppoeSafe = 0
 # 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
 # Note: Set it to 1 if you pretend to use VPN, PPP conns or having trouble with internet.
 
-$NvidiaControlPanel = 1
+$beTaskScheduleSafe = 0
+# 0 = Disable Task Schedule. *Recomended.
+# 1 = Enable it.  
+# Note: Top priority configuration, overrides other settings.
+
+$installNvidiaControlPanel = 1
 # 0 = Remove Nvidia Appx.
 # 1 = Install Nvidia control panel. *Recomended.
 # Note: The script will check if your GPU vendor is Nvidia
@@ -64,9 +69,13 @@ $draculaThemeNotepad = 1
 # 0 = Disable Dracula theme for Notepad++.
 # 1 = Enable Dracula theme for Notepad++. *Recomended.
 
-$telemetry = 1
-# 0 = Disable Telemetry. *Recomended.
-# 1 = Enable Telemetry.
+$disableWindowsUpdates = 1
+# 0 = Enable.
+# 1 = Disable. *Recomended.
+
+$disableTelemetry = 1
+# 0 = Enable Telemetry.
+# 1 = Disable Telemetry. *Recomended.
 # Note: Microsoft uses telemetry to periodically collect information about Windows systems. It is possible to acquire information as the computer hardware serial number, the connection records for external storage devices, and traces of executed processes.
 # Note: This tweak may cause Enterprise edition to stop receiving Windows updates.
 
@@ -101,7 +110,11 @@ $disableSystemRestore = 1
 
 $firefoxSettings = 1
 # 0 = Keep Firefox settings unchanged.
-# 1 = Apply pro Firefox settings. *Recomended.
+# 1 = Apply pro Firefox settings. Disable update, cross-domain cookies... *Recomended.
+
+$firefoxCachePath = "";
+# Define a custom folder for Firefox cache files or leave empty.
+# Example: "E:\\FIREFOX_CACHE";
 
 $remove3dObjFolder = 1
 # 0 = Keep 3d object folder.
@@ -200,7 +213,7 @@ $bloatwareList = @(
 		"*Microsoft.LockApp*"		
 	} 
 	
-	if ($NvidiaControlPanel -eq 0) {
+	if ($installNvidiaControlPanel -eq 0) {
 		"*NVIDIACorp.NVIDIAControlPanel*"
 	}
 	
@@ -529,6 +542,13 @@ Function ProtectPrivacy {
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "0" "Disabling AutoLogger\WFP-IPsec Trace..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "0" "Disabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Disabling Windows Insider Program..." "DWord"	
+	
+	if ($beTaskScheduleSafe -eq 1) {
+		Write-Host "TimeBrokerSvc NOT disabled because of the beTaskScheduleSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen			
+	} else {	
+		RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "4" "Disabling Time Brooker due to huge network usage and for spying users..." "DWord"
+	}
 	
 	Set-NetConnectionProfile -NetworkCategory Public
    
@@ -645,7 +665,9 @@ Function unProtectPrivacy {
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "1" "Enabling AutoLogger\WFP-IPsec Trace..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "1" "Enabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"	
-	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Enabling Windows Insider Program..." "DWord"	
+	RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "3" "Enabling Time Brooker..." "DWord"
+
 	Write-Output "Setting network to private..."
 	Set-NetConnectionProfile -NetworkCategory Private
    
@@ -696,8 +718,8 @@ Function qualityOfLife {
 	Write-Output "Disabling WpnService, push notification anoyance service..."
 	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
-	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Disabling WpnUserService, push notification anoyance service..." "DWord"
-	
+	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Disabling WpnUserService, push notification anoyance service..." "DWord"	
+	RegChange "Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" "NoGenTicket" "0" "Disabling Licence Checking..." "DWord"
 }
 
 Function qualityOfLifeOff {
@@ -723,6 +745,7 @@ Function qualityOfLifeOff {
 	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType automatic
 	
 	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "2" "Enabling WpnUserService, push notification anoyance service..." "DWord"
+	RegChange "Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" "NoGenTicket" "1" "Enabling Licence Checking..." "DWord"
 }
 
 Function DisableCortana {
@@ -1021,7 +1044,7 @@ if ($beVpnPppoeSafe -eq 1) {
 	RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "2" "Enabling DNS Cache Service" "DWord"	
 }
 	
-if (GPUVendor -eq "nvidia" -and NvidiaControlPanel -eq 1) {	
+if (GPUVendor -eq "nvidia" -and installNvidiaControlPanel -eq 1) {	
 	Get-AppxPackage -Name "*NVIDIACorp.NVIDIAControlPanel*" | Add-AppxPackage
 	Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like "*NVIDIACorp.NVIDIAControlPanel*" | Add-AppxProvisionedPackage -Online
 	Write-Output "Trying to install Nvidia control panel."
@@ -1083,22 +1106,7 @@ if ($disableSystemRestore -eq 1) {
 	Get-Service VSS | Stop-Service -PassThru | Set-Service -StartupType disabled
 }
 
-if ($telemetry -eq 0) {	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
-	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Disabling telemetry scheduled tasks..."
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\Autochk\Proxy" | Out-Null
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\Consolidator" | Out-Null
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" | Out-Null
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
-	}	
-}
-
-if ($telemetry -eq 1) {		
+if ($disableTelemetry -eq 0) {		
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
 	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
@@ -1111,6 +1119,21 @@ if ($telemetry -eq 1) {
 		Enable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" | Out-Null
 		Enable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
 	}
+}
+
+if ($disableTelemetry -eq 1) {	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
+	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Disabling telemetry scheduled tasks..."
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\Autochk\Proxy" | Out-Null
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\Consolidator" | Out-Null
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" | Out-Null
+		Disable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
+	}	
 }
 
 if ($disableBloatware -eq 0) {	
@@ -1341,7 +1364,7 @@ if ($firefoxSettings -eq 1) {
 	$PrefsFiles = Get-Item -Path ($env:SystemDrive+"\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
 
-	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*')
+	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"app.update.checkInstallTime"*', '*"app.update.auto.migrated"*', '*"app.update.service.enabled"*',  '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*',  '*"browser.messaging-system.whatsNewPanel.enabled"*')
 
 	foreach ($file in $PrefsFiles) {
 	$path = Get-ItemProperty -Path $file
@@ -1366,6 +1389,9 @@ if ($firefoxSettings -eq 1) {
 	$out+= 'user_pref("dom.push.enabled", false);'
 	$out+= 'user_pref("dom.webnotifications.enabled", false);'
 	$out+= 'user_pref("app.update.auto", false);'
+	$out+= 'user_pref("app.update.checkInstallTime", false);'
+	$out+= 'user_pref("app.update.auto.migrated", false);'
+	$out+= 'user_pref("app.update.service.enabled", false);'
 	$out+= 'user_pref("identity.fxaccounts.enabled", false);'
 	$out+= 'user_pref("privacy.firstparty.isolate", true);'
 	$out+= 'user_pref("privacy.firstparty.isolate.block_post_message", true);'
@@ -1377,11 +1403,12 @@ if ($firefoxSettings -eq 1) {
 	$out+= 'user_pref("dom.event.clipboardevents.enabled", false);'
 	$out+= 'user_pref("browser.startup.homepage_override.mstone", ignore);'
 	$out+= 'user_pref("browser.cache.disk.smart_size", false);'
-	$out+= 'user_pref("browser.cache.disk.capacity", 1048576);'
+	$out+= 'user_pref("browser.cache.disk.capacity", 100000000);'
 	$out+= 'user_pref("dom.event.contextmenu.enabled", false);'
 	$out+= 'user_pref("media.videocontrols.picture-in-picture.video-toggle.enabled", false);'
 	$out+= 'user_pref("browser.download.skipConfirmLaunchExecutable", true);'
 	$out+= 'user_pref("browser.newtabpage.activity-stream.disableSnippets", true);'
+	$out+= 'user_pref("browser.messaging-system.whatsNewPanel.enabled", false);'	
 	
 	Copy-Item $file $file$currentDate".txt"
 
@@ -1392,6 +1419,43 @@ if ($firefoxSettings -eq 1) {
 	}
 }
 
+if ($firefoxCachePath) {
+	killProcess("firefox");
+	
+	$PrefsFiles = Get-Item -Path ($env:SystemDrive+"\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*\prefs.js")
+	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
+
+	$aboutConfigArr = @('*"browser.cache.disk.parent_directory"*')
+	
+	foreach ($file in $PrefsFiles) {
+	$path = Get-ItemProperty -Path $file
+	Write-Output "editing $path"
+	$out = @()
+
+	foreach ($line in Get-Content $file){
+		$matchAboutConfig = 0
+		foreach ($aboutConfigArr2 in $aboutConfigArr){
+			if ($line -like $aboutConfigArr2) {
+				$matchAboutConfig = 1 
+			}	
+		}
+
+		if ($matchAboutConfig -eq 0) {				
+			$out+= $line  
+		}
+	}	
+	
+	$out+= 'user_pref("browser.cache.disk.parent_directory", "' + $firefoxCachePath + '");'
+	
+	Copy-Item $file $file$currentDate".txt"
+
+	Clear-Content $file
+	Add-Content $file $out
+
+	Write-Output "Updated $path"
+	}
+} 
+
 if ($remove3dObjFolder -eq 0) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "a" "1" "Enabling 3D Objects from explorer My Computer submenu" "DWord"
 	RegChange "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "a" "1" "Enabling 3D Objects from explorer My Computer submenu" "DWord"
@@ -1401,6 +1465,35 @@ if ($remove3dObjFolder -eq 1) {
     Write-Host "Removing 3D Objects from explorer 'My Computer' submenu"
 	regDelete "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "Removing 3D Objects from explorer My Computer submenu"
 	regDelete "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "Removing 3D Objects from explorer My Computer submenu"
+}
+
+if ($disableWindowsUpdates -eq 1) { 
+
+sc.exe stop wuauserv | Out-Null
+if($?){   write-Host -ForegroundColor Green "Windows Updates Service Stoped"  }else{   write-Host -ForegroundColor red "Windows Updates Service Not Stoped" }
+
+sc.exe config wuauserv start=disabled | Out-Null
+if($?){   write-Host -ForegroundColor Green "Windows Updates Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Service Not Disabled" }
+
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v NoAutoUpdate /t REG_DWORD /d 1 /f | Out-Null
+if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry not Disabled" }
+
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoUpdate /t REG_DWORD /d 1 /f | Out-Null
+if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry not Disabled" }
+
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v AUOptions /t REG_DWORD /d 2 /f | Out-Null
+if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Options Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry Options not Disabled" }
+
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\wuauserv" /v Start /t REG_DWORD /d 4 /f | Out-Null
+if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Start Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry Start not Disabled" }
+
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata" -Name "PreventDeviceMetadataFromNetwork" -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DontPromptForWindowsUpdate" -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DontSearchWindowsUpdate" -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DriverUpdateWizardWuSearchEnabled" -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "ExcludeWUDriversInQualityUpdate" -ErrorAction SilentlyContinue
+	
+	
 }
 
 ##########
@@ -1447,13 +1540,6 @@ $windowsfirewall = Read-Host "Disable windows firewall? (y/n)"
 while("y","n" -notcontains $windowsfirewall)
 {
 	$windowsfirewall = Read-Host "y or n?"
-}
-
-$windowsupdate = Read-Host "Disable windows updates? (y/n)"
-
-while("y","n" -notcontains $windowsupdate)
-{
-	$windowsupdate = Read-Host "y or n?"
 }
 
 $showhidden = Read-Host "Show hidden files and extensions (y/n)"
@@ -1725,35 +1811,6 @@ choco install dotnetcore -y
 
 }
 
-if ($windowsupdate -like "y") { 
-#DISABLE WINDOWS UPDATES
-
-sc.exe stop wuauserv | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows Updates Service Stoped"  }else{   write-Host -ForegroundColor red "Windows Updates Service Not Stoped" }
-
-sc.exe config wuauserv start=disabled | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows Updates Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Service Not Disabled" }
-
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v NoAutoUpdate /t REG_DWORD /d 1 /f | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry not Disabled" }
-
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoUpdate /t REG_DWORD /d 1 /f | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry not Disabled" }
-
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v AUOptions /t REG_DWORD /d 2 /f | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Options Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry Options not Disabled" }
-
-reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\wuauserv" /v Start /t REG_DWORD /d 4 /f | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Start Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry Start not Disabled" }
-
-Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata" -Name "PreventDeviceMetadataFromNetwork" -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DontPromptForWindowsUpdate" -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DontSearchWindowsUpdate" -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DriverUpdateWizardWuSearchEnabled" -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "ExcludeWUDriversInQualityUpdate" -ErrorAction SilentlyContinue
-	
-	
-}
 
 #DISABLE USELESS SERVICES
 
@@ -1800,10 +1857,6 @@ if($?){   write-Host -ForegroundColor Green "BITS service disabled"  }else{   wr
 
 # Disable Ip helper due transfering a lot of strange data
 Get-Service iphlpsvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-
-# Disable Time Brooker due to huge network usage for spying users
-New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\TimeBrokerSvc' -name Start -PropertyType DWord -Value 4 -Force
-if($?){   write-Host -ForegroundColor Green "Windows Time Brooker Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Time Brooker Service not Disabled" } 
 
 # Disable notifications
 reg add 'HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Explorer' /v DisableNotificationCenter /t REG_DWORD /d 1 /f
@@ -1913,15 +1966,6 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AppHost"
 Write-Host "Disabling Location Tracking..."
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" -Name "SensorPermissionState" -Type DWord -Value 0
 Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Services\lfsvc\Service\Configuration" -Name "Status" -Type DWord -Value 0
-
-Write-Host "Disabling Licence Checking..."
-If (!(Test-Path "HKLM:\Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform")) {
-    New-Item -Path "HKLM:\Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" -Force | Out-Null
-}
-Set-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" -Name "NoGenTicket " -Type DWord -Value 0
-if($?){   write-Host -ForegroundColor Green "Licence checking disabled"  }else{   write-Host -ForegroundColor red "Licence checking not disabled" } 
-
-
  
 # Disable Cortana
 Write-Host "Disabling Cortana..."
@@ -2008,6 +2052,8 @@ switch ($disablecortana) {
 	}
 }
 
+## NLASVC REQUIRED FOR WIFI?
+## DHCP REQUIRED FOR WIFI?
 
 ## EXTRAS SUBSCRIBE LISTS FOR UBLOCK
 ## https://filterlists.com/lists/
@@ -2022,9 +2068,10 @@ www.google.*##div[jscontroller]:if(h4:has-text(People also search for))
 ||youtube.com###comments
 
 ! 2020-12-03 https://www.youtube.com
-www.youtube.com##.paper-spinner.style-scope.layer-4.spinner-layer > .paper-spinner.style-scope.left.circle-clipper > .paper-spinner.style-scope.circle
 www.youtube.com##.yt-next-continuation.style-scope
-www.youtube.com###clarify-box
+
+! 2020-12-10 https://www.twitch.tv
+www.twitch.tv##.tw-mg-x-05.tw-flex-shrink-0.tw-flex-nowrap.tw-flex-grow-0.tw-align-self-center.top-nav__prime
  #>
 
 ## Credits
