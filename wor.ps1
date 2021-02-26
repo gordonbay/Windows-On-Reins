@@ -28,6 +28,11 @@ $beBiometricSafe = 0
 # Note: Refers to lockscreen, fingerprint reader, illuminated IR sensor or other biometric sensors.
 # Note: Top priority configuration, overrides other settings.
 
+$beNetworkPrinterSafe = 0
+# 0 = Disable network printer. *Recomended.
+# 1 = Enable it.
+# Note: Top priority configuration, overrides other settings.
+
 $beAeroPeekSafe = 0
 # 0 = Disable Windows Aero Peek. *Recomended.
 # 1 = Enable it to Windows deafaults.
@@ -45,10 +50,10 @@ $beCastSafe = 0
 # Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
 # Note: Top priority configuration, overrides other settings.
 
-$beVpnPppoeSafe = 0
+$beVpnPppoeSafe = 1
 # 0 = Will make the system safer against DNS cache poisoning but VPN or PPPOE conns may stop working. *Recomended.
 # 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
-# Note: Set it to 1 if you pretend to use VPN, PPP conns or having trouble with internet.
+# Note: Set it to 1 if you pretend to use VPN, PPP conns, if the system is inside a VM or having trouble with internet.
 
 $beTaskScheduleSafe = 0
 # 0 = Disable Task Schedule. *Recomended.
@@ -69,7 +74,15 @@ $draculaThemeNotepad = 1
 # 0 = Disable Dracula theme for Notepad++.
 # 1 = Enable Dracula theme for Notepad++. *Recomended.
 
+$disableWindowsFirewall = 1
+# 0 = Enable.
+# 1 = Disable. *Recomended.
+
 $disableWindowsUpdates = 1
+# 0 = Enable.
+# 1 = Disable. *Recomended.
+
+$disableMSStore = 1
 # 0 = Enable.
 # 1 = Disable. *Recomended.
 
@@ -113,12 +126,18 @@ $firefoxSettings = 1
 # 1 = Apply pro Firefox settings. Disable update, cross-domain cookies... *Recomended.
 
 $firefoxCachePath = "";
-# Define a custom folder for Firefox cache files or leave empty.
+# Leave it EMPTY or...
+# Define a custom folder for Firefox cache files.
 # Example: "E:\\FIREFOX_CACHE";
 
 $remove3dObjFolder = 1
 # 0 = Keep 3d object folder.
 # 1 = Remove 3d object folder. *Recomended.
+
+$disableWindowsSounds = 1
+# 0 = Do nothing;
+# 1 = Disable Windows sound effects. *Recomended.
+# If you want to re-enable it, will have to do it manually
 
 $disableBloatware = 1
 # 0 = Install Windows Bloatware that are not commented in bloatwareList array.
@@ -578,6 +597,10 @@ Function ProtectPrivacy {
 	$path = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
 	itemDelete $path "Clearing ETL Autologs..."
 	hardenPath $path "Hardening ETL Autologs folder..."
+	
+	write-Host "AppHostRegistrationVerifier tries to connect to 13.107.246.19 port 443 when the pc is idle for no known reason." -ForegroundColor Green -BackgroundColor Black
+	itemDelete "$env:WINDIR\system32\AppHostRegistrationVerifier.exe" "Deleting AppHostRegistrationVerifier.exe..."
+	Remove-Item -Path "$env:WINDIR\system32\AppHostRegistrationVerifier.exe" -Recurse -Force -ErrorAction Stop;
 }
 
 Function unProtectPrivacy {
@@ -708,19 +731,23 @@ Function qualityOfLife {
 	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Power" "HiberbootEnabled" "0" "Disabling Fast boot..." "DWord"
 	powercfg /hibernate OFF
 	
-	New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Control\Session Manager\Power' -name HiberbootEnabled -PropertyType DWord -Value 0 -Force
-	
-	write-Host "RAZER services that allows third party software to ness with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
+	Write-Host "RAZER services that allows third party software to mess with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
 	Write-Output "Disabling Razer Chroma SDK Server..."
-	Get-Service Razer Chroma SDK Server | Stop-Service -PassThru | Set-Service -StartupType disabled
+	Get-Service "Razer Chroma SDK Server" | Stop-Service -PassThru | Set-Service -StartupType disabled
 	Write-Output "Disabling Razer Chroma SDK Service..."
-	Get-Service Razer Chroma SDK Service | Stop-Service -PassThru | Set-Service -StartupType disabled
+	Get-Service "Razer Chroma SDK Service" | Stop-Service -PassThru | Set-Service -StartupType disabled
 
 	Write-Output "Disabling WpnService, push notification anoyance service..."
 	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
 	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Disabling WpnUserService, push notification anoyance service..." "DWord"	
 	RegChange "Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" "NoGenTicket" "0" "Disabling Licence Checking..." "DWord"
+	
+	RegChange "SOFTWARE\Microsoft\Windows\Windows Error Reporting" "Disabled" "1" "Disabling Error reporting..." "DWord"
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Host "Disabling Error reporting task..."
+		Get-ScheduledTask  *QueueReporting* | Disable-ScheduledTask
+	}	
 }
 
 Function qualityOfLifeOff {
@@ -738,15 +765,21 @@ Function qualityOfLifeOff {
 	
 	write-Host "RAZER services that allows third party software to ness with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
 	Write-Output "Enabling Razer Chroma SDK Server..."
-	Get-Service Razer Chroma SDK Server | Stop-Service -PassThru | Set-Service -StartupType automatic
+	Get-Service "Razer Chroma SDK Server" | Stop-Service -PassThru | Set-Service -StartupType automatic
 	Write-Output "Enabling Razer Chroma SDK Service..."
-	Get-Service Razer Chroma SDK Service | Stop-Service -PassThru | Set-Service -StartupType automatic
+	Get-Service "Razer Chroma SDK Service" | Stop-Service -PassThru | Set-Service -StartupType automatic
 
 	Write-Output "Enabling WpnService, push notification anoyance service..."
 	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType automatic
 	
 	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "2" "Enabling WpnUserService, push notification anoyance service..." "DWord"
 	RegChange "Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" "NoGenTicket" "1" "Enabling Licence Checking..." "DWord"
+	
+	RegChange "SOFTWARE\Microsoft\Windows\Windows Error Reporting" "Disabled" "0" "Enabling Error reporting..." "DWord"
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Host "Enabling Error reporting task..."
+		Get-ScheduledTask  *QueueReporting* | Enable-ScheduledTask
+	}	
 }
 
 Function DisableCortana {
@@ -769,9 +802,7 @@ Function DisableCortana {
 	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "HistoryViewEnabled" -Type DWord -Value 0
 }
 
-Function UnpinStart {
-    #https://superuser.com/questions/1068382/how-to-remove-all-the-tiles-in-the-windows-10-start-menu
-    #Unpins all tiles from the Start Menu
+Function UnpinStart {    
     Write-Host "Unpinning all tiles from the start menu"
     (New-Object -Com Shell.Application).
     NameSpace('shell:::{4234d49b-0245-4df3-b780-3893943456e1}').
@@ -881,7 +912,6 @@ Function GPUVendor {
 		return "nvidia"				
 	}
 }
-
 
 Function installDraculaNotepad {
 	Write-Output "Checking internet connection..." 
@@ -1240,6 +1270,19 @@ if ($doPerformanceStuff -eq 0) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "3" "Enabling DeliveryOptimization download mode HTTP blended with Internet Peering..." "DWord"
 	
 	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "2" "Enabling Edge updates..." "DWord"
+	
+	Write-Host "Enabling Network Store Interface Service..."
+	Get-Service nsi | Set-Service -StartupType automatic
+	
+	Write-Host "Enabling Network Location Awareness Service..."
+	Get-Service NlaSvc | Set-Service -StartupType automatic
+		
+	Write-Host "Enabling LanmanWorkstation Service..."
+	Get-Service Workstation | Set-Service -StartupType automatic
+		
+	Write-Host "Enabling LanmanServer Service..."
+	Get-Service Server | Set-Service -StartupType automatic
+	
 }
 
 if ($doPerformanceStuff -eq 1) {
@@ -1279,6 +1322,23 @@ if ($doPerformanceStuff -eq 1) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "100" "Disabling DeliveryOptimization Peering and HTTP download mode (bypass mode)..." "DWord"
 	
 	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "4" "Disabling Edge updates..." "DWord"
+	
+	
+	Write-Host "Disabling Network Store Interface Service..."
+	Get-Service nsi | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	Write-Host "Disabling Network Location Awareness Service..."
+	Get-Service NlaSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	
+	if ($beNetworkPrinterSafe -eq 0) {
+		Write-Host "Disabling LanmanWorkstation Service..."
+		Get-Service Workstation | Stop-Service -PassThru | Set-Service -StartupType disabled
+		
+		Write-Host "Disabling LanmanServer Service..."
+		Get-Service Server | Stop-Service -PassThru | Set-Service -StartupType disabled
+	}	
+	
 }
 
 if ($doQualityOfLifeStuff -eq 0) {
@@ -1358,6 +1418,21 @@ if ($darkTheme -eq 1) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "SystemUsesLightTheme" "0" "Enabling dark theme for system" "DWord"
 }
 
+if ($disableWindowsFirewall -eq 0) {
+	Write-Host "Enabling MpsSvc (Windows Firewall Service)..."
+	Get-Service MpsSvc | Set-Service -StartupType automatic
+	Write-Host "Enabling Windows Firewall..."
+	Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled True
+	RegChange "SYSTEM\CurrentControlSet\Services\MpsSvc" "Start" "2" "Enabling Windows Firewall service..." "DWord"
+}
+
+if ($disableWindowsFirewall -eq 1) {
+	Write-Host "Stopping and disabling MpsSvc (Windows Firewall Service)..."
+	Get-Service MpsSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+	Write-Host "Disabling Windows Firewall..."
+	Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled False
+	RegChange "SYSTEM\CurrentControlSet\Services\MpsSvc" "Start" "4" "Disabling Windows Firewall service..." "DWord"	
+}
 
 if ($firefoxSettings -eq 1) {
 	killProcess("firefox");
@@ -1365,7 +1440,7 @@ if ($firefoxSettings -eq 1) {
 	$PrefsFiles = Get-Item -Path ($env:SystemDrive+"\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
 
-	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"app.update.checkInstallTime"*', '*"app.update.auto.migrated"*', '*"app.update.service.enabled"*',  '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*',  '*"browser.messaging-system.whatsNewPanel.enabled"*')
+	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"app.update.checkInstallTime"*', '*"app.update.auto.migrated"*', '*"app.update.service.enabled"*',  '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*', '*"browser.messaging-system.whatsNewPanel.enabled"*', '*"extensions.htmlaboutaddons.recommendations.enabled"*')
 
 	foreach ($file in $PrefsFiles) {
 	$path = Get-ItemProperty -Path $file
@@ -1404,12 +1479,13 @@ if ($firefoxSettings -eq 1) {
 	$out+= 'user_pref("dom.event.clipboardevents.enabled", false);'
 	$out+= 'user_pref("browser.startup.homepage_override.mstone", ignore);'
 	$out+= 'user_pref("browser.cache.disk.smart_size", false);'
-	$out+= 'user_pref("browser.cache.disk.capacity", 100000000);'
+	$out+= 'user_pref("browser.cache.disk.capacity", 10000000);'
 	$out+= 'user_pref("dom.event.contextmenu.enabled", false);'
 	$out+= 'user_pref("media.videocontrols.picture-in-picture.video-toggle.enabled", false);'
 	$out+= 'user_pref("browser.download.skipConfirmLaunchExecutable", true);'
 	$out+= 'user_pref("browser.newtabpage.activity-stream.disableSnippets", true);'
 	$out+= 'user_pref("browser.messaging-system.whatsNewPanel.enabled", false);'	
+	$out+= 'user_pref("extensions.htmlaboutaddons.recommendations.enabled", false);'	
 	
 	Copy-Item $file $file$currentDate".txt"
 
@@ -1468,6 +1544,11 @@ if ($remove3dObjFolder -eq 1) {
 	regDelete "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "Removing 3D Objects from explorer My Computer submenu"
 }
 
+if ($disableWindowsSounds -eq 1) { 
+	Write-Host "Disabling Windows sound effects..."
+	Get-ChildItem -Path "HKCU:\AppEvents\Schemes\Apps" | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq ".Current"} | Set-ItemProperty -Name "(Default)" -Value ".None"
+}
+
 if ($disableWindowsUpdates -eq 1) { 
 
 sc.exe stop wuauserv | Out-Null
@@ -1495,6 +1576,17 @@ Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearc
 Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "ExcludeWUDriversInQualityUpdate" -ErrorAction SilentlyContinue
 	
 	
+}
+
+if ($disableMSStore -eq 1) { 
+	Write-Host "Disabling MS Store Service..."
+	Get-Service InstallService | Stop-Service -PassThru | Set-Service -StartupType disabled	
+}
+
+
+if ($disableMSStore -eq 0) { 
+	Write-Host "Enabling MS Store Service..."
+	Get-Service InstallService | Set-Service -StartupType automatic	
 }
 
 ##########
@@ -1534,13 +1626,6 @@ $windowsdefender = Read-Host "Disable windows defender? (y/n)"
 while("y","n" -notcontains $windowsdefender)
 {
 	$windowsdefender = Read-Host "y or n?"
-}
-
-$windowsfirewall = Read-Host "Disable windows firewall? (y/n)"
-
-while("y","n" -notcontains $windowsfirewall)
-{
-	$windowsfirewall = Read-Host "y or n?"
 }
 
 $showhidden = Read-Host "Show hidden files and extensions (y/n)"
@@ -1764,19 +1849,6 @@ if($?){   write-Host -ForegroundColor Green "Windows Defender AllowEmailScanning
 
 
 }
-
-if ($windowsfirewall -like "y") {
-#DISABLE WINDOWS FIREWALL
-Get-Service MpsSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "Windows Firewall service disabled"  } else {   write-Host -ForegroundColor red "Windows Firewall service not disabled" } 
-Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled False
-if($?){   write-Host -ForegroundColor Green "Windows Firewall Disabled"  }else{   write-Host -ForegroundColor red "Windows Firewall not Disabled" }
-# USELESS WINDOWS FIREWALL
-New-ItemProperty -Path HKLM:SYSTEM\CurrentControlSet\Services\MpsSvc -Name Start -PropertyType DWord -Value 4 -Force -EA SilentlyContinue | Out-Null
-if($?){   write-Host -ForegroundColor Green "MpsSvc service disabled"  }else{   write-Host -ForegroundColor red "MpsSvc service not disabled" } 
-
-}
-
 
 if ($showhidden -like "y") { 
 #SHOW HIDDEN FILES AND EXTENSIONS
@@ -2005,22 +2077,13 @@ $y = $currScheme.Split()
 
 
 if ($y[3] -eq $x) {
-
 	write-Host -ForegroundColor yellow "You Have correct Settings, Nothing to Do!!! "
 	
 	} else {						
 		PowerCfg -SetActive $x			
 		write-Host -ForegroundColor Green "PowerScheme Sucessfully Applied"			
-	}
-
-
-# Disable Error reporting
-Function DisableErrorReporting {
-	Write-Host "Disabling Error reporting..."
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting" -Name "Disabled" -Type DWord -Value 1
-	Disable-ScheduledTask -TaskName "Microsoft\Windows\Windows Error Reporting\QueueReporting" | Out-Null
 }
-DisableErrorReporting
+
 
 Function DisableUpdateMSRT {
 	Write-Host "Disabling Malicious Software Removal Tool offering..."
@@ -2062,6 +2125,7 @@ switch ($disablecortana) {
 ## EasyList Cookie List
 ## I Don't Care about Cookies
 ## ABP Anti-Circumvention Filter List
+## Hello, Goodbye!
 
 <# UBLOCK PERSONAL FILTERS
 www.google.*##div[jscontroller]:if(h4:has-text(People also search for))
@@ -2074,14 +2138,6 @@ www.youtube.com##.yt-next-continuation.style-scope
 ! 2020-12-10 https://www.twitch.tv
 www.twitch.tv##.tw-mg-x-05.tw-flex-shrink-0.tw-flex-nowrap.tw-flex-grow-0.tw-align-self-center.top-nav__prime
  #>
-
-## Credits
-## https://github.com/builtbybel/debotnet
-## https://github.com/Disassembler0/Win10-Initial-Setup-Script
-## https://gist.github.com/alirobe/7f3b34ad89a159e6daa1
-## https://github.com/adolfintel/Windows10-Privacy
-## https://github.com/Sycnex/Windows10Debloater
-## https://github.com/dracula/dracula-theme
 
 Remove-PSDrive HKCR
 PAUSE
