@@ -599,8 +599,10 @@ Function ProtectPrivacy {
 	hardenPath $path "Hardening ETL Autologs folder..."
 	
 	write-Host "AppHostRegistrationVerifier tries to connect to 13.107.246.19 port 443 when the pc is idle for no known reason." -ForegroundColor Green -BackgroundColor Black
-	itemDelete "$env:WINDIR\system32\AppHostRegistrationVerifier.exe" "Deleting AppHostRegistrationVerifier.exe..."
-	Remove-Item -Path "$env:WINDIR\system32\AppHostRegistrationVerifier.exe" -Recurse -Force -ErrorAction Stop;
+	itemDelete "$env:WINDIR\system32\AppHostRegistrationVerifier.exe" "Deleting AppHostRegistrationVerifier.exe..."	
+	
+	itemDelete "$env:WINDIR\system32\wbem\wmiprvse.exe" "Deleting WMI Provider Host..."
+	
 }
 
 Function unProtectPrivacy {
@@ -1271,9 +1273,6 @@ if ($doPerformanceStuff -eq 0) {
 	
 	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "2" "Enabling Edge updates..." "DWord"
 	
-	Write-Host "Enabling Network Store Interface Service..."
-	Get-Service nsi | Set-Service -StartupType automatic
-	
 	Write-Host "Enabling Network Location Awareness Service..."
 	Get-Service NlaSvc | Set-Service -StartupType automatic
 		
@@ -1323,10 +1322,6 @@ if ($doPerformanceStuff -eq 1) {
 	
 	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "4" "Disabling Edge updates..." "DWord"
 	
-	
-	Write-Host "Disabling Network Store Interface Service..."
-	Get-Service nsi | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
 	Write-Host "Disabling Network Location Awareness Service..."
 	Get-Service NlaSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
@@ -1363,7 +1358,11 @@ if ($doPrivacyStuff -eq 0) {
 	
 	write-Host "Windows Insider Service contact web servers by its own" -ForegroundColor Green -BackgroundColor Black 
 	Write-Host "Enabling wisvc (Windows Insider Service)..."
-	Get-Service wisvc | Stop-Service -PassThru | Set-Service -StartupType automatic
+	Get-Service wisvc | Set-Service -StartupType automatic
+	Get-Service CryptSvc | Set-Service -StartupType automatic
+	
+	Write-Host "Enabling DsmSvc (Device Setup Manager)..."
+	Get-Service DsmSVC | Set-Service -StartupType automatic
 	
 }
 
@@ -1380,6 +1379,12 @@ if ($doPrivacyStuff -eq 1) {
 	write-Host "Windows Insider Service contact web servers by its own" -ForegroundColor Green -BackgroundColor Black 
 	Write-Host "Stopping and disabling wisvc (Windows Insider Service)..."
 	Get-Service wisvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	Write-Host "Stopping and disabling CryptSvc (Cryptographic Services)..."
+	Get-Service CryptSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	Write-Host "Stopping and disabling DsmSvc (Device Setup Manager)..."
+	Get-Service DsmSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 }
 
 EnableDnsCache
@@ -2118,6 +2123,7 @@ switch ($disablecortana) {
 
 ## NLASVC REQUIRED FOR WIFI?
 ## DHCP REQUIRED FOR WIFI?
+## NSI REQUIRED FOR NETWORK
 
 ## EXTRAS SUBSCRIBE LISTS FOR UBLOCK
 ## https://filterlists.com/lists/
