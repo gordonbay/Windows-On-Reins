@@ -33,6 +33,11 @@ $beNetworkPrinterSafe = 0
 # 1 = Enable it.
 # Note: Top priority configuration, overrides other settings.
 
+$beNetworkFolderSafe = 0
+# 0 = Disable network folders. *Recomended.
+# 1 = Enable it.
+# Note: Top priority configuration, overrides other settings.
+
 $beAeroPeekSafe = 0
 # 0 = Disable Windows Aero Peek. *Recomended.
 # 1 = Enable it to Windows deafaults.
@@ -50,7 +55,7 @@ $beCastSafe = 0
 # Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
 # Note: Top priority configuration, overrides other settings.
 
-$beVpnPppoeSafe = 1
+$beVpnPppoeSafe = 0
 # 0 = Will make the system safer against DNS cache poisoning but VPN or PPPOE conns may stop working. *Recomended.
 # 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
 # Note: Set it to 1 if you pretend to use VPN, PPP conns, if the system is inside a VM or having trouble with internet.
@@ -1019,6 +1024,38 @@ Function EnableLLMNR {
 # Program - Start
 ##########
 
+if ($troubleshootInstalls -eq 1) {
+	Write-Output "Troubleshoot Install: Windows Management Instrumentation service enabled."
+	Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType automatic
+	
+	Write-Output "Troubleshoot Install: Windows Management Instrumentation enabled by registry."
+	New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 2 -Force
+	
+	Write-Output "Troubleshoot Install: Windows firewall service enabled by registry."
+	New-ItemProperty -Path HKLM:SYSTEM\CurrentControlSet\Services\MpsSvc -Name Start -PropertyType DWord -Value 2 -Force -EA SilentlyContinue | Out-Null	
+	
+	Write-Output "Troubleshoot Install: Windows Firewall enabled by registry."
+	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" "0" "Enabling Windows Anti Spyware - DisableAntiSpyware - Windows Firewall"
+	
+	Write-Output "Troubleshoot Install: Windows Firewall enabled by Get-Service."
+	Get-Service MpsSvc | Set-Service -StartupType automatic
+	
+	Write-Output "Troubleshoot Install: Windows Firewall enabled by Get-NetFirewallProfile."
+	Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled True
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\MpsSvc" "Start" "2" "Enabling Windows Firewall service..." "DWord"
+	
+	Write-Output "Troubleshoot Install: Enabling connection related dependency services."
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"
+	
+	PAUSE
+}
+
 if ($beXboxSafe -eq 0) {
 	DisableXboxFeatures
 }
@@ -1196,34 +1233,6 @@ if ($disableBloatware -eq 1) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" 
 	regDelete "Software\Microsoft\Windows\CurrentVersion\CloudStore" "Removing CloudStore from registry if it exists, will clear all start menu items." 
 	UnpinStart
-}	
-
-if ($troubleshootInstalls -eq 1) {
-	Write-Output "Troubleshoot Install: Windows Management Instrumentation service enabled."
-	Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType automatic
-	
-	Write-Output "Troubleshoot Install: Windows Management Instrumentation enabled by registry."
-	New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 2 -Force
-	
-	Write-Output "Troubleshoot Install: Windows firewall service enabled by registry."
-	New-ItemProperty -Path HKLM:SYSTEM\CurrentControlSet\Services\MpsSvc -Name Start -PropertyType DWord -Value 2 -Force -EA SilentlyContinue | Out-Null	
-	
-	Write-Output "Troubleshoot Install: Windows Firewall enabled by registry."
-	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" "0" "Enabling Windows Anti Spyware - DisableAntiSpyware - Windows Firewall"
-	
-	Write-Output "Troubleshoot Install: Windows Firewall enabled by Get-Service."
-	Get-Service MpsSvc | Stop-Service -PassThru | Set-Service -StartupType automatic
-	
-	Write-Output "Troubleshoot Install: Windows Firewall enabled by Get-NetFirewallProfile."
-	Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled True
-	
-	Write-Output "Troubleshoot Install: Enabling connection related dependency services."
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"
 }
 
 if ($disablelastaccess -eq 0) {
@@ -1322,9 +1331,11 @@ if ($doPerformanceStuff -eq 1) {
 	
 	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "4" "Disabling Edge updates..." "DWord"
 	
-	Write-Host "Disabling Network Location Awareness Service..."
-	Get-Service NlaSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
+	if ($beNetworkFolderSafe -eq 0) {
+		Write-Host "Disabling Network Location Awareness Service..."
+		Get-Service NlaSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+	}
 	
 	if ($beNetworkPrinterSafe -eq 0) {
 		Write-Host "Disabling LanmanWorkstation Service..."
