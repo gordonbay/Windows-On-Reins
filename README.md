@@ -7,13 +7,25 @@ I do not take responsibility for what may happen to your system. This is at your
 
 ## What it does - Quality of Life
 
-- Allow users to definitively disable windows updades
+- Allow users to definitively disable windows updates
 - Allow users to definitively disable windows defender
-- Installation of those VC++ resources
+- Installation of VC++ resources
 - Allow users to clear all the bloatware that cames with Windows installation
+- Disable Windows sound effects
+- Disable error reporting
 - Enable dark mode
-- Install Nvidia control panel
+- Install Nvidia control panel, if you own a Nvidia card
 - Dracula's dark mode for Notepad++
+
+## What it does - Firefox
+
+- Disable extension recomendations
+- Disable what is new
+- Disable updates
+- Disable websites access to crossdomains cookies. Like Quora having knowledge about you google account info
+- Disable ping sender
+- Disable geolocation
+
 
 ## What it does - Performance details
 
@@ -46,7 +58,6 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Windows lfsvc service, Geofence service, a cute name for a location tracking service
 - Disable Adobe updates
 - Disable NvTelemetryContainer, Nvidia telemetry agent 
-- Disable websites access to crossdomains cookies in Firefox. Like Quora having knowledge about you google account info.
 
 ## What it does - Security
 
@@ -82,4 +93,13 @@ Run the script
 
     %path-to-file%/wor.ps1
     
-Answer the questions with y or n
+
+Credits
+============
+
+## https://github.com/builtbybel/debotnet
+## https://github.com/Disassembler0/Win10-Initial-Setup-Script
+## https://gist.github.com/alirobe/7f3b34ad89a159e6daa1
+## https://github.com/adolfintel/Windows10-Privacy
+## https://github.com/Sycnex/Windows10Debloater
+## https://github.com/dracula/dracula-theme
