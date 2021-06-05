@@ -1,5 +1,6 @@
 # Windows On Reins - Windows 10 Ameliorated, Bloatware removal, privacy fix and performance optimization
 [![Package Control total downloads](https://img.shields.io/packagecontrol/dt/SwitchDictionary.svg)](https://packagecontrol.io/packages/SwitchDictionary)
+
 This project aim is to make windows 10 usable, faster and under control. 
 
 ## Warning
