@@ -27,7 +27,7 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable geolocation
 
 
-## What it does - Performance details
+## What it does - Performance
 
 - Change power plan to high performance
 - Disable Windows Malicious Software Removal Tool, its disk usage is out the charts
@@ -47,16 +47,15 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Windows SystemRestore, due to performance draw and never works when you need it
 - Disable Windows ShadowCopy, due to performance draw
 - Disable Windows Fast Boot, due conflicts with Steam and several other programs
+- Disable Adobe updates
+- Disable Nvidia NGX updates
 
-
-## What it does - Privacy and security details
+## What it does - Privacy
 
 - Disable Diagtrack, Windows Diagnostics Tracking, design by Microsoft to spy on users and to intefere with your programs
 - Disable autoplay and autorun
 - Disable Windows Location Tracking and Wifi Sensor
-- Disable Windows unique advertise ID
 - Disable Windows lfsvc service, Geofence service, a cute name for a location tracking service
-- Disable Adobe updates
 - Disable NvTelemetryContainer, Nvidia telemetry agent 
 
 ## What it does - Security
@@ -64,7 +63,7 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
 - Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya
 
-## What it does - Annoyances details
+## Annoyances
 
 - Disable error reporting
 - Disable Action Center 
@@ -77,6 +76,14 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable WpnService, push notification service
 - Disable Razer Chroma SDK Server. Its night and you have that game with Razer SDK enabled running and messing up you keys light and you cant see the keys
 - Disable Windows Licence check
+- Put "This PC" shortcut on desktop
+
+## Fingerprinting
+
+- Disable files last modification date, in most cases
+- Disable Windows unique advertise ID
+- Disable and clear ETL and perfomance logs
+
 
 Usage
 ============
