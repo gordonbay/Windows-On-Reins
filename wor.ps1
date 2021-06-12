@@ -162,7 +162,7 @@ $disablePerformanceMonitor = 1
 # 0 = Do nothing;
 # 1 = Disable Windows Performance Logs Monitor and clear all .etl caches. *Recomended.
 
-$unpinStartMenu = 0
+$unpinStartMenu = 1
 # 0 = Do nothing;
 # 1 = Unpin all apps from start menu.
 
@@ -1701,9 +1701,19 @@ if ($unnistallWindowsDefender -eq 1) {
 	Write-Output "Checking if you are in safe mode..."
 	$mySafeMode = gwmi win32_computersystem | select BootupState
 	if ($mySafeMode -notlike '*Normal boot*') {
-		write-host 'Safe mode confirmed.'
-		return "nvidia"				
+		write-host 'Safe mode confirmed.'				
+	} else {		
+		write-host 'System needs to be in safe mode to unninstall Windows Defender.' -ForegroundColor Black -BackgroundColor Red			
 	}
+	
+	deletePath "$env:Programfiles\windows defender" "Deleting windows defender folder..."
+	deletePath "$env:Programfiles\Windows Defender Advanced Threat Protection" "Deleting windows defender folder..."
+	deletePath "$env:Programfiles\Windows Security" "Deleting windows Windows Security folder..."
+	deletePath "$env:Programfiles (x86)\Windows Defender" "Deleting windows Windows defender x86 folder..."
+	deletePath "$env:ProgramData\Microsoft\Windows Defender" "Deleting windows Windows defender program data folder..."
+	deletePath "$env:ProgramData\Microsoft\Windows Defender Advanced Threat Protection" "Deleting windows Windows defender program data folder..."
+	deletePath "$env:ProgramData\Microsoft\Windows Security Health" "Deleting windows Windows defender program data folder..."
+	deletePath "$env:ProgramData\Microsoft\Windows Security Health" "Deleting windows Windows defender program data folder..."
 
 	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableConfig" "1" "Disabling Windows Anti Spyware - DisableConfig"
 	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" "1" "Disabling Windows Anti Spyware - DisableAntiSpyware"
