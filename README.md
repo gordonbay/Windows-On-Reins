@@ -6,18 +6,6 @@ This project aim is to make windows 10 usable, faster and under control.
 ## Warning
 I do not take responsibility for what may happen to your system. This is at your own risk.
 
-## What it does - Quality of Life
-
-- Allow users to definitively disable windows updates
-- Allow users to definitively disable windows defender
-- Installation of VC++ resources
-- Allow users to clear all the bloatware that cames with Windows installation
-- Disable Windows sound effects
-- Disable error reporting
-- Enable dark mode
-- Install Nvidia control panel, if you own a Nvidia card
-- Dracula's dark mode for Notepad++
-
 ## What it does - Firefox
 
 - Disable extension recomendations
@@ -63,9 +51,22 @@ I do not take responsibility for what may happen to your system. This is at your
 
 - Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
 - Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya
+- Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930)
+- Disable Wi-Fi Sense, it connects you to open hotspots that are "greenlighted" through crowdsourcing. Openning doors to Lure10 MITM attack and phishing
+- Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823)
 
-## Annoyances
+## What it does - Quality of Life
 
+- Disable Windows Ads within file explorer
+- Allow users to definitively disable windows updates
+- Allow users to definitively disable windows defender
+- Installation of VC++ resources
+- Allow users to clear all the bloatware that cames with Windows installation
+- Disable Windows sound effects
+- Disable error reporting
+- Enable dark mode
+- Install Nvidia control panel, if you own a Nvidia card
+- Dracula's dark mode for Notepad++
 - Disable error reporting
 - Disable Action Center 
 - Disable People's Bar
@@ -75,9 +76,11 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Windows from asking your feedback
 - Disable SecurityHealthService, due to anoying and non configurable popups
 - Disable WpnService, push notification service
-- Disable Razer Chroma SDK Server. Its night and you have that game with Razer SDK enabled running and messing up you keys light and you cant see the keys
+- Disable Razer Chroma SDK Server. Its night and you have that game with Razer SDK enabled running and messing up your keys
 - Disable Windows Licence check
 - Put "This PC" shortcut on desktop
+- Disable Game Bar tips
+- Disable Vmware Host Server, service uses port 80
 
 ## Fingerprinting
 
@@ -105,6 +108,7 @@ Run the script
 Credits
 ============
 
+## https://www.stigviewer.com/stig/windows_10
 ## https://github.com/builtbybel/debotnet
 ## https://github.com/Disassembler0/Win10-Initial-Setup-Script
 ## https://gist.github.com/alirobe/7f3b34ad89a159e6daa1
