@@ -144,7 +144,7 @@ $firefoxSettings = 1
 # 0 = Keep Firefox settings unchanged.
 # 1 = Apply pro Firefox settings. Disable update, cross-domain cookies... *Recomended.
 
-$firefoxCachePath = "E:\\FIREFOX_CACHE";
+$firefoxCachePath = "";
 # Leave it EMPTY or...
 # Define a custom folder for Firefox cache files.
 # Example: "E:\\FIREFOX_CACHE";
