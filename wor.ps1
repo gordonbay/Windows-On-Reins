@@ -114,15 +114,15 @@ $doQualityOfLifeStuff = 1
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase quality of life. *Recomended.
 
-$doPerformanceStuff = 1#conflito shared folder
+$doPerformanceStuff = 1
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system performance. *Recomended.
 
-$doPrivacyStuff = 1 #clear for shared folder
+$doPrivacyStuff = 1
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system privacy. *Recomended.
 
-$doSecurityStuff = 1 #clear for shared folder
+$doSecurityStuff = 1
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system security. *Recomended.
 
@@ -1347,12 +1347,12 @@ if($?){   write-Host -ForegroundColor Green "UsoSvc service disabled"  }else{   
 	Write-Host "Enabling DoSvc (Delivery Optimization)..."
 	Get-Service DoSvc | Set-Service -StartupType automatic
 		
-	#Write-Host "Disabling netsvcs. Its known for huge bandwidth usage..."
-	#Get-Service netsvcs | Stop-Service -PassThru | Set-Service -StartupType disabled	
+	Write-Host "Disabling netsvcs. Its known for huge bandwidth usage..."
+	Get-Service netsvcs | Stop-Service -PassThru | Set-Service -StartupType disabled	
 	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" "DODownloadMode" "3" "Enabling DeliveryOptimization download mode HTTP blended with Internet Peering..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "3" "Enabling DeliveryOptimization download mode HTTP blended with Internet Peering..." "DWord"	
-	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "2" "Enabling Edge updates..." "DWord"
+	#RegChange "SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" "DODownloadMode" "3" "Enabling DeliveryOptimization download mode HTTP blended with Internet Peering..." "DWord"
+	#RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "3" "Enabling DeliveryOptimization download mode HTTP blended with Internet Peering..." "DWord"	
+	#RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "2" "Enabling Edge updates..." "DWord"
 	
 	Write-Host "Enabling Network Location Awareness Service..."
 	Get-Service NlaSvc | Set-Service -StartupType automatic
