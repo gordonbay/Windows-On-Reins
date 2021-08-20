@@ -33,7 +33,7 @@ $beNetworkPrinterSafe = 0
 # 1 = Enable it.
 # Note: Top priority configuration, overrides other settings.
 
-$beNetworkFolderSafe = 0
+$beNetworkFolderSafe = 1
 # 0 = Disable network folders. *Recomended.
 # 1 = Enable it.
 # Note: Top priority configuration, overrides other settings.
@@ -64,6 +64,10 @@ $beTaskScheduleSafe = 0
 # 0 = Disable Task Schedule. *Recomended.
 # 1 = Enable it.  
 # Note: Top priority configuration, overrides other settings.
+
+$useGoogleDNS = 1
+# 0 = Nothing
+# 1 = Apply Google DNS to connections *Recomended.
 
 $installNvidiaControlPanel = 1
 # 0 = Remove Nvidia Appx.
@@ -97,7 +101,7 @@ $disableTelemetry = 1
 # Note: Microsoft uses telemetry to periodically collect information about Windows systems. It is possible to acquire information as the computer hardware serial number, the connection records for external storage devices, and traces of executed processes.
 # Note: This tweak may cause Enterprise edition to stop receiving Windows updates.
 
-$disableSMBServer = 1
+$disableSMBServer = 0
 # 0 = Enable SMB Server. 
 # 1 = Disable it. *Recomended.
 # Note: SMB Server is used for file and printer sharing.
@@ -110,15 +114,15 @@ $doQualityOfLifeStuff = 1
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase quality of life. *Recomended.
 
-$doPerformanceStuff = 1
+$doPerformanceStuff = 1#conflito shared folder
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system performance. *Recomended.
 
-$doPrivacyStuff = 1
+$doPrivacyStuff = 1 #clear for shared folder
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system privacy. *Recomended.
 
-$doSecurityStuff = 1
+$doSecurityStuff = 1 #clear for shared folder
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system security. *Recomended.
 
@@ -1384,8 +1388,9 @@ if ($doPerformanceStuff -eq 1) {
 	Get-Service DoSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
 	#Write-Host "Disabling netsvcs. Its known for huge bandwidth usage..."
-	#Get-Service netsvcs | Stop-Service -PassThru | Set-Service -StartupType disabled
-
+	Get-Service netsvcs | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	PAUSE
 	if ($(serviceStatus("Schedule")) -eq "running") {
 		write-Host -ForegroundColor Green -BackgroundColor Black "Defragmentation cause unnecessary wear on SSDs"
 		Write-Host "Disabling scheduled defragmentation..."
@@ -1696,6 +1701,15 @@ if ($disableMSStore -eq 0) {
 	Get-Service InstallService | Set-Service -StartupType automatic	
 }
 
+if ($useGoogleDNS -eq 1) { 
+	$DC = "8.8.8.8"
+	$Internet = "8.8.4.4"
+	$dns = "$DC", "$Internet"
+
+	$Interface = Get-WmiObject Win32_NetworkAdapterConfiguration 
+	Write-Host "Registering DNS $dns" -ForegroundColor Green
+	$Interface.SetDNSServerSearchOrder($dns)  | Out-Null
+}
 
 if ($unnistallWindowsDefender -eq 1) {
 	Write-Output "Checking if you are in safe mode..."
@@ -1875,6 +1889,9 @@ if ($unnistallWindowsDefender -eq 1) {
 	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowEmailScanning" -Name "value" -Type DWord -Value 0
 	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowEmailScanning disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowEmailScanning not disabled" } 
 }
+
+
+
 
 ##########
 # Program - End
@@ -2204,6 +2221,10 @@ powercfg.exe -x -standby-timeout-ac $standbyAcTimeout
 powercfg.exe -x -standby-timeout-dc $standbyDcTimeout
 powercfg.exe -x -hibernate-timeout-ac $hybernateAcTimeout
 powercfg.exe -x -hibernate-timeout-dc $hybernateDcTimeout
+
+RegChange "SOFTWARE\Microsoft\CTF\LangBar" "ExtraIconsOnMinimized" "1" "Fix language bar..." "DWord"
+RegChange "SOFTWARE\Microsoft\CTF\LangBar" "Label" "1" "Fix language bar..." "DWord"
+RegChange "SOFTWARE\Microsoft\CTF\LangBar" "ShowStatus" "4" "Fix language bar..." "DWord"
 
 ## NLASVC REQUIRED FOR WIFI?
 ## DHCP REQUIRED FOR WIFI?
