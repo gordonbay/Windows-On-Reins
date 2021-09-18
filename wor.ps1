@@ -33,7 +33,7 @@ $beNetworkPrinterSafe = 0
 # 1 = Enable it.
 # Note: Top priority configuration, overrides other settings.
 
-$beNetworkFolderSafe = 1
+$beNetworkFolderSafe = 0
 # 0 = Disable network folders. *Recomended.
 # 1 = Enable it.
 # Note: Top priority configuration, overrides other settings.
@@ -55,7 +55,7 @@ $beCastSafe = 0
 # Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
 # Note: Top priority configuration, overrides other settings.
 
-$beVpnPppoeSafe = 1
+$beVpnPppoeSafe = 0
 # 0 = Will make the system safer against DNS cache poisoning but VPN or PPPOE conns may stop working. *Recomended.
 # 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
 # Note: Set it to 1 if you pretend to use VPN, PPP conns, if the system is inside a VM or having trouble with internet.
@@ -101,7 +101,7 @@ $disableTelemetry = 1
 # Note: Microsoft uses telemetry to periodically collect information about Windows systems. It is possible to acquire information as the computer hardware serial number, the connection records for external storage devices, and traces of executed processes.
 # Note: This tweak may cause Enterprise edition to stop receiving Windows updates.
 
-$disableSMBServer = 0
+$disableSMBServer = 1
 # 0 = Enable SMB Server. 
 # 1 = Disable it. *Recomended.
 # Note: SMB Server is used for file and printer sharing.
@@ -166,7 +166,7 @@ $disablePerformanceMonitor = 1
 # 0 = Do nothing;
 # 1 = Disable Windows Performance Logs Monitor and clear all .etl caches. *Recomended.
 
-$unpinStartMenu = 1
+$unpinStartMenu = 0
 # 0 = Do nothing;
 # 1 = Unpin all apps from start menu.
 
@@ -1387,10 +1387,9 @@ if ($doPerformanceStuff -eq 1) {
 	Write-Host "Disabling DoSvc (Delivery Optimization)..."
 	Get-Service DoSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
-	#Write-Host "Disabling netsvcs. Its known for huge bandwidth usage..."
+	Write-Host "Disabling netsvcs. Its known for huge bandwidth usage..."
 	Get-Service netsvcs | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
-	PAUSE
 	if ($(serviceStatus("Schedule")) -eq "running") {
 		write-Host -ForegroundColor Green -BackgroundColor Black "Defragmentation cause unnecessary wear on SSDs"
 		Write-Host "Disabling scheduled defragmentation..."
@@ -1455,9 +1454,6 @@ if ($doPrivacyStuff -eq 0) {
 	Get-Service wisvc | Set-Service -StartupType automatic
 	Get-Service CryptSvc | Set-Service -StartupType automatic
 	
-	Write-Host "Enabling DsmSvc (Device Setup Manager)..."
-	Get-Service DsmSVC | Set-Service -StartupType automatic
-	
 	Write-Host "Stopping and disabling EventLog (Windows Event Log)..."
 	Get-Service EventLog | Set-Service -StartupType automatic	
 }
@@ -1478,9 +1474,6 @@ if ($doPrivacyStuff -eq 1) {
 	
 	Write-Host "Stopping and disabling CryptSvc (Cryptographic Services)..."
 	Get-Service CryptSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
-	Write-Host "Stopping and disabling DsmSvc (Device Setup Manager)..."
-	Get-Service DsmSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
 	Write-Host "Stopping and disabling EventLog (Windows Event Log)..."
 	Get-Service EventLog | Stop-Service -PassThru | Set-Service -StartupType disabled
@@ -1545,62 +1538,69 @@ if ($disableWindowsFirewall -eq 1) {
 if ($firefoxSettings -eq 1) {
 	killProcess("firefox");
 	
-	$PrefsFiles = Get-Item -Path ($env:SystemDrive+"\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*\prefs.js")
+	$PrefsFiles = Get-Item -Path ($env:APPDATA+"\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
 
-	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"app.update.checkInstallTime"*', '*"app.update.auto.migrated"*', '*"app.update.service.enabled"*',  '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*', '*"browser.messaging-system.whatsNewPanel.enabled"*', '*"extensions.htmlaboutaddons.recommendations.enabled"*')
+	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"app.update.checkInstallTime"*', '*"app.update.auto.migrated"*', '*"app.update.service.enabled"*',  '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*', '*"browser.messaging-system.whatsNewPanel.enabled"*', '*"extensions.htmlaboutaddons.recommendations.enabled"*', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail')
 
 	foreach ($file in $PrefsFiles) {
-	$path = Get-ItemProperty -Path $file
-	Write-Output "editing $path"
-	$out = @()
+		$path = Get-ItemProperty -Path $file
+		Write-Output "editing $path"
+		$out = @()
 
-	foreach ($line in Get-Content $file){
-		$matchAboutConfig = 0
-		foreach ($aboutConfigArr2 in $aboutConfigArr){
-			if ($line -like $aboutConfigArr2) {
-				$matchAboutConfig = 1 
-			}	
-		}
+		foreach ($line in Get-Content $file){
+			$matchAboutConfig = 0
+			foreach ($aboutConfigArr2 in $aboutConfigArr){
+				if ($line -like $aboutConfigArr2) {
+					$matchAboutConfig = 1 
+				}	
+			}
 
-		if ($matchAboutConfig -eq 0) {				
-			$out+= $line  
-		}
-	}	
-	
-	$out+= 'user_pref("geo.enabled", false);'
-	$out+= 'user_pref("general.warnOnAboutConfig", false);'
-	$out+= 'user_pref("dom.push.enabled", false);'
-	$out+= 'user_pref("dom.webnotifications.enabled", false);'
-	$out+= 'user_pref("app.update.auto", false);'
-	$out+= 'user_pref("app.update.checkInstallTime", false);'
-	$out+= 'user_pref("app.update.auto.migrated", false);'
-	$out+= 'user_pref("app.update.service.enabled", false);'
-	$out+= 'user_pref("identity.fxaccounts.enabled", false);'
-	$out+= 'user_pref("privacy.firstparty.isolate", true);'
-	$out+= 'user_pref("privacy.firstparty.isolate.block_post_message", true);'
-	$out+= 'user_pref("privacy.resistFingerprinting", true);'
-	$out+= 'user_pref("browser.cache.offline.enable", false);'
-	$out+= 'user_pref("browser.send_pings", false);'
-	$out+= 'user_pref("browser.sessionstore.max_tabs_undo", 0);'
-	$out+= 'user_pref("dom.battery.enabled", false);'
-	$out+= 'user_pref("dom.event.clipboardevents.enabled", false);'
-	$out+= 'user_pref("browser.startup.homepage_override.mstone", ignore);'
-	$out+= 'user_pref("browser.cache.disk.smart_size", false);'
-	$out+= 'user_pref("browser.cache.disk.capacity", 10000000);'
-	$out+= 'user_pref("dom.event.contextmenu.enabled", false);'
-	$out+= 'user_pref("media.videocontrols.picture-in-picture.video-toggle.enabled", false);'
-	$out+= 'user_pref("browser.download.skipConfirmLaunchExecutable", true);'
-	$out+= 'user_pref("browser.newtabpage.activity-stream.disableSnippets", true);'
-	$out+= 'user_pref("browser.messaging-system.whatsNewPanel.enabled", false);'	
-	$out+= 'user_pref("extensions.htmlaboutaddons.recommendations.enabled", false);'	
-	
-	Copy-Item $file $file$currentDate".txt"
+			if ($matchAboutConfig -eq 0) {				
+				$out+= $line  
+			}
+		}	
+		
+		$out+= 'user_pref("geo.enabled", false);'
+		$out+= 'user_pref("general.warnOnAboutConfig", false);'
+		$out+= 'user_pref("dom.push.enabled", false);'
+		$out+= 'user_pref("dom.webnotifications.enabled", false);'
+		$out+= 'user_pref("app.update.auto", false);'
+		$out+= 'user_pref("app.update.checkInstallTime", false);'
+		$out+= 'user_pref("app.update.auto.migrated", false);'
+		$out+= 'user_pref("app.update.service.enabled", false);'
+		$out+= 'user_pref("identity.fxaccounts.enabled", false);'
+		$out+= 'user_pref("privacy.firstparty.isolate", true);'
+		$out+= 'user_pref("privacy.firstparty.isolate.block_post_message", true);'
+		$out+= 'user_pref("privacy.resistFingerprinting", true);'
+		$out+= 'user_pref("browser.cache.offline.enable", false);'
+		$out+= 'user_pref("browser.send_pings", false);'
+		$out+= 'user_pref("browser.sessionstore.max_tabs_undo", 0);'
+		$out+= 'user_pref("dom.battery.enabled", false);'
+		$out+= 'user_pref("dom.event.clipboardevents.enabled", false);'
+		$out+= 'user_pref("browser.startup.homepage_override.mstone", ignore);'
+		$out+= 'user_pref("browser.cache.disk.smart_size", false);'
+		$out+= 'user_pref("browser.cache.disk.capacity", 10000000);'
+		$out+= 'user_pref("dom.event.contextmenu.enabled", false);'
+		$out+= 'user_pref("media.videocontrols.picture-in-picture.video-toggle.enabled", false);'
+		$out+= 'user_pref("browser.download.skipConfirmLaunchExecutable", true);'
+		$out+= 'user_pref("browser.newtabpage.activity-stream.disableSnippets", true);'
+		$out+= 'user_pref("browser.messaging-system.whatsNewPanel.enabled", false);'	
+		$out+= 'user_pref("extensions.htmlaboutaddons.recommendations.enabled", false);'
+		$out+= 'user_pref("extensions.pocket.onSaveRecs", false);'
+		$out+= 'user_pref("extensions.pocket.enabled", false);'
+		$out+= 'user_pref("browser.aboutConfig.showWarning", false);'
+		$out+= 'user_pref("browser.search.widget.inNavBar", true);'
+		$out+= 'user_pref("browser.urlbar.richSuggestions.tail", false);'
+		
+		
+		
+		Copy-Item $file $file$currentDate".txt"
 
-	Clear-Content $file
-	Add-Content $file $out
+		Clear-Content $file
+		Add-Content $file $out
 
-	Write-Output "Updated $path"
+		Write-Output "Updated $path"
 	}
 }
 
@@ -1909,13 +1909,18 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -N
 #>
 
 <# FIX NOT BEING ABLE TO TYPE ON WINDOWS SEARCH AND FREEZED START MENU
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v ctfmon /t REG_SZ /d CTFMON.EXE /f | Out-Null
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v ctfmon /t REG_SZ /d C:\Windows\system32\ctfmon.exe /f | Out-Null
 killProcess("explorer");
 killProcess("SearchUI");
 RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Fixing WpnUserService freezing start menu..." "DWord"
 deletePath "$env:LocalAppData\Packages\Microsoft.Windows.Cortana_cw5n1h2txyewy\Settings" "Clearing Cortana settings..."
 start explorer.exe	
 #>
+
+RegChange "SOFTWARE\Microsoft\CTF\LangBar" "ExtraIconsOnMinimized" "1" "Fix language bar..." "DWord"
+RegChange "SOFTWARE\Microsoft\CTF\LangBar" "Label" "1" "Fix language bar..." "DWord"
+RegChange "SOFTWARE\Microsoft\CTF\LangBar" "ShowStatus" "4" "Fix language bar..." "DWord"
+RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "CTFMON" "ctfmon.exe" "Fix typing in windows search bar..." "String"
 
 $visual = Read-Host "Install Initial Packages? (y/n)"
 
@@ -2009,8 +2014,16 @@ choco install vcredist2017 -y
 choco install dotnet4.0 -y 
 choco install dotnet4.5 -y 
 choco install dotnetfx -y
-choco install directx
+choco install directx -y
 choco install dotnetcore -y
+
+choco install qbittorrent -y
+choco install k-litecodecpackfull -y
+choco install imageglass -y
+choco install firefox -y
+choco install 7zip.install -y
+choco install notepadplusplus -y
+
 
 }
 
@@ -2221,10 +2234,6 @@ powercfg.exe -x -standby-timeout-ac $standbyAcTimeout
 powercfg.exe -x -standby-timeout-dc $standbyDcTimeout
 powercfg.exe -x -hibernate-timeout-ac $hybernateAcTimeout
 powercfg.exe -x -hibernate-timeout-dc $hybernateDcTimeout
-
-RegChange "SOFTWARE\Microsoft\CTF\LangBar" "ExtraIconsOnMinimized" "1" "Fix language bar..." "DWord"
-RegChange "SOFTWARE\Microsoft\CTF\LangBar" "Label" "1" "Fix language bar..." "DWord"
-RegChange "SOFTWARE\Microsoft\CTF\LangBar" "ShowStatus" "4" "Fix language bar..." "DWord"
 
 ## NLASVC REQUIRED FOR WIFI?
 ## DHCP REQUIRED FOR WIFI?
