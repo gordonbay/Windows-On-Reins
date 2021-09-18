@@ -1,32 +1,19 @@
 # Windows On Reins - Windows 10 Ameliorated, Bloatware removal, privacy fix and performance optimization
 [![Package Control total downloads](https://img.shields.io/packagecontrol/dt/SwitchDictionary.svg)](https://packagecontrol.io/packages/SwitchDictionary)
 
-This project aim is to make windows 10 usable, faster and under control. 
-
 ## Warning
 I do not take responsibility for what may happen to your system. This is at your own risk.
 
-## What it does - Firefox
-
-- Disable extension recomendations
-- Disable what is new
-- Disable updates
-- Disable websites access to crossdomains cookies. Like Quora having knowledge about you google account info
-- Disable ping sender
-- Disable geolocation
-
-
 ## What it does - Performance
 
-- Change power plan to high performance
-- Disable Windows Malicious Software Removal Tool, its disk usage is out the charts
-- Disable of scheduled defragmentation due to lack of parameters, performance and waste of disk cycles
-- Disable Windows Superfetch, it lacks parameters, the ram consumption is a unreal and is known for causing slow boot times
+- Disable Windows Malicious Software Removal Tool due to hight disk usage;
+- Disable of scheduled defragmentation due to lack of parameters and waste of disk cycles;
+- Disable Windows Superfetch, due to high RMA usage and is known for causing slow boot times;
 - Disable Windows Hibernation, there are some evidence that if you use HDD and not a SSD disabling it may lead to lower boot times
-- Disable Winmgmt service, Windows Management Instrumentation. This service transfer unusual amount of very suspicious data, keeps windows updates silent running even if user had it opt-out and its agressive data transfer interfere with navegation and online gaming
-- Allow user to disable Cortana
-- Disable Software Protection Platform, licence checking
-- Disable SmartScreen Filter, it has a massive impact on running a program because its checks online how often people run this same program. By concept its weak, wont offer great security and has huge performance impact. Its non configurable too.
+- Disable Winmgmt service, Windows Management Instrumentation. This service transfer unusual amount of data, keeps windows updates silent running even if user had it opt-out;
+- Allow user to disable Cortana;
+- Disable Software Protection Platform;
+- Disable SmartScreen Filter, due to huge performance impact, it checks online data about running programs;
 - Disable BITS - Background Intelligent Transfer Service, UsoSvc - Update Orchestrator Service, DusmSvc - Data Usage, the all showed the same behavior, its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan.
 - Disable DoSvc (Delivery Optimization), it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation.
 - Disable wlidsvc service, due to conflicts with some games
@@ -84,10 +71,11 @@ I do not take responsibility for what may happen to your system. This is at your
 
 ## Fingerprinting
 
-- Disable files last modification date, in most cases
-- Disable Windows unique advertise ID
-- Disable and clear ETL and perfomance logs
-
+- Disable files last modification date, in most cases;
+- Disable Windows unique advertise ID;
+- Disable and clear ETL and perfomance logs;
+- Clears file thumbnails and allows user to complete disable it;
+- Clears minimize windows thumbnails and allows user to complete disable it;
 
 Usage
 ============
