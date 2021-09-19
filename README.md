@@ -4,6 +4,16 @@
 ## Warning
 I do not take responsibility for what may happen to your system. This is at your own risk.
 
+
+## What it does - Security
+
+- Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning;
+- Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya;
+- Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930);
+- Disable Wi-Fi Sense, it connects you to open hotspots that are "greenlighted" through crowdsourcing. Openning doors to Lure10 MITM attack and phishing (Stigviewer V-220808);
+- Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823);
+- Disable Autoplay, "allowing autoplay to execute may introduce malicious code to a system" (Stigviewer V-63673);
+
 ## What it does - Performance
 
 - Disable Windows Malicious Software Removal Tool due to hight disk usage;
@@ -34,14 +44,6 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Windows lfsvc service, Geofence service, a cute name for a location tracking service
 - Disable NvTelemetryContainer, Nvidia telemetry agent 
 
-## What it does - Security
-
-- Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
-- Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya
-- Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930)
-- Disable Wi-Fi Sense, it connects you to open hotspots that are "greenlighted" through crowdsourcing. Openning doors to Lure10 MITM attack and phishing
-- Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823)
-
 ## What it does - Quality of Life
 
 - Disable Windows Ads within file explorer
@@ -69,13 +71,14 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Game Bar tips
 - Disable Vmware Host Server, service uses port 80
 
-## Fingerprinting
+## Fingerprinting Prevention
 
 - Disable files last modification date, in most cases;
 - Disable Windows unique advertise ID;
 - Disable and clear ETL and perfomance logs;
 - Clears file thumbnails and allows user to complete disable it;
-- Clears minimize windows thumbnails and allows user to complete disable it;
+- Clears minimized windows thumbnails and allows user to complete disable it;
+- Disable recent opened files history;
 
 Usage
 ============
