@@ -17,6 +17,7 @@ I do not take responsibility for what may happen to your system. This is at your
 ## What it does - Performance
 
 - Disable Windows Malicious Software Removal Tool due to hight disk usage;
+- Disable NTFS encryption and compression due to processing overhead on filesystem operations;
 - Disable of scheduled defragmentation due to lack of parameters and waste of disk cycles;
 - Disable Windows Superfetch, due to high RMA usage and is known for causing slow boot times;
 - Disable Windows Hibernation, there are some evidence that if you use HDD and not a SSD disabling it may lead to lower boot times
