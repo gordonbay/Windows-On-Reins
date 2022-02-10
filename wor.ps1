@@ -17,6 +17,10 @@ $troubleshootInstalls = 0
 # Note: Known to fix these installations: windows language pack, Autodesk AutoCad and Appxs.
 # Note: Top priority configuration, overrides other settings.
 
+$legacyRightClicksMenu = 1
+# 0 = Use Windows 11 right click menu
+# 1 = Use legacy right click menu *Recomended
+
 $beXboxSafe = 0
 # 0 = Disable Xbox and Windows Live Games related stuff like Game Bar. *Recomended.
 # 1 = Enable it.
@@ -55,7 +59,7 @@ $beCastSafe = 0
 # Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
 # Note: Top priority configuration, overrides other settings.
 
-$beVpnPppoeSafe = 0
+$beVpnPppoeSafe = 1
 # 0 = Will make the system safer against DNS cache poisoning but VPN or PPPOE conns may stop working. *Recomended.
 # 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
 # Note: Set it to 1 if you pretend to use VPN, PPP conns, if the system is inside a VM or having trouble with internet.
@@ -126,9 +130,30 @@ $doSecurityStuff = 1
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system security. *Recomended.
 
+$doFingerprintPrevention = 1
+# 0 = Reverse system settings to default.
+# 1 = Perform routines to prevent fingerprints. *Recomended.
+
 $disableSystemRestore = 1
 # 0 = Enable system restore
 # 1 = Disable system restore. *Recomended.
+
+$disableNtfsEncryption = 1
+# 0 = Enable NTFS file encryption
+# 1 = Disable NTFS file encryption. *Recomended.
+# NTFS file encryption is the built-in encryption tool in Windows used to encrypt files and folders on NTFS drives to protect them from unwanted access
+# Disabling it can reduce the processing overhead of filesystem operations
+
+$disableNtfsCompression = 1
+# 0 = Enable NTFS file compression
+# 1 = Disable NTFS file compression. *Recomended.
+# Disabling it can increase performance
+
+$disableVBS = 1
+# 0 = Enable VBS
+# 1 = Disable VBS. *Recomended.
+# VBS (Virtualization-based security) prevent unsigned or questionable drivers and software from getting into memory
+# Disabling it may hay a significant performance boost, specially in games
 
 #$powerPlan = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' # (High performance)
 #$powerPlan = '381b4222-f694-41f0-9685-ff5bb260df2e' # (Balanced)
@@ -170,7 +195,7 @@ $unpinStartMenu = 0
 # 0 = Do nothing;
 # 1 = Unpin all apps from start menu.
 
-$unnistallWindowsDefender = 1
+$unnistallWindowsDefender = 0
 # 0 = Do nothing (won't re-install it);
 # 1 = Unnistall Windows Defender, irreversible. Safe mode is required.
 
@@ -178,6 +203,8 @@ $disableBloatware = 1
 # 0 = Install Windows Bloatware that are not commented in bloatwareList array.
 # 1 = Remove non commented bloatware in bloatwareList array. *Recomended.
 # Note: On bloatwareList comment the lines on Appxs that you want to keep/install.
+
+$editor='"%programfiles%\Notepad++\notepad++.exe"'
 
 $bloatwareList = @(		
 	# Non commented lines will be uninstalled
@@ -314,6 +341,39 @@ Function hardenPath($path, $desc) {
 	Set-Acl $path $Acl
 }
 
+function takeownRegistry($key) {
+    # TODO does not work for all root keys yet
+    switch ($key.split('\')[0]) {
+        "HKEY_CLASSES_ROOT" {
+            $reg = [Microsoft.Win32.Registry]::ClassesRoot
+            $key = $key.substring(18)
+        }
+        "HKEY_CURRENT_USER" {
+            $reg = [Microsoft.Win32.Registry]::CurrentUser
+            $key = $key.substring(18)
+        }
+        "HKEY_LOCAL_MACHINE" {
+            $reg = [Microsoft.Win32.Registry]::LocalMachine
+            $key = $key.substring(19)
+        }
+    }
+
+    # get administraor group
+    $admins = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
+    $admins = $admins.Translate([System.Security.Principal.NTAccount])
+
+    # set owner
+    $key = $reg.OpenSubKey($key, "ReadWriteSubTree", "TakeOwnership")
+    $acl = $key.GetAccessControl()
+    $acl.SetOwner($admins)
+    $key.SetAccessControl($acl)
+
+    # set FullControl
+    $acl = $key.GetAccessControl()
+    $rule = New-Object System.Security.AccessControl.RegistryAccessRule($admins, "FullControl", "Allow")
+    $acl.SetAccessRule($rule)
+    $key.SetAccessControl($acl)
+}
 	
 Function regDelete($path, $desc) {
 	Write-Output ($desc)
@@ -766,78 +826,6 @@ Function unProtectPrivacy {
 	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType automatic  
 }
 
-Function qualityOfLife {
-	Get-Service VMwareHostd | Stop-Service -PassThru | Set-Service -StartupType disabled
-	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "4" "Disabling VMware host..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "1" "Disabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "0" "Disabling Action Center global toasts..." "DWord"	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "1" "Disabling Action Center notification center..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "0" "Disabling Action Center toast push notifications..." "DWord"
-	RegChange "Control Panel\Accessibility" "DynamicScrollbars " "0" "Disabling dynamic scrollbars..." "DWord"
-	
-	write-Host "Fast Boot is known to cause problems with steam" -ForegroundColor Green -BackgroundColor Black 
-	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Power" "HiberbootEnabled" "0" "Disabling Fast boot..." "DWord"
-	powercfg /hibernate OFF
-	
-	Write-Host "RAZER services that allows third party software to mess with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
-	Write-Output "Disabling Razer Chroma SDK Server..."
-	Get-Service "Razer Chroma SDK Server" | Stop-Service -PassThru | Set-Service -StartupType disabled
-	Write-Output "Disabling Razer Chroma SDK Service..."
-	Get-Service "Razer Chroma SDK Service" | Stop-Service -PassThru | Set-Service -StartupType disabled
-	Write-Output "Disabling WpnService, push notification anoyance service..."
-	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
-	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Disabling WpnUserService, push notification anoyance service..." "DWord"	
-	RegChange "Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" "NoGenTicket" "0" "Disabling Licence Checking..." "DWord"	
-	RegChange "SOFTWARE\Microsoft\Windows\Windows Error Reporting" "Disabled" "1" "Disabling Error reporting..." "DWord"
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Host "Disabling Error reporting task..."
-		Get-ScheduledTask  *QueueReporting* | Disable-ScheduledTask
-	}
-	
-	RegChange "Control Panel\Accessibility\StickyKeys" "Flags" "506" "Disabling Sticky keys prompt..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "0" "Show This PC shortcut on desktop..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "0" "Show This PC shortcut on desktop..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ShowSyncProviderNotifications" "0" "Disabling Windows Ads within file explorer..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableThirdPartySuggestions" "1" "Disabling Windows suggestions of apps and content from third-party software publishers..." "DWord"	
-}
-
-Function qualityOfLifeOff {
-	Get-Service VMwareHostd | Set-Service -StartupType automatic
-	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "2" "Enabling VMware host..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "0" "Enabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "1" "Enabling Action Center toasts..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "0" "Enabling Action Center notification center..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "1" "Enabling Action Center toast push notifications..." "DWord"
-	RegChange "Control Panel\Accessibility" "DynamicScrollbars " "1" "Enabling dynamic scrollbars..." "DWord"
-	
-	write-Host "Fast Boot is known to cause problems with steam" -ForegroundColor Green -BackgroundColor Black 
-	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Power" "HiberbootEnabled" "1" "Enabling Fast boot..." "DWord"
-	powercfg /hibernate ON
-	
-	write-Host "RAZER services that allows third party software to ness with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
-	Write-Output "Enabling Razer Chroma SDK Server..."
-	Get-Service "Razer Chroma SDK Server" | Stop-Service -PassThru | Set-Service -StartupType automatic
-	Write-Output "Enabling Razer Chroma SDK Service..."
-	Get-Service "Razer Chroma SDK Service" | Stop-Service -PassThru | Set-Service -StartupType automatic
-
-	Write-Output "Enabling WpnService, push notification anoyance service..."
-	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType automatic
-	
-	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "2" "Enabling WpnUserService, push notification anoyance service..." "DWord"
-	RegChange "Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" "NoGenTicket" "1" "Enabling Licence Checking..." "DWord"
-	
-	RegChange "SOFTWARE\Microsoft\Windows\Windows Error Reporting" "Disabled" "0" "Enabling Error reporting..." "DWord"
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Host "Enabling Error reporting task..."
-		Get-ScheduledTask  *QueueReporting* | Enable-ScheduledTask
-	}
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "1" "Hiding This PC shortcut on desktop..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "1" "Hiding This PC shortcut on desktop..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ShowSyncProviderNotifications" "1" "Enabling Windows Ads within file explorer..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableThirdPartySuggestions" "0" "Disabling Windows suggestions of apps and content from third-party software publishers..." "DWord"	
-}
-
 Function DisableCortana {
 	Write-Host "Disabling Cortana..."	
 	Write-Output "Disabling AllowSearchToUseLocation"
@@ -1105,6 +1093,23 @@ if ($troubleshootInstalls -eq 1) {
 	PAUSE
 }
 
+
+if ($legacyRightClicksMenu -eq 1) {
+	RegChange "Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" "(Default)" "" "Enabling legacy right click menu.." "String"
+}
+
+if ($disableVBS -eq 1) {
+	RegChange "SYSTEM\CurrentControlSet\Control\DeviceGuard" "EnableVirtualizationBasedSecurity" "0" "Disabling Virtualization-based security.." "DWord"
+}
+
+if ($disableNtfsEncryption -eq 1) {
+	RegChange "SYSTEM\CurrentControlSet\Policies" "NtfsDisableEncryption" "1" "Disabling NTFS file encryption.." "DWord"
+}
+
+if ($disableNtfsCompression -eq 1) {
+	RegChange "SYSTEM\CurrentControlSet\Policies" "NtfsDisableCompression" "1" "Disabling NTFS file compression.." "DWord"
+}
+
 if ($beXboxSafe -eq 0) {
 	DisableXboxFeatures
 }
@@ -1365,9 +1370,7 @@ if($?){   write-Host -ForegroundColor Green "UsoSvc service disabled"  }else{   
 	
 }
 
-if ($doPerformanceStuff -eq 1) {
-	Write-Output "Doing performance stuff."
-	
+if ($doPerformanceStuff -eq 1) {	
 	killProcess("nvngx_update");
 	deleteFile "$env:WINDIR\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_577df0ba9db954d8\nvngx_update.exe" "Deleting Nvidia nvngx_update (bandwidth usage, lack of parameters for users to choose when its suppose to update)..."
 	RegChange "System\CurrentControlSet\Control\Session Manager\Power" "HibernateEnabled" "0" "Disabling hibernation..." "DWord"
@@ -1413,12 +1416,6 @@ if ($doPerformanceStuff -eq 1) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "100" "Disabling DeliveryOptimization Peering and HTTP download mode (bypass mode)..." "DWord"	
 	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "4" "Disabling Edge updates..." "DWord"
 	
-	
-	if ($beNetworkFolderSafe -eq 0) {
-		Write-Host "Disabling Network Location Awareness Service..."
-		Get-Service NlaSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-	}
-	
 	if ($beNetworkPrinterSafe -eq 0) {
 		Write-Host "Disabling LanmanWorkstation Service..."
 		Get-Service Workstation | Stop-Service -PassThru | Set-Service -StartupType disabled
@@ -1430,14 +1427,81 @@ if ($doPerformanceStuff -eq 1) {
 }
 
 if ($doQualityOfLifeStuff -eq 0) {
-	Write-Output "Reverse quality of life stuff."
-	qualityOfLifeOff
+	Get-Service VMwareHostd | Set-Service -StartupType automatic
+	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "2" "Enabling VMware host..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "0" "Enabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "1" "Enabling Action Center toasts..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "0" "Enabling Action Center notification center..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "1" "Enabling Action Center toast push notifications..." "DWord"
+	RegChange "Control Panel\Accessibility" "DynamicScrollbars " "1" "Enabling dynamic scrollbars..." "DWord"
 	
+	write-Host "Fast Boot is known to cause problems with steam" -ForegroundColor Green -BackgroundColor Black 
+	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Power" "HiberbootEnabled" "1" "Enabling Fast boot..." "DWord"
+	powercfg /hibernate ON
+	
+	write-Host "RAZER services that allows third party software to ness with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
+	Write-Output "Enabling Razer Chroma SDK Server..."
+	Get-Service "Razer Chroma SDK Server" | Stop-Service -PassThru | Set-Service -StartupType automatic
+	Write-Output "Enabling Razer Chroma SDK Service..."
+	Get-Service "Razer Chroma SDK Service" | Stop-Service -PassThru | Set-Service -StartupType automatic
+
+	Write-Output "Enabling WpnService, push notification anoyance service..."
+	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType automatic
+	
+	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "2" "Enabling WpnUserService, push notification anoyance service..." "DWord"
+	RegChange "Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" "NoGenTicket" "1" "Enabling Licence Checking..." "DWord"
+	
+	RegChange "SOFTWARE\Microsoft\Windows\Windows Error Reporting" "Disabled" "0" "Enabling Error reporting..." "DWord"
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Host "Enabling Error reporting task..."
+		Get-ScheduledTask  *QueueReporting* | Enable-ScheduledTask
+	}
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "1" "Hiding This PC shortcut on desktop..." "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "1" "Hiding This PC shortcut on desktop..." "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ShowSyncProviderNotifications" "1" "Enabling Windows Ads within file explorer..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableThirdPartySuggestions" "0" "Disabling Windows suggestions of apps and content from third-party software publishers..." "DWord"	
+	RegChange "Control Panel\Mouse" "MouseSpeed" "1" "Disabling Windows enhanced pointer precision..." "DWord"
+	RegChange "Control Panel\Mouse" "MouseThreshold1" "6" "Enabling Windows enhanced pointer acceleration..." "DWord"
+	RegChange "Control Panel\Mouse" "MouseThreshold2" "10" "Enabling Windows enhanced pointer acceleration..." "DWord"
 }
 
 if ($doQualityOfLifeStuff -eq 1) {
-	Write-Output "Doing quality of life stuff."
-	qualityOfLife
+	Get-Service VMwareHostd | Stop-Service -PassThru | Set-Service -StartupType disabled
+	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "4" "Disabling VMware host..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "1" "Disabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "0" "Disabling Action Center global toasts..." "DWord"	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "1" "Disabling Action Center notification center..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "0" "Disabling Action Center toast push notifications..." "DWord"
+	RegChange "Control Panel\Accessibility" "DynamicScrollbars " "0" "Disabling dynamic scrollbars..." "DWord"
+	
+	write-Host "Fast Boot is known to cause problems with steam" -ForegroundColor Green -BackgroundColor Black 
+	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Power" "HiberbootEnabled" "0" "Disabling Fast boot..." "DWord"
+	powercfg /hibernate OFF
+	
+	Write-Host "RAZER services that allows third party software to mess with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
+	Write-Output "Disabling Razer Chroma SDK Server..."
+	Get-Service "Razer Chroma SDK Server" | Stop-Service -PassThru | Set-Service -StartupType disabled
+	Write-Output "Disabling Razer Chroma SDK Service..."
+	Get-Service "Razer Chroma SDK Service" | Stop-Service -PassThru | Set-Service -StartupType disabled
+	Write-Output "Disabling WpnService, push notification anoyance service..."
+	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Disabling WpnUserService, push notification anoyance service..." "DWord"	
+	RegChange "Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" "NoGenTicket" "0" "Disabling Licence Checking..." "DWord"	
+	RegChange "SOFTWARE\Microsoft\Windows\Windows Error Reporting" "Disabled" "1" "Disabling Error reporting..." "DWord"
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Host "Disabling Error reporting task..."
+		Get-ScheduledTask  *QueueReporting* | Disable-ScheduledTask
+	}
+	
+	RegChange "Control Panel\Accessibility\StickyKeys" "Flags" "506" "Disabling Sticky keys prompt..." "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "0" "Show This PC shortcut on desktop..." "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "0" "Show This PC shortcut on desktop..." "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ShowSyncProviderNotifications" "0" "Disabling Windows Ads within file explorer..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableThirdPartySuggestions" "1" "Disabling Windows suggestions of apps and content from third-party software publishers..." "DWord"
+	RegChange "Control Panel\Mouse" "MouseSpeed" "0" "Disabling Windows enhanced pointer precision..." "DWord"
+	RegChange "Control Panel\Mouse" "MouseThreshold1" "0" "Disabling Windows enhanced pointer acceleration..." "DWord"
+	RegChange "Control Panel\Mouse" "MouseThreshold2" "0" "Disabling Windows enhanced pointer acceleration..." "DWord"
 	
 }
 
@@ -1485,6 +1549,8 @@ if ($doSecurityStuff -eq 0) {
 	EnableDnsCache
 	EnableLLMNR
 	EnableNetBIOS
+	
+	#Allowing Anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system. (Stig Viewer V-220930)
 	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RestrictAnonymous" "0" "Allowing Anonymous enumeration of shares (Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system.)- Stig Viewer V-220930" "Dword"	
 	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting" "Value" "1" "Enabling Wi-Fi Sense" "Dword"  
 	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots" "Value" "1" "Enabling Wi-Fi Sense, it connects you to open hotspots that are greenlighted through crowdsourcing. Openning doors to Lure10 MITM attack and phishing" "Dword"
@@ -1492,6 +1558,15 @@ if ($doSecurityStuff -eq 0) {
 	RegChange "SYSTEM\CurrentControlSet\Control\Remote Assistance" "fAllowToGetHelp" "1" "Enabling Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823)"
 	RegChange "SYSTEM\CurrentControlSet001\Control\Remote Assistance" "fAllowToGetHelp" "1" "Enabling Remote Assistance"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" "fAllowToGetHelp" "1" "Enabling Remote Assistance"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\policies\Explorer" "NoDriveTypeAutoRun" "149" "Enabling autoplay " "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutoplayfornonVolume" "0" "Enabling autoplay " "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutorun" "0" "Enabling autorun " "DWord"
+	
+	Write-Host "Enabling Network Location Awareness Service..."
+	Enable-NetAdapterBinding -Name "*" -ComponentID "ms_msclient"		
+	Write-Host "Enabling Network Location Awareness Service..."
+	Get-Service NlaSvc | Set-Service -StartupType automatic
+
 }
 
 if ($doSecurityStuff -eq 1) {
@@ -1499,13 +1574,55 @@ if ($doSecurityStuff -eq 1) {
 	DisableDnsCache
 	DisableLLMNR
 	DisableNetBIOS	
-	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RestrictAnonymous" "1" "Disabling Anonymous enumeration of shares (Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system.)- Stig Viewer V-220930" "Dword" 		
+	
+	#Allowing Anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system. (Stig Viewer V-220930)
+	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RestrictAnonymous" "1" "Disabling Anonymous enumeration of shares..." "Dword" 		
 	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting" "Value" "0" "Disabling Wi-Fi Sense" "Dword"   
 	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots" "Value" "0" "Disabling Wi-Fi Sense, it connects you to open hotspots that are greenlighted through crowdsourcing. Openning doors to Lure10 MITM attack and phishing" "Dword"
 	RegChange "SOFTWARE\Microsoft\WcmSvc\wifinetworkmanager\config" "AutoConnectAllowedOEM" "0" "Disabling Wi-Fi Sense"	
 	RegChange "SYSTEM\CurrentControlSet\Control\Remote Assistance" "fAllowToGetHelp" "0" "Disabling Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823)"
 	RegChange "SYSTEM\CurrentControlSet001\Control\Remote Assistance" "fAllowToGetHelp" "0" "Disabling Remote Assistance"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" "fAllowToGetHelp" "0" "Disabling Remote Assistance"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\policies\Explorer" "NoDriveTypeAutoRun" "255" "Disabling autoplay " "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutoplayfornonVolume" "1" "Disabling autoplay " "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutorun" "1" "Disabling autorun " "DWord"	
+	
+	#Protect against credential scraping, mimikatz attack
+	#Configures lsass.exe as a protected process and disables wdigest
+	#Enables delegation of non-exported credentials which enables support for Restricted Admin Mode or Remote Credential Guard
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\LSASS.exe" "AuditLevel" "8" "Hardening LSASS... " "DWord"
+	
+	#Enable the LSA protection to prevent Mimikatz from accessing a specific memory location of the LSASS process and scraping credentials
+	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RunAsPPL" "1" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "UseLogonCredential" "0" "Hardening LSASS... " "DWord"
+	
+	#Windows 10 must be configured to enable Remote host allows delegation of non-exportable credentials. (Stig Viewer V-74699)
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" "AllowProtectedCreds" "1" "Hardening LSASS... " "DWord"
+
+	
+	if ($beNetworkFolderSafe -eq 0) {
+		Write-Host "Disabling Network Location Awareness Service..."
+		Disable-NetAdapterBinding -Name "*" -ComponentID "ms_msclient"
+		
+		Write-Host "Disabling Network Location Awareness Service..."
+		Get-Service NlaSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+	}
+}
+
+if ($doFingerprintPrevention -eq 0) {
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" "NoRecentDocsHistory" "0" "Enabling Recent docs history " "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "SaveZoneInformation" "0" "Enabling Windows save zone information..." "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet" "EnableActiveProbing" "1" "Enabling internet connection test... " "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" "NoRecycleFiles" "1" "Enabling recycle bin... " "DWord"
+
+}
+
+if ($doFingerprintPrevention -eq 1) {
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" "NoRecentDocsHistory" "1" "Disabling Recent docs history " "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "SaveZoneInformation" "1" "Disabling Windows save zone information..." "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet" "EnableActiveProbing" "0" "Disabling internet connection test... " "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" "NoRecycleFiles" "1" "Disabling recycle bin... " "DWord"
+
 }
 
 
@@ -1541,7 +1658,7 @@ if ($firefoxSettings -eq 1) {
 	$PrefsFiles = Get-Item -Path ($env:APPDATA+"\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
 
-	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"app.update.checkInstallTime"*', '*"app.update.auto.migrated"*', '*"app.update.service.enabled"*',  '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*', '*"browser.messaging-system.whatsNewPanel.enabled"*', '*"extensions.htmlaboutaddons.recommendations.enabled"*', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail')
+	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"app.update.checkInstallTime"*', '*"app.update.auto.migrated"*', '*"app.update.service.enabled"*',  '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*', '*"browser.messaging-system.whatsNewPanel.enabled"*', '*"extensions.htmlaboutaddons.recommendations.enabled"*', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail', '*browser.tabs.warnOnCloseOtherTabs*')
 
 	foreach ($file in $PrefsFiles) {
 		$path = Get-ItemProperty -Path $file
@@ -1592,6 +1709,7 @@ if ($firefoxSettings -eq 1) {
 		$out+= 'user_pref("browser.aboutConfig.showWarning", false);'
 		$out+= 'user_pref("browser.search.widget.inNavBar", true);'
 		$out+= 'user_pref("browser.urlbar.richSuggestions.tail", false);'
+		$out+= 'user_pref("browser.tabs.warnOnCloseOtherTabs", false);'
 		
 		
 		
@@ -1720,6 +1838,11 @@ if ($unnistallWindowsDefender -eq 1) {
 		write-host 'System needs to be in safe mode to unninstall Windows Defender.' -ForegroundColor Black -BackgroundColor Red			
 	}
 	
+	takeownRegistry("HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinDefend")
+	
+	Write-Output "Disabling Windows Defender Application Guard..."
+	Disable-WindowsOptionalFeature -online -FeatureName "Windows-Defender-ApplicationGuard" -NoRestart -WarningAction SilentlyContinue | Out-Null
+	
 	deletePath "$env:Programfiles\windows defender" "Deleting windows defender folder..."
 	deletePath "$env:Programfiles\Windows Defender Advanced Threat Protection" "Deleting windows defender folder..."
 	deletePath "$env:Programfiles\Windows Security" "Deleting windows Windows Security folder..."
@@ -1728,7 +1851,10 @@ if ($unnistallWindowsDefender -eq 1) {
 	deletePath "$env:ProgramData\Microsoft\Windows Defender Advanced Threat Protection" "Deleting windows Windows defender program data folder..."
 	deletePath "$env:ProgramData\Microsoft\Windows Security Health" "Deleting windows Windows defender program data folder..."
 	deletePath "$env:ProgramData\Microsoft\Windows Security Health" "Deleting windows Windows defender program data folder..."
-
+	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" "SpynetReporting" "0" "Disabling Windows Defender Cloud..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" "SubmitSamplesConsent" "2" "Disabling Windows Defender Cloud Sample..." "DWord"		
+	
 	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableConfig" "1" "Disabling Windows Anti Spyware - DisableConfig"
 	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" "1" "Disabling Windows Anti Spyware - DisableAntiSpyware"
 	RegChange "SYSTEM\CurrentControlSet\Services\WdBoot" "Start" "4" "Disabling WdBoot (Windows Defender)"
@@ -1874,14 +2000,6 @@ if ($unnistallWindowsDefender -eq 1) {
 	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\RealTimeScanDirection" -Name "value" -Type DWord -Value 2
 	if($?){   write-Host -ForegroundColor Green "Changed Windows Defender RealTimeScanDirection to monitor only outgoing files"  }else{   write-Host -ForegroundColor red "Windows RealTimeScanDirection not changed" } 
 
-	# Disable Windows Defender SubmitSamplesConsent
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\SubmitSamplesConsent")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\SubmitSamplesConsent" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\SubmitSamplesConsent" -Name "value" -Type DWord -Value 2
-	if($?){   write-Host -ForegroundColor Green "Windows Defender SubmitSamplesConsent disabled"  }else{   write-Host -ForegroundColor red "Windows Defender SubmitSamplesConsent not disabled" } 
-
-
 	# Disable Windows Defender AllowEmailScanning
 	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowEmailScanning")) {
 		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowEmailScanning" | Out-Null
@@ -1949,82 +2067,41 @@ while("y","n" -notcontains $ink)
 {
 	$ink = Read-Host "y or n?"
 }
-function Takeown-Registry($key) {
-    # TODO does not work for all root keys yet
-    switch ($key.split('\')[0]) {
-        "HKEY_CLASSES_ROOT" {
-            $reg = [Microsoft.Win32.Registry]::ClassesRoot
-            $key = $key.substring(18)
-        }
-        "HKEY_CURRENT_USER" {
-            $reg = [Microsoft.Win32.Registry]::CurrentUser
-            $key = $key.substring(18)
-        }
-        "HKEY_LOCAL_MACHINE" {
-            $reg = [Microsoft.Win32.Registry]::LocalMachine
-            $key = $key.substring(19)
-        }
-    }
-
-    # get administraor group
-    $admins = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
-    $admins = $admins.Translate([System.Security.Principal.NTAccount])
-
-    # set owner
-    $key = $reg.OpenSubKey($key, "ReadWriteSubTree", "TakeOwnership")
-    $acl = $key.GetAccessControl()
-    $acl.SetOwner($admins)
-    $key.SetAccessControl($acl)
-
-    # set FullControl
-    $acl = $key.GetAccessControl()
-    $rule = New-Object System.Security.AccessControl.RegistryAccessRule($admins, "FullControl", "Allow")
-    $acl.SetAccessRule($rule)
-    $key.SetAccessControl($acl)
-}
-Takeown-Registry("HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinDefend")
-
 
 if ($showhidden -like "y") { 
-#SHOW HIDDEN FILES AND EXTENSIONS
+	#SHOW HIDDEN FILES AND EXTENSIONS
 
-$key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-Set-ItemProperty $key Hidden 1
-if($?){   write-Host -ForegroundColor Green "Windows Hidden Files Disabled"  }else{   write-Host -ForegroundColor red "Windows Hidden Files not Disabled" }
+	$key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+	Set-ItemProperty $key Hidden 1
+	if($?){   write-Host -ForegroundColor Green "Windows Hidden Files Disabled"  }else{   write-Host -ForegroundColor red "Windows Hidden Files not Disabled" }
 
-Set-ItemProperty $key HideFileExt 0
-if($?){   write-Host -ForegroundColor Green "Windows Hidden Extensions Disabled"  }else{   write-Host -ForegroundColor red "Windows Hidden Extensions Options not Disabled" }
-
+	Set-ItemProperty $key HideFileExt 0
+	if($?){   write-Host -ForegroundColor Green "Windows Hidden Extensions Disabled"  }else{   write-Host -ForegroundColor red "Windows Hidden Extensions Options not Disabled" }
 }
 
 
 if ($ink -like "y") { 
-#Disable INK
-New-ItemProperty -Path HKLM:SOFTWARE\Policies\Microsoft -Name WindowsInkWorkspace -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows INK disabled"  }else{   write-Host -ForegroundColor red "Windows INK not disabled" } 
+	#Disable INK
+	New-ItemProperty -Path HKLM:SOFTWARE\Policies\Microsoft -Name WindowsInkWorkspace -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
+	if($?){   write-Host -ForegroundColor Green "Windows INK disabled"  }else{   write-Host -ForegroundColor red "Windows INK not disabled" } 
 }
 
 if ($visual -like "y") { 
-
-Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-
-choco install vcredist-all -y 
-choco install vcredist2010 -y
-choco install vcredist2017 -y
-choco install dotnet4.0 -y 
-choco install dotnet4.5 -y 
-choco install dotnetfx -y
-choco install directx -y
-choco install dotnetcore -y
-
-choco install qbittorrent -y
-choco install k-litecodecpackfull -y
-choco install imageglass -y
-choco install firefox -y
-choco install 7zip.install -y
-choco install notepadplusplus -y
-
-
+	Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+	choco install vcredist-all -y 
+	choco install vcredist2010 -y
+	choco install vcredist2017 -y
+	choco install dotnet4.0 -y 
+	choco install dotnet4.5 -y 
+	choco install dotnetfx -y
+	choco install directx -y
+	choco install dotnetcore -y
+	
+	choco install qbittorrent -y
+	choco install k-litecodecpackfull -y
+	choco install imageglass -y
+	choco install 7zip.install -y
+	choco install notepadplusplus -y
 }
 
 #DISABLE USELESS SERVICES
@@ -2204,21 +2281,6 @@ Function DisableUpdateMSRT {
 }
 DisableUpdateMSRT
 
-Function DisableAutoplay {
-	Write-Host "Disabling Autoplay..."
-	Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" -Name "DisableAutoplay" -Type DWord -Value 1
-}
-DisableAutoplay 
-
-Function DisableAutorun {
-	Write-Host "Disabling Autorun for all drives..."
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoDriveTypeAutoRun" -Type DWord -Value 255
-}
-DisableAutorun
-
 $disablecortana = Read-Host "Disable Cortana? (y/n)"
 switch ($disablecortana) {
 	y {
@@ -2235,18 +2297,6 @@ powercfg.exe -x -standby-timeout-dc $standbyDcTimeout
 powercfg.exe -x -hibernate-timeout-ac $hybernateAcTimeout
 powercfg.exe -x -hibernate-timeout-dc $hybernateDcTimeout
 
-## NLASVC REQUIRED FOR WIFI?
-## DHCP REQUIRED FOR WIFI?
-## NSI REQUIRED FOR NETWORK
-
-## EXTRAS SUBSCRIBE LISTS FOR UBLOCK
-## https://filterlists.com/lists/
-## Block the EU Cookie Shit List
-## EasyList Cookie List
-## I Don't Care about Cookies
-## ABP Anti-Circumvention Filter List
-## Hello, Goodbye!
-
 <# UBLOCK PERSONAL FILTERS
 www.google.*##div[jscontroller]:if(h4:has-text(People also search for))
 ||youtube.com/comment_service_ajax*
@@ -2260,7 +2310,6 @@ www.twitch.tv##.tw-mg-x-05.tw-flex-shrink-0.tw-flex-nowrap.tw-flex-grow-0.tw-ali
 
 ! 2021-03-26 https://www.youtube.com
 www.youtube.com###clarify-box > .ytd-watch-flexy.style-scope
-
 
  #>
 
