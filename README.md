@@ -1,5 +1,7 @@
 # Windows On Reins - Windows 10 Ameliorated, Bloatware removal, privacy fix and performance optimization
+[![made-with-powershell](https://img.shields.io/badge/PowerShell-1f425f?logo=Powershell)](https://microsoft.com/PowerShell)
 [![Package Control total downloads](https://img.shields.io/packagecontrol/dt/SwitchDictionary.svg)](https://packagecontrol.io/packages/SwitchDictionary)
+[![Discord](https://img.shields.io/discord/591914197219016707.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/SGHFtvx4bN)
 
 ## Warning
 I do not take responsibility for what may happen to your system. This is at your own risk.
@@ -35,7 +37,7 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Windows ShadowCopy, due to performance draw
 - Disable Windows Fast Boot, due conflicts with Steam and several other programs
 - Disable Adobe updates
-- Disable Nvidia NGX updates
+- Disable Nvidia NGX updates, due to high network usage and lack of settings
 
 ## What it does - Privacy
 
@@ -74,28 +76,33 @@ I do not take responsibility for what may happen to your system. This is at your
 
 ## Fingerprinting Prevention
 
-- Disable files last modification date, in most cases;
-- Disable Windows unique advertise ID;
-- Disable and clear ETL and perfomance logs;
-- Clears file thumbnails and allows user to complete disable it;
-- Clears minimized windows thumbnails and allows user to complete disable it;
-- Disable recent opened files history;
+- Disable files last modification date, in most cases
+- Disable Windows unique advertise ID
+- Disable and clear ETL and perfomance logs
+- Clears file thumbnails and allows user to complete disable it
+- Clears minimized windows thumbnails and allows user to complete disable it
+- Disable recent opened files history
+- Disable Cortana web search
+- Disable location tracking
+
+## Gaming
+
+- Disable Windows mouse acceleration (ideal for FPS games)
+
 
 Usage
 ============
 
-Run Power Shell with adm privileges
-Type:
+1) Run Power Shell as admin;
+2) Type the following to enable PowerShell script execution:
+<code>Set-ExecutionPolicy Unrestricted -Force</code>
 
-    Set-ExecutionPolicy unrestricted
+3) Confirm the question;
 
+4) Run the script:
+<code>%path-to-file%/wor.ps1</code>
 
-Confirm the question
-
-Run the script 
-
-    %path-to-file%/wor.ps1
-    
+or just right click the file wor.ps1 and select "Execute with powershell"
 
 Credits
 ============

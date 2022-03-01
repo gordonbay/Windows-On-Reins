@@ -17,10 +17,6 @@ $troubleshootInstalls = 0
 # Note: Known to fix these installations: windows language pack, Autodesk AutoCad and Appxs.
 # Note: Top priority configuration, overrides other settings.
 
-$legacyRightClicksMenu = 1
-# 0 = Use Windows 11 right click menu
-# 1 = Use legacy right click menu *Recomended
-
 $beXboxSafe = 0
 # 0 = Disable Xbox and Windows Live Games related stuff like Game Bar. *Recomended.
 # 1 = Enable it.
@@ -68,6 +64,18 @@ $beTaskScheduleSafe = 0
 # 0 = Disable Task Schedule. *Recomended.
 # 1 = Enable it.  
 # Note: Top priority configuration, overrides other settings.
+
+$disableCortana = 1
+# 0 = Enable Cortana
+# 1 = Disable Cortana *Recomended
+
+$legacyRightClicksMenu = 1
+# 0 = Use Windows 11 right click menu
+# 1 = Use legacy right click menu *Recomended
+
+$disableStartupSound = 1
+# 0 = Keep Windows 11 startup sound
+# 1 = Disable Windows 11 startup sound *Recomended
 
 $useGoogleDNS = 1
 # 0 = Nothing
@@ -153,7 +161,7 @@ $disableVBS = 1
 # 0 = Enable VBS
 # 1 = Disable VBS. *Recomended.
 # VBS (Virtualization-based security) prevent unsigned or questionable drivers and software from getting into memory
-# Disabling it may hay a significant performance boost, specially in games
+# Disabling it may have a significant performance boost, specially in games
 
 #$powerPlan = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' # (High performance)
 #$powerPlan = '381b4222-f694-41f0-9685-ff5bb260df2e' # (Balanced)
@@ -195,7 +203,7 @@ $unpinStartMenu = 0
 # 0 = Do nothing;
 # 1 = Unpin all apps from start menu.
 
-$unnistallWindowsDefender = 0
+$unnistallWindowsDefender = 1
 # 0 = Do nothing (won't re-install it);
 # 1 = Unnistall Windows Defender, irreversible. Safe mode is required.
 
@@ -826,26 +834,6 @@ Function unProtectPrivacy {
 	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType automatic  
 }
 
-Function DisableCortana {
-	Write-Host "Disabling Cortana..."	
-	Write-Output "Disabling AllowSearchToUseLocation"
-    $AllowSearchToUseLocation = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
-    If (Test-Path $AllowSearchToUseLocation) {
-        Set-ItemProperty $AllowSearchToUseLocation Enabled -Value 0 
-    }
-
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "ConnectedSearchPrivacy" -Type DWord -Value 3
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "ConnectedSearchUseWeb" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "ConnectedSearchUseWebOverMeteredConnections" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "DisableWebSearch" -Type DWord -Value 1
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "CortanaEnabled" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "BingSearchEnabled" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "CanCortanaBeEnabled" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Personalization\Settings" -Name "AcceptedPrivacyPolicy" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "DeviceHistoryEnabled" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "HistoryViewEnabled" -Type DWord -Value 0
-}
-
 Function EnablePeek {	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewWindow" "0" "Enabling Windows Peek Thumbnail" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewDesktop" "0" "Enabling Windows Peek Desktop Preview" "DWord"
@@ -1093,21 +1081,45 @@ if ($troubleshootInstalls -eq 1) {
 	PAUSE
 }
 
+if ($legacyRightClicksMenu -eq 0) {
+	regDelete "Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" "Disabling legacy right click menu..." 
+}
 
 if ($legacyRightClicksMenu -eq 1) {
-	RegChange "Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" "(Default)" "" "Enabling legacy right click menu.." "String"
+	RegChange "Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" "(Default)" "" "Enabling legacy right click menu..." "String"
+}
+
+if ($disableStartupSound -eq 0) {
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation" "DisableStartupSound" "0" "Enabling Windows startup sound..." "DWord"
+}
+
+if ($disableStartupSound -eq 1) {
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation" "DisableStartupSound" "1" "Disabling Windows startup sound..." "DWord"
+}
+
+if ($disableCortana -eq 1) {
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchPrivacy" "3" "Setting ConnectedSearchPrivacy to 3..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWeb" "0" "Setting ConnectedSearchUseWeb to 0..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWebOverMeteredConnections" "0" "Setting ConnectedSearchUseWebOverMeteredConnections to 0..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "DisableWebSearch" "1" "Disabling Cortana web search..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "CortanaEnabled" "0" "Disabling Cortana..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "BingSearchEnabled" "0" "Disabling BingSearch..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "CanCortanaBeEnabled" "0" "Setting CanCortanaBeEnabled to 0..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Personalization\Settings" "AcceptedPrivacyPolicy" "0" "Setting AcceptedPrivacyPolicy to 0..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "DeviceHistoryEnabled" "0" "Setting DeviceHistoryEnabled to 0..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "HistoryViewEnabled" "0" "Setting HistoryViewEnabled to 0..." "DWord"
 }
 
 if ($disableVBS -eq 1) {
-	RegChange "SYSTEM\CurrentControlSet\Control\DeviceGuard" "EnableVirtualizationBasedSecurity" "0" "Disabling Virtualization-based security.." "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\DeviceGuard" "EnableVirtualizationBasedSecurity" "0" "Disabling Virtualization-based security..." "DWord"
 }
 
 if ($disableNtfsEncryption -eq 1) {
-	RegChange "SYSTEM\CurrentControlSet\Policies" "NtfsDisableEncryption" "1" "Disabling NTFS file encryption.." "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Policies" "NtfsDisableEncryption" "1" "Disabling NTFS file encryption..." "DWord"
 }
 
 if ($disableNtfsCompression -eq 1) {
-	RegChange "SYSTEM\CurrentControlSet\Policies" "NtfsDisableCompression" "1" "Disabling NTFS file compression.." "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Policies" "NtfsDisableCompression" "1" "Disabling NTFS file compression..." "DWord"
 }
 
 if ($beXboxSafe -eq 0) {
@@ -1314,9 +1326,6 @@ if ($disablelastaccess -eq 1) {
 
 if ($doPerformanceStuff -eq 0) {
 	
-# USELESS UsoSvc
-Get-Service UsoSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "UsoSvc service disabled"  }else{   write-Host -ForegroundColor red "UsoSvc service not disabled" } 
 	Write-Output "Reverse performance stuff."
 	Write-Output "Enabling EpsonCustomerResearchParticipation..."
 	Get-Service EpsonCustomerResearchParticipation | Set-Service -StartupType automatic
@@ -1371,6 +1380,7 @@ if($?){   write-Host -ForegroundColor Green "UsoSvc service disabled"  }else{   
 }
 
 if ($doPerformanceStuff -eq 1) {	
+	
 	killProcess("nvngx_update");
 	deleteFile "$env:WINDIR\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_577df0ba9db954d8\nvngx_update.exe" "Deleting Nvidia nvngx_update (bandwidth usage, lack of parameters for users to choose when its suppose to update)..."
 	RegChange "System\CurrentControlSet\Control\Session Manager\Power" "HibernateEnabled" "0" "Disabling hibernation..." "DWord"
@@ -1782,7 +1792,11 @@ if ($disablePerformanceMonitor -eq 1) {
 	Get-Service PerfHost | Stop-Service -PassThru | Set-Service -StartupType disabled
 }
 
-if ($disableWindowsUpdates -eq 1) { 
+if ($disableWindowsUpdates -eq 1) {
+
+	Get-Service UsoSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+	if($?){   write-Host -ForegroundColor Green "UsoSvc service disabled"  }else{   write-Host -ForegroundColor red "UsoSvc service not disabled" } 
+	
 	sc.exe stop wuauserv | Out-Null
 	if($?){   write-Host -ForegroundColor Green "Windows Updates Service Stoped"  }else{   write-Host -ForegroundColor red "Windows Updates Service Not Stoped" }
 
@@ -1843,14 +1857,13 @@ if ($unnistallWindowsDefender -eq 1) {
 	Write-Output "Disabling Windows Defender Application Guard..."
 	Disable-WindowsOptionalFeature -online -FeatureName "Windows-Defender-ApplicationGuard" -NoRestart -WarningAction SilentlyContinue | Out-Null
 	
-	deletePath "$env:Programfiles\windows defender" "Deleting windows defender folder..."
-	deletePath "$env:Programfiles\Windows Defender Advanced Threat Protection" "Deleting windows defender folder..."
-	deletePath "$env:Programfiles\Windows Security" "Deleting windows Windows Security folder..."
+	deletePath "$env:Programfiles\windows defender" "Deleting Defender run under demand service MpCmdRun.exe..."
+	deletePath "$env:Programfiles\Windows Defender Advanced Threat Protection" "Deleting Windows Defender Advanced Threat Protection folder..."
 	deletePath "$env:Programfiles (x86)\Windows Defender" "Deleting windows Windows defender x86 folder..."
-	deletePath "$env:ProgramData\Microsoft\Windows Defender" "Deleting windows Windows defender program data folder..."
+	deletePath "$env:ProgramData\Microsoft\Windows Defender" "Deleting Defender Antivirus and Defender Antivirus Network Inspection Service folder..."
+	deletePath "$env:ProgramData\Microsoft\Windows Defender\Platform" "Deleting Defender run under demand service MpCmdRun.exe..."
 	deletePath "$env:ProgramData\Microsoft\Windows Defender Advanced Threat Protection" "Deleting windows Windows defender program data folder..."
-	deletePath "$env:ProgramData\Microsoft\Windows Security Health" "Deleting windows Windows defender program data folder..."
-	deletePath "$env:ProgramData\Microsoft\Windows Security Health" "Deleting windows Windows defender program data folder..."
+	#deletePath "$env:ProgramData\Microsoft\Windows Security Health" "Deleting windows Windows defender program data folder..."
 	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" "SpynetReporting" "0" "Disabling Windows Defender Cloud..." "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" "SubmitSamplesConsent" "2" "Disabling Windows Defender Cloud Sample..." "DWord"		
@@ -2016,25 +2029,6 @@ if ($unnistallWindowsDefender -eq 1) {
 ##########
 #--------------------------------------------------------------------------
 
-##########
-# Fixes - Start
-##########
-
-
-<# FIX NOT BEING ABLE TO LINK OUTLOOK 365 ACCOUNT ON OFFICE OUTLOOK 2019
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "EnableADAL" -Type DWord -Value 0
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -Name "DisableADALatopWAMOverride" -Type DWord -Value 1
-#>
-
-<# FIX NOT BEING ABLE TO TYPE ON WINDOWS SEARCH AND FREEZED START MENU
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v ctfmon /t REG_SZ /d C:\Windows\system32\ctfmon.exe /f | Out-Null
-killProcess("explorer");
-killProcess("SearchUI");
-RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Fixing WpnUserService freezing start menu..." "DWord"
-deletePath "$env:LocalAppData\Packages\Microsoft.Windows.Cortana_cw5n1h2txyewy\Settings" "Clearing Cortana settings..."
-start explorer.exe	
-#>
-
 RegChange "SOFTWARE\Microsoft\CTF\LangBar" "ExtraIconsOnMinimized" "1" "Fix language bar..." "DWord"
 RegChange "SOFTWARE\Microsoft\CTF\LangBar" "Label" "1" "Fix language bar..." "DWord"
 RegChange "SOFTWARE\Microsoft\CTF\LangBar" "ShowStatus" "4" "Fix language bar..." "DWord"
@@ -2096,6 +2090,7 @@ if ($visual -like "y") {
 	choco install dotnetfx -y
 	choco install directx -y
 	choco install dotnetcore -y
+	choco install dotnet-runtime -y
 	
 	choco install qbittorrent -y
 	choco install k-litecodecpackfull -y
@@ -2251,13 +2246,7 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AppHost"
 Write-Host "Disabling Location Tracking..."
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" -Name "SensorPermissionState" -Type DWord -Value 0
 Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Services\lfsvc\Service\Configuration" -Name "Status" -Type DWord -Value 0
- 
-# Disable Cortana
-Write-Host "Disabling Cortana..."
-If (!(Test-Path "HKCU:\Software\Microsoft\Personalization\Settings")) {
-    New-Item -Path "HKCU:\Software\Microsoft\Personalization\Settings" -Force | Out-Null
-}
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Personalization\Settings" -Name "AcceptedPrivacyPolicy" -Type DWord -Value 0
+
 If (!(Test-Path "HKCU:\Software\Microsoft\InputPersonalization")) {
     New-Item -Path "HKCU:\Software\Microsoft\InputPersonalization" -Force | Out-Null
 }
@@ -2268,10 +2257,6 @@ If (!(Test-Path "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore"
 }
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore" -Name "HarvestContacts" -Type DWord -Value 0
 
-PowerCfg -SetActive $powerPlan
-write-Host -ForegroundColor Green "PowerScheme Sucessfully Applied"
-
-
 Function DisableUpdateMSRT {
 	Write-Host "Disabling Malicious Software Removal Tool offering..."
 	If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\MRT")) {
@@ -2281,13 +2266,8 @@ Function DisableUpdateMSRT {
 }
 DisableUpdateMSRT
 
-$disablecortana = Read-Host "Disable Cortana? (y/n)"
-switch ($disablecortana) {
-	y {
-	DisableCortana
-	}
-}
-
+PowerCfg -SetActive $powerPlan
+write-Host -ForegroundColor Green "PowerScheme Sucessfully Applied"
 powercfg.exe -x -monitor-timeout-ac $monitorAcTimeout
 powercfg.exe -x -monitor-timeout-dc $monitorDcTimeout
 powercfg.exe -x -disk-timeout-ac $diskAcTimeout
@@ -2296,22 +2276,6 @@ powercfg.exe -x -standby-timeout-ac $standbyAcTimeout
 powercfg.exe -x -standby-timeout-dc $standbyDcTimeout
 powercfg.exe -x -hibernate-timeout-ac $hybernateAcTimeout
 powercfg.exe -x -hibernate-timeout-dc $hybernateDcTimeout
-
-<# UBLOCK PERSONAL FILTERS
-www.google.*##div[jscontroller]:if(h4:has-text(People also search for))
-||youtube.com/comment_service_ajax*
-||youtube.com###comments
-
-! 2020-12-03 https://www.youtube.com
-www.youtube.com##.yt-next-continuation.style-scope
-
-! 2020-12-10 https://www.twitch.tv
-www.twitch.tv##.tw-mg-x-05.tw-flex-shrink-0.tw-flex-nowrap.tw-flex-grow-0.tw-align-self-center.top-nav__prime
-
-! 2021-03-26 https://www.youtube.com
-www.youtube.com###clarify-box > .ytd-watch-flexy.style-scope
-
- #>
 
 Remove-PSDrive HKCR
 PAUSE
