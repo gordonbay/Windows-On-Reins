@@ -1,7 +1,7 @@
 # Windows On Reins - Windows 10 Ameliorated, Bloatware removal, privacy fix and performance optimization
 [![made-with-powershell](https://img.shields.io/badge/PowerShell-1f425f?logo=Powershell)](https://microsoft.com/PowerShell)
-[![Package Control total downloads](https://img.shields.io/packagecontrol/dt/SwitchDictionary.svg)](https://packagecontrol.io/packages/SwitchDictionary)
-[![Discord](https://img.shields.io/discord/591914197219016707.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/SGHFtvx4bN)
+https://img.shields.io/github/license/gordonbay/Windows-On-Reins.svg
+[![Discord](https://badgen.net/badge/icon/discord?icon=discord&label)](https://discord.gg/SGHFtvx4bN)
 
 ## Warning
 I do not take responsibility for what may happen to your system. This is at your own risk.
@@ -9,26 +9,28 @@ I do not take responsibility for what may happen to your system. This is at your
 
 ## What it does - Security
 
-- Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning;
-- Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya;
-- Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930);
-- Disable Wi-Fi Sense, it connects you to open hotspots that are "greenlighted" through crowdsourcing. Openning doors to Lure10 MITM attack and phishing (Stigviewer V-220808);
-- Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823);
-- Disable Autoplay, "allowing autoplay to execute may introduce malicious code to a system" (Stigviewer V-63673);
+- Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning
+- Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya
+- Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930)
+- Disable Wi-Fi Sense, it connects you to open hotspots that are "greenlighted" through crowdsourcing. Openning doors to Lure10 MITM attack and phishing (Stigviewer V-220808)
+- Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823)
+- Disable Autoplay, "allowing autoplay to execute may introduce malicious code to a system" (Stigviewer V-63673)
+- Disable WPAD (Web Proxy Auto-Discovery Protocol), it exposes the system to MITM attack
 
 ## What it does - Performance
 
-- Disable Windows Malicious Software Removal Tool due to hight disk usage;
-- Disable NTFS encryption and compression due to processing overhead on filesystem operations;
-- Disable of scheduled defragmentation due to lack of parameters and waste of disk cycles;
-- Disable Windows Superfetch, due to high RMA usage and is known for causing slow boot times;
+- Disable the Diagnostic Policy Service. To avoid some I/O operations to the file system and reduce system load
+- Disable Windows Malicious Software Removal Tool due to hight disk usage
+- Disable NTFS encryption and compression due to processing overhead on filesystem operations
+- Disable of scheduled defragmentation due to lack of parameters and waste of disk cycles
+- Disable Windows Superfetch, due to high RMA usage and is known for causing slow boot times
 - Disable Windows Hibernation, there are some evidence that if you use HDD and not a SSD disabling it may lead to lower boot times
-- Disable Winmgmt service, Windows Management Instrumentation. This service transfer unusual amount of data, keeps windows updates silent running even if user had it opt-out;
-- Allow user to disable Cortana;
-- Disable Software Protection Platform;
-- Disable SmartScreen Filter, due to huge performance impact, it checks online data about running programs;
-- Disable BITS - Background Intelligent Transfer Service, UsoSvc - Update Orchestrator Service, DusmSvc - Data Usage, the all showed the same behavior, its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan.
-- Disable DoSvc (Delivery Optimization), it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation.
+- Disable Winmgmt service, Windows Management Instrumentation. This service transfer unusual amount of data, keeps windows updates silent running even if user had it opt-out
+- Allow user to disable Cortana
+- Disable Software Protection Platform
+- Disable SmartScreen Filter, due to huge performance impact, it checks online data about running programs
+- Disable BITS - Background Intelligent Transfer Service, UsoSvc - Update Orchestrator Service, DusmSvc - Data Usage, the all showed the same behavior, its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
+- Disable DoSvc (Delivery Optimization), it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation
 - Disable wlidsvc service, due to conflicts with some games
 - Disable Fax service
 - Disable Xbox Dvr, its may cause fps problems on some games
@@ -45,7 +47,8 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable autoplay and autorun
 - Disable Windows Location Tracking and Wifi Sensor
 - Disable Windows lfsvc service, Geofence service, a cute name for a location tracking service
-- Disable NvTelemetryContainer, Nvidia telemetry agent 
+- Disable NvTelemetryContainer, Nvidia telemetry agent
+- Disable Windows Media Player Network Sharing Service
 
 ## What it does - Quality of Life
 
@@ -88,6 +91,7 @@ I do not take responsibility for what may happen to your system. This is at your
 ## Gaming
 
 - Disable Windows mouse acceleration (ideal for FPS games)
+- Disable VBS (Virtualization-based security), may have a significant performance boost, specially in games
 
 
 Usage

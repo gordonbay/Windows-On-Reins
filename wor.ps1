@@ -13,7 +13,7 @@
 $troubleshootInstalls = 0
 # 0 = Do nothing. *Recomended.
 # 1 = Enable essential stuff needed for some installations.
-# Note: Set to 0 if you are having trouble installing something on you pc.
+# Note: Set to 1 if you are having trouble installing something on you pc.
 # Note: Known to fix these installations: windows language pack, Autodesk AutoCad and Appxs.
 # Note: Top priority configuration, overrides other settings.
 
@@ -1012,16 +1012,6 @@ Function uninstallDraculaNotepad {
 	}
 }	
 
-
-# Imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
-Function DisableNetBIOS {
-	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "2" "Disabling NetBIOS over TCP/IP..." "DWord"	
-}
-
-Function EnableNetBIOS {
-	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "0" "Enabling NetBIOS over TCP/IP..." "DWord"
-}
-
 # Link-Local Multicast Name Resolution (LLMNR) protocol, a protocol that allow name resolution without the requirement of a DNS server. LLMNR is a secondary name resolution protocol. 
 # With LLMNR, queries are sent using multicast over a local network link on a single subnet from a client computer to another client computer on the same subnet that also has LLMNR enabled.
 # Imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
@@ -1326,7 +1316,10 @@ if ($disablelastaccess -eq 1) {
 
 if ($doPerformanceStuff -eq 0) {
 	
-	Write-Output "Reverse performance stuff."
+	RegChange "SYSTEM\CurrentControlSet\services\WdiServiceHost" "Start" "3" "Enabling Diagnostic Service Host" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\services\WdiSystemHost" "Start" "3" "Enabling Diagnostic System Host Service" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\services\DPS" "Start" "2" "Enabling Diagnostic Policy Service" "DWord"
+	
 	Write-Output "Enabling EpsonCustomerResearchParticipation..."
 	Get-Service EpsonCustomerResearchParticipation | Set-Service -StartupType automatic
 	Write-Output "Enabling LGHUBUpdaterService..."
@@ -1380,6 +1373,10 @@ if ($doPerformanceStuff -eq 0) {
 }
 
 if ($doPerformanceStuff -eq 1) {	
+	
+	RegChange "SYSTEM\CurrentControlSet\services\WdiServiceHost" "Start" "4" "Disabling Diagnostic Service Host" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\services\WdiSystemHost" "Start" "4" "Disabling Diagnostic System Host Service" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\services\DPS" "Start" "4" "Disabling Diagnostic Policy Service" "DWord"
 	
 	killProcess("nvngx_update");
 	deleteFile "$env:WINDIR\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_577df0ba9db954d8\nvngx_update.exe" "Deleting Nvidia nvngx_update (bandwidth usage, lack of parameters for users to choose when its suppose to update)..."
@@ -1555,10 +1552,16 @@ if ($doPrivacyStuff -eq 1) {
 
 EnableDnsCache
 if ($doSecurityStuff -eq 0) {
-	Write-Output "Reverse security stuff..."
+	RegChange "SYSTEM\CurrentControlSet\services\WMPNetworkSvc" "Start" "3" "Enabling Windows Media Player Network Sharing Service" "DWord"
+	
+	# WPAD exposes the system to MITM attack
+	RegChange "SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" "Start" "3" "Enabling WPAD WinHttpAutoProxySvc Service" "DWord"
+	
 	EnableDnsCache
 	EnableLLMNR
-	EnableNetBIOS
+	
+	# NetBIOS imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
+	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "0" "Enabling NetBIOS over TCP/IP..." "DWord"
 	
 	#Allowing Anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system. (Stig Viewer V-220930)
 	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RestrictAnonymous" "0" "Allowing Anonymous enumeration of shares (Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system.)- Stig Viewer V-220930" "Dword"	
@@ -1580,10 +1583,17 @@ if ($doSecurityStuff -eq 0) {
 }
 
 if ($doSecurityStuff -eq 1) {
-	Write-Output "Doing security stuff..."
+	RegChange "SYSTEM\CurrentControlSet\services\WMPNetworkSvc" "Start" "4" "Disabling Windows Media Player Network Sharing Service" "DWord"
+	
+	# WPAD exposes the system to MITM attack
+	RegChange "SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" "Start" "4" "Disabeling WPAD WinHttpAutoProxySvc Service" "DWord"
+	
 	DisableDnsCache
 	DisableLLMNR
-	DisableNetBIOS	
+	
+	# NetBIOS imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
+	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "2" "Disabling NetBIOS over TCP/IP..." "DWord"	
+
 	
 	#Allowing Anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system. (Stig Viewer V-220930)
 	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RestrictAnonymous" "1" "Disabling Anonymous enumeration of shares..." "Dword" 		
