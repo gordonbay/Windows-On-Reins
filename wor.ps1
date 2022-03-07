@@ -100,8 +100,8 @@ $disableWindowsFirewall = 1
 # 1 = Disable. *Recomended.
 
 $disableWindowsUpdates = 1
-# 0 = Enable.
-# 1 = Disable. *Recomended.
+# 0 = Enable Windows Updates.
+# 1 = Disable Windows Updates. *Recomended.
 
 $disableMSStore = 1
 # 0 = Enable.
@@ -1389,9 +1389,13 @@ if ($doPerformanceStuff -eq 1) {
 	Write-Output "Disabling LGHUBUpdaterService (bandwidth usage, lack of parameters for users to choose when its suppose to update)..."
 	Get-Service LGHUBUpdaterService | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
-	write-Host "BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan" -ForegroundColor Green -BackgroundColor Black
-	Write-Host "Disabling BITS Background Intelligent Transfer Service"
-	Get-Service BITS | Stop-Service -PassThru | Set-Service -StartupType disabled
+	if ($disableWindowsUpdates -eq 0) {
+		Write-Host "BITS NOT disabled because of the disableWindowsUpdates configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+	}	else {
+		# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
+		Write-Host "Disabling BITS Background Intelligent Transfer Service"
+		Get-Service BITS | Stop-Service -PassThru | Set-Service -StartupType disabled		
+	}
 	
 	write-Host "DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation." -ForegroundColor Green -BackgroundColor Black
 	Write-Host "Disabling DoSvc (Delivery Optimization)..."
@@ -1800,6 +1804,27 @@ if ($disablePerformanceMonitor -eq 1) {
 	Write-Output "Stopping and disabling PLA service Performance Logs & Alerts"
 	Get-Service pla | Stop-Service -PassThru | Set-Service -StartupType disabled
 	Get-Service PerfHost | Stop-Service -PassThru | Set-Service -StartupType disabled
+}
+
+if ($disableWindowsUpdates -eq 0) {
+
+	Get-Service UsoSvc | Set-Service -StartupType automatic
+	if($?){   write-Host -ForegroundColor Green "UsoSvc service enabled"  }else{   write-Host -ForegroundColor red "UsoSvc service not enabled" } 
+
+	RegChange "SYSTEM\CurrentControlSet\Services\wuauserv" "Start" "4" "Windows Updates service enabled" "DWord"
+	Get-Service wuauserv | Set-Service -StartupType automatic
+	Get-Service BITS | Set-Service -StartupType automatic
+	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "NoAutoUpdate" "0" "Windows Update enabled" "DWord"
+	
+	# This enable "Receive updates for other Microsoft products"
+	regDelete "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" "Clearing network profiles..."
+	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Device Metadata" "PreventDeviceMetadataFromNetwork" "0" "Enabling retrieve device metadata for installed devices from the Internet" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DontPromptForWindowsUpdate" "0" "Enabling prompt to search Windows Update" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DontSearchWindowsUpdate" "0" "Enabling Windows Update to search for device drivers when no local drivers for a device are present" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DriverUpdateWizardWuSearchEnabled" "1" "Enabling DriverUpdateWizardWuSearchEnabled" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "ExcludeWUDriversInQualityUpdate" "0" "Enabling Windows Update to include updates that have a Driver classification" "DWord"
 }
 
 if ($disableWindowsUpdates -eq 1) {

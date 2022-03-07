@@ -1,6 +1,5 @@
 # Windows On Reins - Windows 10 Ameliorated, Bloatware removal, privacy fix and performance optimization
 [![made-with-powershell](https://img.shields.io/badge/PowerShell-1f425f?logo=Powershell)](https://microsoft.com/PowerShell)
-https://img.shields.io/github/license/gordonbay/Windows-On-Reins.svg
 [![Discord](https://badgen.net/badge/icon/discord?icon=discord&label)](https://discord.gg/SGHFtvx4bN)
 
 ## Warning
@@ -79,19 +78,20 @@ I do not take responsibility for what may happen to your system. This is at your
 
 ## Fingerprinting Prevention
 
-- Disable files last modification date, in most cases
-- Disable Windows unique advertise ID
-- Disable and clear ETL and perfomance logs
-- Clears file thumbnails and allows user to complete disable it
-- Clears minimized windows thumbnails and allows user to complete disable it
-- Disable recent opened files history
-- Disable Cortana web search
-- Disable location tracking
+- Disable files last modification date, in most cases;
+- Disable Windows unique advertise ID;
+- Disable and clear ETL and perfomance logs;
+- Clears file thumbnails and allows user to complete disable it;
+- Clears minimized windows thumbnails and allows user to complete disable it;
+- Disable recent opened files history;
+- Disable Cortana web search;
+- Disable location tracking;
+- Disable recycle bin;
 
 ## Gaming
 
-- Disable Windows mouse acceleration (ideal for FPS games)
-- Disable VBS (Virtualization-based security), may have a significant performance boost, specially in games
+- Disable Windows mouse acceleration (ideal for FPS games);
+- Disable VBS (Virtualization-based security), may have a significant performance boost, specially in games;
 
 
 Usage
