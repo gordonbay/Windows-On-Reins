@@ -8,13 +8,13 @@ I do not take responsibility for what may happen to your system. This is at your
 
 ## What it does - Security
 
-- Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning
-- Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya
-- Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930)
-- Disable Wi-Fi Sense, it connects you to open hotspots that are "greenlighted" through crowdsourcing. Openning doors to Lure10 MITM attack and phishing (Stigviewer V-220808)
-- Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823)
-- Disable Autoplay, "allowing autoplay to execute may introduce malicious code to a system" (Stigviewer V-63673)
-- Disable WPAD (Web Proxy Auto-Discovery Protocol), it exposes the system to MITM attack
+- Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning;
+- Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya;
+- Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930);
+- Disable Wi-Fi Sense, it connects you to open hotspots that are "greenlighted" through crowdsourcing. Openning doors to Lure10 MITM attack and phishing (Stigviewer V-220808);
+- Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823);
+- Disable Autoplay, "allowing autoplay to execute may introduce malicious code to a system" (Stigviewer V-63673);
+- Disable WPAD (Web Proxy Auto-Discovery Protocol), it exposes the system to MITM attack;
 
 ## What it does - Performance
 
@@ -40,7 +40,36 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Adobe updates
 - Disable Nvidia NGX updates, due to high network usage and lack of settings
 
-## What it does - Privacy
+## What it does - Quality of Life
+
+- Disable "Get tips and suggestion when i use Windows";
+- Disable "Offer suggestions on hou i can set up my device";
+- Disable Windows Ads within file explorer;
+- Allow users to definitively disable windows updates;
+- Allow users to definitively disable windows defender;
+- Installation of VC++ resources;
+- Allow users to clear all the bloatware that cames with Windows installation;
+- Disable Windows sound effects, and W11 startup sound;
+- Disable error reporting;
+- Enable dark mode;
+- Install Nvidia control panel, if you own a Nvidia card;
+- Dracula's dark mode for Notepad++;
+- Disable error reporting;
+- Disable Action Center ;
+- Disable People's Bar;
+- Show Computer shortcut on desktop;
+- Remove all pinned bloatware from your start menu;
+- Disable sticky keys;
+- Disable Windows from asking your feedback;
+- Disable SecurityHealthService, due to anoying and non configurable popups;
+- Disable WpnService, push notification service;
+- Disable Razer Chroma SDK Server. Its night and you have that game with Razer SDK enabled running and messing up your keys;
+- Disable Windows Licence check;
+- Put "This PC" shortcut on desktop;
+- Disable Game Bar tips;
+- Disable Vmware Host Server, service uses port 80;
+
+## Fingerprinting Prevention and privacy
 
 - Disable Diagtrack, Windows Diagnostics Tracking, design by Microsoft to spy on users and to intefere with your programs
 - Disable autoplay and autorun
@@ -48,36 +77,6 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Windows lfsvc service, Geofence service, a cute name for a location tracking service
 - Disable NvTelemetryContainer, Nvidia telemetry agent
 - Disable Windows Media Player Network Sharing Service
-
-## What it does - Quality of Life
-
-- Disable Windows Ads within file explorer
-- Allow users to definitively disable windows updates
-- Allow users to definitively disable windows defender
-- Installation of VC++ resources
-- Allow users to clear all the bloatware that cames with Windows installation
-- Disable Windows sound effects
-- Disable error reporting
-- Enable dark mode
-- Install Nvidia control panel, if you own a Nvidia card
-- Dracula's dark mode for Notepad++
-- Disable error reporting
-- Disable Action Center 
-- Disable People's Bar
-- Show Computer shortcut on desktop
-- Remove all pinned bloatware from your start menu
-- Disable sticky keys
-- Disable Windows from asking your feedback
-- Disable SecurityHealthService, due to anoying and non configurable popups
-- Disable WpnService, push notification service
-- Disable Razer Chroma SDK Server. Its night and you have that game with Razer SDK enabled running and messing up your keys
-- Disable Windows Licence check
-- Put "This PC" shortcut on desktop
-- Disable Game Bar tips
-- Disable Vmware Host Server, service uses port 80
-
-## Fingerprinting Prevention
-
 - Disable files last modification date, in most cases;
 - Disable Windows unique advertise ID;
 - Disable and clear ETL and perfomance logs;
@@ -87,11 +86,14 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Cortana web search;
 - Disable location tracking;
 - Disable recycle bin;
+- Enable DNS-over-HTTPS (DoH), both on Windows and Firefox, it encrypts the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers;
+- Enable Encrypted Client Hello (ECH) on Firefox, to prevent TLS from leaking any data by encrypting all messages;
 
 ## Gaming
 
 - Disable Windows mouse acceleration (ideal for FPS games);
 - Disable VBS (Virtualization-based security), may have a significant performance boost, specially in games;
+- Ensure that Hardware Accelerated Scheduling is ON, in very rare cases it may reduce latency;
 
 
 Usage
@@ -108,13 +110,14 @@ Usage
 
 or just right click the file wor.ps1 and select "Execute with powershell"
 
-Credits
+Notes
 ============
 
-## https://www.stigviewer.com/stig/windows_10
-## https://github.com/builtbybel/debotnet
-## https://github.com/Disassembler0/Win10-Initial-Setup-Script
-## https://gist.github.com/alirobe/7f3b34ad89a159e6daa1
-## https://github.com/adolfintel/Windows10-Privacy
-## https://github.com/Sycnex/Windows10Debloater
-## https://github.com/dracula/dracula-theme
+- To prevent Windows to intall bloatware, this script must run before connecting to the internet for the first time;
+- Disabling Windows defender is unreversible and needs the system to be in safe mode;
+- Some NICs may show the preferred DNS encryption as "Unencrypted Only" after running the the fingerprinting prevention. Thats not true, the DNS is being handled over HTTPS (DoH) and there will be no traffic on port 53. Test using::
+<code>
+pktmon filter remove
+pktmon filter add -p 53
+start --etw -m real-time
+</code>
