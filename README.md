@@ -8,13 +8,13 @@ I do not take responsibility for what may happen to your system. This is at your
 
 ## What it does - Security
 
-- Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning
-- Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya
-- Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930)
-- Disable Wi-Fi Sense, it connects you to open hotspots that are "greenlighted" through crowdsourcing. Openning doors to Lure10 MITM attack and phishing (Stigviewer V-220808)
-- Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823)
-- Disable Autoplay, "allowing autoplay to execute may introduce malicious code to a system" (Stigviewer V-63673)
-- Disable WPAD (Web Proxy Auto-Discovery Protocol), it exposes the system to MITM attack
+- Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning;
+- Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya;
+- Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930);
+- Disable Wi-Fi Sense, it connects you to open hotspots that are "greenlighted" through crowdsourcing. Openning doors to Lure10 MITM attack and phishing (Stigviewer V-220808);
+- Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823);
+- Disable Autoplay, "allowing autoplay to execute may introduce malicious code to a system" (Stigviewer V-63673);
+- Disable WPAD (Web Proxy Auto-Discovery Protocol), it exposes the system to MITM attack;
 
 ## What it does - Performance
 
