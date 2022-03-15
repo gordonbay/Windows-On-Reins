@@ -199,7 +199,7 @@ $disablePerformanceMonitor = 1
 # 0 = Do nothing;
 # 1 = Disable Windows Performance Logs Monitor and clear all .etl caches. *Recomended.
 
-$unpinStartMenu = 0
+$unpinStartMenu = 1
 # 0 = Do nothing;
 # 1 = Unpin all apps from start menu.
 
@@ -220,14 +220,14 @@ $bloatwareList = @(
 	# Maybe userful AppX       
 	#"*Microsoft.Advertising.Xaml_10.1712.5.0_x64__8wekyb3d8bbwe*"
 	#"*Microsoft.Advertising.Xaml_10.1712.5.0_x86__8wekyb3d8bbwe*"
-	#"*Microsoft.BingWeather*"
 	#"*Microsoft.MSPaint*"
 	#"*Microsoft.MicrosoftStickyNotes*"
 	#"*Microsoft.Windows.Photos*"
 	#"*Microsoft.WindowsCalculator*"
 	#"*Microsoft.WindowsStore*"
 	#"*Microsoft.WindowsCamera*"
-	#"*Microsoft.WindowsCamera*"
+	"*Microsoft.BingWeather*"
+	"MicrosoftTeams*"
 	
 	# Unnecessary AppX Apps
 	"*Microsoft.DrawboardPDF*"
@@ -282,7 +282,17 @@ $bloatwareList = @(
 	"*Royal Revolt*"
 	"*Sway*"
 	"*Speed Test*"
-	"*FarmHeroesSaga*"   
+	"*FarmHeroesSaga*"
+	"Prime*"
+	"*Clipchamp*"
+	"*Disney*"
+	"*Netflix*"
+	"*Keeper*"
+	"*Instagram*"
+	"*Amazon*"
+	"*Roblox*"
+	"*AdobePhotoshop*"
+	
 	
 	# Special Cases
 	# Dont Touch
@@ -1036,7 +1046,8 @@ if ($troubleshootInstalls -eq 1) {
 	Write-Output "Troubleshoot Install: Enabling Windows Management Instrumentation service enabled."
 	Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType automatic
 	
-	write-Host "Troubleshoot Install: Enabling BITS Background Intelligent Transfer Service, its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan" -ForegroundColor Green -BackgroundColor Black 
+	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
+	write-Host "Troubleshoot Install: Enabling BITS (Background Intelligent Transfer Service)" -ForegroundColor Green -BackgroundColor Black 
 	Get-Service BITS | Set-Service -StartupType automatic
 	
 	write-Host "DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation." -ForegroundColor Green -BackgroundColor Black
@@ -1104,8 +1115,8 @@ if ($disableVBS -eq 1) {
 	RegChange "SYSTEM\CurrentControlSet\Control\DeviceGuard" "EnableVirtualizationBasedSecurity" "0" "Disabling Virtualization-based security..." "DWord"
 }
 
-if ($disableNtfsEncryption -eq 1) {
-	RegChange "SYSTEM\CurrentControlSet\Policies" "NtfsDisableEncryption" "1" "Disabling NTFS file encryption..." "DWord"
+if ($disableNtfsEncryption -eq 0) {
+	RegChange "SYSTEM\CurrentControlSet\Policies" "NtfsDisableEncryption" "0" "Enabling NTFS file encryption..." "DWord"
 }
 
 if ($disableNtfsCompression -eq 1) {
@@ -1270,25 +1281,46 @@ if ($disableBloatware -eq 0) {
 		Get-AppxPackage -Name $Bloat| Add-AppxPackage
 		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $Bloat | Add-AppxProvisionedPackage -Online		
 	}	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "1" "Adding Registry key to ALLOW bloatware apps from returning" "Dword"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "1" "Adding Registry key to ALLOW bloatware apps from returning" 
+	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "FeatureManagementEnabled" "1" "Enabling Windows bloatware" "Dword"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "1" "Enabling Windows bloatware" "Dword"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "1" "Enabling Windows bloatware" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "1" "Enabling Windows bloatware" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "1" "Enabling Windows bloatware" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "1" "Enabling Windows bloatware" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "1" "Enabling Windows bloatware" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContentEnabled" "1" "Enabling Windows bloatware" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-353696Enabled" "1" "Enabling Windows bloatware" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-353694Enabled" "1" "Enabling Windows bloatware" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338393Enabled" "1" "Enabling Windows bloatware" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338389Enabled" "1" "Enabling Windows bloatware" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338388Enabled" "1" "Enabling Windows bloatware" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-310093Enabled" "1" "Enabling Windows bloatware" "DWord"
 }
 
 if ($disableBloatware -eq 1) {			
 	foreach ($Bloat in $bloatwareList) {
-		Write-Output "Trying to remove $Bloat."
+		Write-Output "Trying to remove $Bloat"
 		Get-AppxPackage -Name $Bloat| Remove-AppxPackage
 	}	
+	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "FeatureManagementEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "Dword"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "0" "Adding Registry key to PREVENT bloatware apps from returning" "Dword"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning"  
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" 	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContentEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-353696Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-353694Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338393Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338389Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338388Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-310093Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
+	
+	regDelete "Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions" "Clearing bloatware registry keys"
+	regDelete "Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps" "Clearing bloatware registry keys"
 }
 
 if ($unpinStartMenu -eq 1) {			
@@ -1316,6 +1348,8 @@ if ($disablelastaccess -eq 1) {
 
 if ($doPerformanceStuff -eq 0) {
 	
+	#In very rare cases, Hardware Accelerated GPU Scheduling set to ON (2) may improve latency
+	RegChange "SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" "1" "Disabling Hardware Accelerated GPU Scheduling" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\WdiServiceHost" "Start" "3" "Enabling Diagnostic Service Host" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\WdiSystemHost" "Start" "3" "Enabling Diagnostic System Host Service" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\DPS" "Start" "2" "Enabling Diagnostic Policy Service" "DWord"
@@ -1347,7 +1381,8 @@ if ($doPerformanceStuff -eq 0) {
 	Write-Host "Enabling MapsBroker (Downloaded Maps Manager) service..."
 	Get-Service MapsBroker | Set-Service -StartupType automatic
 	
-	write-Host "Enabling BITS Background Intelligent Transfer Service, its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan" -ForegroundColor Green -BackgroundColor Black 
+	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
+	write-Host "Enabling BITS (Background Intelligent Transfer Service)" -ForegroundColor Green -BackgroundColor Black 
 	Get-Service BITS | Set-Service -StartupType automatic
 	
 	write-Host "DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation." -ForegroundColor Green -BackgroundColor Black
@@ -1374,6 +1409,8 @@ if ($doPerformanceStuff -eq 0) {
 
 if ($doPerformanceStuff -eq 1) {	
 	
+	#In very rare cases, Hardware Accelerated GPU Scheduling set to ON (2) may improve latency
+	RegChange "SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" "2" "Enabling Hardware Accelerated GPU Scheduling" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\WdiServiceHost" "Start" "4" "Disabling Diagnostic Service Host" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\WdiSystemHost" "Start" "4" "Disabling Diagnostic System Host Service" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\DPS" "Start" "4" "Disabling Diagnostic Policy Service" "DWord"
@@ -1440,12 +1477,17 @@ if ($doPerformanceStuff -eq 1) {
 if ($doQualityOfLifeStuff -eq 0) {
 	Get-Service VMwareHostd | Set-Service -StartupType automatic
 	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "2" "Enabling VMware host..." "DWord"
+	
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarDa" "1" "Adding widgets button to taskbar" "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarMn" "1" "Adding chat button to taskbar" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SoftLandingEnabled" "1" "Enabling Get tips and suggestion when i use Windows" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "0" "Enabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "1" "Enabling Action Center toasts..." "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "0" "Enabling Action Center notification center..." "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "1" "Enabling Action Center toast push notifications..." "DWord"
-	RegChange "Control Panel\Accessibility" "DynamicScrollbars " "1" "Enabling dynamic scrollbars..." "DWord"
-	
+	RegChange "Control Panel\Accessibility" "DynamicScrollbars" "1" "Enabling dynamic scrollbars..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\MRT" "DontOfferThroughWUAU " "0" "Enabling Malicious Software Removal Tool offering" "DWord"
+
 	write-Host "Fast Boot is known to cause problems with steam" -ForegroundColor Green -BackgroundColor Black 
 	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Power" "HiberbootEnabled" "1" "Enabling Fast boot..." "DWord"
 	powercfg /hibernate ON
@@ -1479,11 +1521,16 @@ if ($doQualityOfLifeStuff -eq 0) {
 if ($doQualityOfLifeStuff -eq 1) {
 	Get-Service VMwareHostd | Stop-Service -PassThru | Set-Service -StartupType disabled
 	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "4" "Disabling VMware host..." "DWord"
+	
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarDa" "0" "Removing widgets button from taskbar" "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarMn" "0" "Removing chat button from taskbar" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SoftLandingEnabled" "0" "Disabling Get tips and suggestion when i use Windows" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "1" "Disabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "0" "Disabling Action Center global toasts..." "DWord"	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "1" "Disabling Action Center notification center..." "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "0" "Disabling Action Center toast push notifications..." "DWord"
 	RegChange "Control Panel\Accessibility" "DynamicScrollbars " "0" "Disabling dynamic scrollbars..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\MRT" "DontOfferThroughWUAU " "1" "Disabling Malicious Software Removal Tool offering" "DWord"
 	
 	write-Host "Fast Boot is known to cause problems with steam" -ForegroundColor Green -BackgroundColor Black 
 	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Power" "HiberbootEnabled" "0" "Disabling Fast boot..." "DWord"
@@ -1547,8 +1594,12 @@ if ($doPrivacyStuff -eq 1) {
 	Write-Host "Stopping and disabling wisvc (Windows Insider Service)..."
 	Get-Service wisvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
-	Write-Host "Stopping and disabling CryptSvc (Cryptographic Services)..."
-	Get-Service CryptSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+	if ($disableWindowsUpdates -eq 0) {
+		Write-Host "CryptSvc NOT disabled because of the disableWindowsUpdates configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+	}	else {
+		Write-Host "Stopping and disabling CryptSvc (Cryptographic Services)..."
+		Get-Service CryptSvc | Stop-Service -PassThru | Set-Service -StartupType disabled	
+	}	
 	
 	Write-Host "Stopping and disabling EventLog (Windows Event Log)..."
 	Get-Service EventLog | Stop-Service -PassThru | Set-Service -StartupType disabled
@@ -1638,6 +1689,9 @@ if ($doFingerprintPrevention -eq 0) {
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "SaveZoneInformation" "0" "Enabling Windows save zone information..." "DWord"
 	RegChange "SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet" "EnableActiveProbing" "1" "Enabling internet connection test... " "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" "NoRecycleFiles" "1" "Enabling recycle bin... " "DWord"
+	
+	# DNS-over-HTTPS (DoH) encrypt the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers
+	RegChange "SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" "EnableAutoDoh" "0" "Disabling DNS over HTTPS (DoH)... " "DWord"
 
 }
 
@@ -1646,6 +1700,9 @@ if ($doFingerprintPrevention -eq 1) {
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "SaveZoneInformation" "1" "Disabling Windows save zone information..." "DWord"
 	RegChange "SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet" "EnableActiveProbing" "0" "Disabling internet connection test... " "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" "NoRecycleFiles" "1" "Disabling recycle bin... " "DWord"
+	
+	# DNS-over-HTTPS (DoH) encrypt the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers
+	RegChange "SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" "EnableAutoDoh" "2" "Enabling DNS over HTTPS (DoH)... " "DWord"
 
 }
 
@@ -1682,7 +1739,7 @@ if ($firefoxSettings -eq 1) {
 	$PrefsFiles = Get-Item -Path ($env:APPDATA+"\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
 
-	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"app.update.checkInstallTime"*', '*"app.update.auto.migrated"*', '*"app.update.service.enabled"*',  '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*', '*"browser.messaging-system.whatsNewPanel.enabled"*', '*"extensions.htmlaboutaddons.recommendations.enabled"*', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail', '*browser.tabs.warnOnCloseOtherTabs*')
+	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"app.update.checkInstallTime"*', '*"app.update.auto.migrated"*', '*"app.update.service.enabled"*',  '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*', '*"browser.messaging-system.whatsNewPanel.enabled"*', '*"extensions.htmlaboutaddons.recommendations.enabled"*', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail', '*browser.tabs.warnOnCloseOtherTabs*', 'network.trr.mode', 'network.trr.uri', 'network.trr.bootstrapAddress', 'network.security.esni.enabled', 'network.dns.echconfig.enabled', 'network.dns.use_https_rr_as_altsvc')
 
 	foreach ($file in $PrefsFiles) {
 		$path = Get-ItemProperty -Path $file
@@ -1735,6 +1792,14 @@ if ($firefoxSettings -eq 1) {
 		$out+= 'user_pref("browser.urlbar.richSuggestions.tail", false);'
 		$out+= 'user_pref("browser.tabs.warnOnCloseOtherTabs", false);'
 		
+		# DNS-over-HTTPS (DoH) encrypt the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers
+		$out+= 'user_pref("network.trr.mode", 2);'
+		$out+= 'user_pref("network.trr.uri", "https://mozilla.cloudflare-dns.com/dns-query");'
+		$out+= 'user_pref("network.trr.bootstrapAddress", "1.1.1.1");'
+		
+		# Enable Encrypted Client Hello (ECH) on Firefox, to prevent TLS from leaking any data by encrypting all messages;
+		$out+= 'user_pref("network.dns.echconfig.enabled", true);'
+		$out+= 'user_pref("network.dns.use_https_rr_as_altsvc", true);'
 		
 		
 		Copy-Item $file $file$currentDate".txt"
@@ -1810,9 +1875,14 @@ if ($disableWindowsUpdates -eq 0) {
 
 	Get-Service UsoSvc | Set-Service -StartupType automatic
 	if($?){   write-Host -ForegroundColor Green "UsoSvc service enabled"  }else{   write-Host -ForegroundColor red "UsoSvc service not enabled" } 
+	
+	Get-Service CryptSvc | Set-Service -StartupType automatic
+	if($?){   write-Host -ForegroundColor Green "CryptSvc service enabled"  }else{   write-Host -ForegroundColor red "CryptSvc service not enabled" } 
 
 	RegChange "SYSTEM\CurrentControlSet\Services\wuauserv" "Start" "4" "Windows Updates service enabled" "DWord"
 	Get-Service wuauserv | Set-Service -StartupType automatic
+	
+	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
 	Get-Service BITS | Set-Service -StartupType automatic
 	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "NoAutoUpdate" "0" "Windows Update enabled" "DWord"
@@ -2292,14 +2362,6 @@ If (!(Test-Path "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore"
 }
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore" -Name "HarvestContacts" -Type DWord -Value 0
 
-Function DisableUpdateMSRT {
-	Write-Host "Disabling Malicious Software Removal Tool offering..."
-	If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\MRT")) {
-		New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\MRT" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\MRT" -Name "DontOfferThroughWUAU" -Type DWord -Value 1
-}
-DisableUpdateMSRT
 
 PowerCfg -SetActive $powerPlan
 write-Host -ForegroundColor Green "PowerScheme Sucessfully Applied"
