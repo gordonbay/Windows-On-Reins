@@ -5,16 +5,21 @@
 ## Warning
 I do not take responsibility for what may happen to your system. This is at your own risk.
 
+## Before running WOR (stand by)
+![](https://raw.githubusercontent.com/gordonbay/Windows-On-Reins/master/.github/BEFORE.PNG)
+
+## After (stand by)
+![](https://raw.githubusercontent.com/gordonbay/Windows-On-Reins/master/.github/AFTER.PNG)
 
 ## What it does - Security
 
-- Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning;
-- Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya;
-- Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930);
-- Disable Wi-Fi Sense, it connects you to open hotspots that are "greenlighted" through crowdsourcing. Openning doors to Lure10 MITM attack and phishing (Stigviewer V-220808);
-- Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823);
-- Disable Autoplay, "allowing autoplay to execute may introduce malicious code to a system" (Stigviewer V-63673);
-- Disable WPAD (Web Proxy Auto-Discovery Protocol), it exposes the system to MITM attack;
+- Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning
+- Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya
+- Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930)
+- Disable Wi-Fi Sense, it connects you to open hotspots that are "greenlighted" through crowdsourcing. Openning doors to Lure10 MITM attack and phishing (Stigviewer V-220808)
+- Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823)
+- Disable Autoplay, "allowing autoplay to execute may introduce malicious code to a system" (Stigviewer V-63673)
+- Disable WPAD (Web Proxy Auto-Discovery Protocol), it exposes the system to MITM attack
 
 ## What it does - Performance
 
@@ -68,6 +73,8 @@ I do not take responsibility for what may happen to your system. This is at your
 - Put "This PC" shortcut on desktop;
 - Disable Game Bar tips;
 - Disable Vmware Host Server, service uses port 80;
+- Firefox: disable recomendations and offers;
+- Firefox: autoplay audio and video;
 
 ## Fingerprinting Prevention and privacy
 
@@ -87,7 +94,7 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable location tracking;
 - Disable recycle bin;
 - Enable DNS-over-HTTPS (DoH), both on Windows and Firefox, it encrypts the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers;
-- Enable Encrypted Client Hello (ECH) on Firefox, to prevent TLS from leaking any data by encrypting all messages;
+- Firefox: Enable Encrypted Client Hello (ECH), to prevent TLS from leaking any data by encrypting all messages;
 
 ## Gaming
 
@@ -116,8 +123,20 @@ Notes
 - To prevent Windows to intall bloatware, this script must run before connecting to the internet for the first time;
 - Disabling Windows defender is unreversible and needs the system to be in safe mode;
 - Some NICs may show the preferred DNS encryption as "Unencrypted Only" after running the the fingerprinting prevention. Thats not true, the DNS is being handled over HTTPS (DoH) and there will be no traffic on port 53. Test using::
-<code>
-pktmon filter remove
-pktmon filter add -p 53
-start --etw -m real-time
-</code>
+
+<code>pktmon filter remove </code>
+<code>pktmon filter add -p 53</code>
+<code>start --etw -m real-time</code>
+
+Recommended Filterlists
+============
+
+- https://raw.githubusercontent.com/DandelionSprout/adfilt/master/TwitchEvenMorePureViewingExperience.txt
+- https://raw.githubusercontent.com/DandelionSprout/adfilt/master/RedditTrashRemovalService.txt
+- https://raw.githubusercontent.com/taylr/linkedinsanity/master/linkedinsanity.txt
+
+
+Recommended Hosts filters
+============
+
+- https://github.com/MrRawes/firefox-hosts
