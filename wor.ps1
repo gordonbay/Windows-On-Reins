@@ -17,6 +17,11 @@ $troubleshootInstalls = 0
 # Note: Known to fix these installations: windows language pack, Autodesk AutoCad and Appxs.
 # Note: Top priority configuration, overrides other settings.
 
+$beWifiSafe = 0
+# 0 = May disable services required to use Wifi. *Recomended.
+# 1 = Keep Wifi working
+# Note: Top priority configuration, overrides other settings.
+
 $beXboxSafe = 0
 # 0 = Disable Xbox and Windows Live Games related stuff like Game Bar. *Recomended.
 # 1 = Enable it.
@@ -397,12 +402,23 @@ Function regDelete($path, $desc) {
 	Write-Output ($desc)
 	
     If (Test-Path ("HKLM:\" + $path)) {
-        Remove-Item ("HKLM:\" + $path) -Recurse -Force
+        Remove-ItemProperty -Path ("HKLM:\" + $path) -Recurse -Force
     }
 	If (Test-Path ("HKCU:\" + $path)) {
-        Remove-Item ("HKCU:\" + $path) -Recurse -Force
+        Remove-ItemProperty -Path ("HKCU:\" + $path) -Recurse -Force
     }
 }	
+
+Function regDeleteKey($path, $key, $desc) {
+	Write-Output ($desc)
+	
+    If (Test-Path ("HKLM:\" + $path)) {
+		Remove-ItemProperty -Path ("HKLM:\" + $path) -Name $key
+    }
+	If (Test-Path ("HKCU:\" + $path)) {
+		Remove-ItemProperty -Path ("HKCU:\" + $path) -Name $key
+    }
+}
 
 Function deleteFile($path, $desc) {
 	Write-Output ($desc) 
@@ -605,243 +621,6 @@ Function DisableUAC {
 	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableMeteredNetworkFileSync" /t REG_DWORD /d 1 /f > nul
 	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableLibrariesDefaultSaveToOneDrive" /t REG_DWORD /d 1 /f > nul
 	reg add "HKCU\SOFTWARE\Microsoft\OneDrive" /v "DisablePersonalSync" /t REG_DWORD /d 1 /f > nul
-}
-
-Function ProtectPrivacy {
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "0" "Disabling Windows Feedback Experience program / Advertising ID"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "0" "Stopping Cortana from being used as part of your Windows Search Function" 
-	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "0" "Disabling Windows Feedback Experience from sending anonymous data"         
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "1" "Adding Registry key to prevent bloatware apps from returning"	
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "0" "Disabling Reality Portal"	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "1" "Disabling live tiles"  
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "0" "Disabling Location Tracking"
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "0" "Disabling Location Tracking"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "0" "Disabling People icon on Taskbar"
-	RegChange "Software\Policies\Microsoft\Windows\Explorer" "HidePeopleBar" "1" "Disabling People Bar"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "0" "Disabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "0" "Disabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "0" "Disabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "1" "Disabling Tailored Experiences"	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "0" "Disabling automatic installation of network devices"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "1" "Disabling Remote Desktop"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "1" "Disabling Remote Desktop"	
-	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server" "fDenyTSConnections" "1" "Disabling Remote Desktop"
-	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "1" "Disabling Remote Desktop"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" "1" "Disabling handwriting personalization data sharing..." "DWord"	
-	RegChange "SOFTWARE\Policies\Microsoft\SQMClient\Windows" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\AppV\CEIP" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "DisableOptinExperience" "1" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AppModel" "Start" "0" "Disabling AutoLogger\AppModel..." "DWord"
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "0" "Disabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "0" "Disabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DataMarket" "Start" "0" "Disabling AutoLogger\DataMarket..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "0" "Disabling AutoLogger\DefenderApiLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "0" "Disabling AutoLogger\DefenderAuditLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DiagLog" "Start" "0" "Disabling AutoLogger\DiagLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\LwtNetLog" "Start" "0" "Disabling AutoLogger\LwtNetLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "0" "Disabling AutoLogger\Mellanox-Kernel..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "0" "Disabling AutoLogger\NBSMBLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NtfsLog" "Start" "0" "Disabling AutoLogger\NtfsLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\PEAuthLog" "Start" "0" "Disabling AutoLogger\PEAuthLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\RdrLog" "Start" "0" "Disabling AutoLogger\RdrLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\ReadyBoot" "Start" "0" "Disabling AutoLogger\ReadyBoot..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatform" "Start" "0" "Disabling AutoLogger\SetupPlatform..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "0" "Disabling AutoLogger\SetupPlatformTel..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SpoolerLogger" "Start" "0" "Disabling AutoLogger\SpoolerLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SQMLogger" "Start" "0" "Disabling AutoLogger\SQMLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "0" "Disabling AutoLogger\TCPIPLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TileStore" "Start" "0" "Disabling AutoLogger\TileStore..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\UBPM" "Start" "0" "Disabling AutoLogger\UBPM..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WdiContextLog" "Start" "0" "Disabling AutoLogger\WdiContextLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "0" "Disabling AutoLogger\WFP-IPsec Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "0" "Disabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AppModel" "Start" "0" "Disabling AutoLogger\AppModel..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "0" "Disabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "0" "Disabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DataMarket" "Start" "0" "Disabling AutoLogger\DataMarket..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "0" "Disabling AutoLogger\DefenderApiLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "0" "Disabling AutoLogger\DefenderAuditLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "0" "Disabling AutoLogger\DiagLog..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\LwtNetLog" "Start" "0" "Disabling AutoLogger\LwtNetLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "0" "Disabling AutoLogger\Mellanox-Kernel..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "0" "Disabling AutoLogger\NBSMBLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NtfsLog" "Start" "0" "Disabling AutoLogger\NtfsLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\PEAuthLog" "Start" "0" "Disabling AutoLogger\PEAuthLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\RdrLog" "Start" "0" "Disabling AutoLogger\RdrLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\ReadyBoot" "Start" "0" "Disabling AutoLogger\ReadyBoot..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatform" "Start" "0" "Disabling AutoLogger\SetupPlatform..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "0" "Disabling AutoLogger\SetupPlatformTel..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SpoolerLogger" "Start" "0" "Disabling AutoLogger\SpoolerLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SQMLogger" "Start" "0" "Disabling AutoLogger\SQMLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "0" "Disabling AutoLogger\TCPIPLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TileStore" "Start" "0" "Disabling AutoLogger\TileStore..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\UBPM" "Start" "0" "Disabling AutoLogger\UBPM..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WdiContextLog" "Start" "0" "Disabling AutoLogger\WdiContextLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "0" "Disabling AutoLogger\WFP-IPsec Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "0" "Disabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Disabling Windows Insider Program..." "DWord"	
-	
-	if ($beTaskScheduleSafe -eq 1) {
-		Write-Host "TimeBrokerSvc NOT disabled because of the beTaskScheduleSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-		RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "3" "Enabling Time Brooker..." "DWord"
-	} else {	
-		RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "4" "Disabling Time Brooker due to huge network usage and for spying users..." "DWord"
-	}
-	
-	Set-NetConnectionProfile -NetworkCategory Public
-   
-	Write-Output "Disabling Background application access..."
-	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
-		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 1
-		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 1
-	}	
-	
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Disabling scheduled tasks, Consolidator, UsbCeip, DmClient..."
-		Get-ScheduledTask  Consolidator | Disable-ScheduledTask
-		Get-ScheduledTask  UsbCeip | Disable-ScheduledTask
-		Get-ScheduledTask  DmClient | Disable-ScheduledTask
-		Get-ScheduledTask  DmClientOnScenarioDownload | Disable-ScheduledTask
-	}
-	
-	write-Host "Diagnostics Tracking Service is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
-    Write-Output "Stopping and disabling DiagTrack"
-	Get-Service DiagTrack | Stop-Service -PassThru | Set-Service -StartupType disabled
-    
-	write-Host "dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
-	Write-Output "Stopping and disabling dmwappushservice"
-	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
-	$path = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
-	deletePath $path "Clearing ETL Autologs..."
-	hardenPath $path "Hardening ETL Autologs folder..."
-	
-	write-Host "AppHostRegistrationVerifier tries to connect to 13.107.246.19 port 443 when the pc is idle for no known reason." -ForegroundColor Green -BackgroundColor Black
-	deleteFile "$env:WINDIR\system32\AppHostRegistrationVerifier.exe" "Deleting AppHostRegistrationVerifier.exe..."		
-	deleteFile "$env:WINDIR\system32\wbem\wmiprvse.exe" "Deleting WMI Provider Host..."	
-}
-
-Function unProtectPrivacy {
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "1" "Enabling Windows Feedback Experience program / Advertising ID"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "1" "Enabling Cortana from being used as part of your Windows Search Function" 
-	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "1" "Enabling Windows Feedback Experience from sending anonymous data"      
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "0" "Adding Registry key to allow bloatware apps from returning"	
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "1" "Enabling Reality Portal" 
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "0" "Enabling live tiles"  
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "1" "Enabling Location Tracking"
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "1" "Enabling Location Tracking"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "1" "Enabling People icon on Taskbar"
-	RegChange "Software\Policies\Microsoft\Windows\Explorer" "HidePeopleBar" "0" "Enabling People Bar"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "1" "Enabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "1" "Enabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "1" "Enabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "0" "Enabling Tailored Experiences"	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "1" "Enabling automatic installation of network devices"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" "0" "Enabling handwriting personalization data sharing..." "DWord"	
-	RegChange "SOFTWARE\Policies\Microsoft\SQMClient\Windows" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\AppV\CEIP" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "DisableOptinExperience" "0" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AppModel" "Start" "1" "Enabling AutoLogger\AppModel..." "DWord"
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "1" "Enabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "1" "Enabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DataMarket" "Start" "1" "Enabling AutoLogger\DataMarket..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "1" "Enabling AutoLogger\DefenderApiLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "1" "Enabling AutoLogger\DefenderAuditLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DiagLog" "Start" "1" "Enabling AutoLogger\DiagLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\LwtNetLog" "Start" "1" "Enabling AutoLogger\LwtNetLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "1" "Enabling AutoLogger\Mellanox-Kernel..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "1" "Enabling AutoLogger\NBSMBLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NtfsLog" "Start" "1" "Enabling AutoLogger\NtfsLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\PEAuthLog" "Start" "1" "Enabling AutoLogger\PEAuthLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\RdrLog" "Start" "1" "Enabling AutoLogger\RdrLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\ReadyBoot" "Start" "1" "Enabling AutoLogger\ReadyBoot..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatform" "Start" "1" "Enabling AutoLogger\SetupPlatform..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "1" "Enabling AutoLogger\SetupPlatformTel..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SpoolerLogger" "Start" "1" "Enabling AutoLogger\SpoolerLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SQMLogger" "Start" "1" "Enabling AutoLogger\SQMLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "1" "Enabling AutoLogger\TCPIPLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TileStore" "Start" "1" "Enabling AutoLogger\TileStore..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\UBPM" "Start" "1" "Enabling AutoLogger\UBPM..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WdiContextLog" "Start" "1" "Enabling AutoLogger\WdiContextLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "1" "Enabling AutoLogger\WFP-IPsec Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "1" "Enabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AppModel" "Start" "1" "Enabling AutoLogger\AppModel..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "1" "Enabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "1" "Enabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DataMarket" "Start" "1" "Enabling AutoLogger\DataMarket..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "1" "Enabling AutoLogger\DefenderApiLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "1" "Enabling AutoLogger\DefenderAuditLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "1" "Enabling AutoLogger\DiagLog..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\LwtNetLog" "Start" "1" "Enabling AutoLogger\LwtNetLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "1" "Enabling AutoLogger\Mellanox-Kernel..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "1" "Enabling AutoLogger\NBSMBLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NtfsLog" "Start" "1" "Enabling AutoLogger\NtfsLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\PEAuthLog" "Start" "1" "Enabling AutoLogger\PEAuthLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\RdrLog" "Start" "1" "Enabling AutoLogger\RdrLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\ReadyBoot" "Start" "1" "Enabling AutoLogger\ReadyBoot..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatform" "Start" "1" "Enabling AutoLogger\SetupPlatform..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "1" "Enabling AutoLogger\SetupPlatformTel..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SpoolerLogger" "Start" "1" "Enabling AutoLogger\SpoolerLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SQMLogger" "Start" "1" "Enabling AutoLogger\SQMLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "1" "Enabling AutoLogger\TCPIPLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TileStore" "Start" "1" "Enabling AutoLogger\TileStore..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\UBPM" "Start" "1" "Enabling AutoLogger\UBPM..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WdiContextLog" "Start" "1" "Enabling AutoLogger\WdiContextLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "1" "Enabling AutoLogger\WFP-IPsec Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "1" "Enabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Enabling Windows Insider Program..." "DWord"	
-	RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "3" "Enabling Time Brooker..." "DWord"
-
-	Write-Output "Setting network to private..."
-	Set-NetConnectionProfile -NetworkCategory Private
-   
-   Write-Output "Enabling Background application access..."
-	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
-		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 0
-		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 0
-	}
-	
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Enabling scheduled tasks, Consolidator, UsbCeip, DmClient..."  
-		Get-ScheduledTask  Consolidator | Enable-ScheduledTask
-		Get-ScheduledTask  UsbCeip | Enable-ScheduledTask
-		Get-ScheduledTask  DmClient | Enable-ScheduledTask
-		Get-ScheduledTask  DmClientOnScenarioDownload | Enable-ScheduledTask
-	}
-	
-    write-Host "Diagnostics Tracking Service is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
-    Write-Output "Enabling DiagTrack..."
-	Get-Service DiagTrack | Stop-Service -PassThru | Set-Service -StartupType automatic
-    
-	write-Host "dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
-	Write-Output "Enabling dmwappushservice"
-	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType automatic  
 }
 
 Function EnablePeek {	
@@ -1127,6 +906,11 @@ if ($beXboxSafe -eq 0) {
 	DisableXboxFeatures
 }
 
+if ($beWifiSafe -eq 1) {
+	RegChange "SYSTEM\CurrentControlSet\Services\RmSvc" "Start" "2" "Enabling RmSvc (Radio Management Service) service" "DWord"
+	Get-Service RmSvc | Set-Service -StartupType automatic		
+}
+
 if ($beXboxSafe -eq 1) {
 	$safeXboxBloatware = @(	
 		"Microsoft.XboxGamingOverlay"
@@ -1325,7 +1109,6 @@ if ($disableBloatware -eq 1) {
 
 if ($unpinStartMenu -eq 1) {			
 	Write-Host "Unpinning all tiles from the start menu"
-	regDelete "Software\Microsoft\Windows\CurrentVersion\CloudStore" "Removing CloudStore from registry if it exists, will clear all start menu items." 
 	regDelete "Software\Microsoft\Windows\CurrentVersion\CloudStore\*" "Clearing all start menu items..." 
 	
     (New-Object -Com Shell.Application).
@@ -1347,11 +1130,41 @@ if ($disablelastaccess -eq 1) {
 }
 
 if ($doPerformanceStuff -eq 0) {
+	RegChange "SYSTEM\CurrentControlSet\Services\AppMgmt" "Start" "2" "Enabling AppMgmt (Application Management) service" "DWord"
+	Get-Service AppMgmt | Set-Service -StartupType automatic
 	
+	RegChange "SYSTEM\CurrentControlSet\Services\Spooler" "Start" "2" "Enabling print spooler service" "DWord"
+	Get-Service Spooler | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\StiSvc" "Start" "2" "Enabling StiSvc Windows Image Acquisition (WIA) service" "DWord"
+	Get-Service StiSvc | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\TrkWks" "Start" "2" "Enabling TrkWks (Distributed Link Tracking Client) service" "DWord"
+	Get-Service TrkWks | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\BthAvctpSvc" "Start" "2" "Enabling AVCTP (Audio Video Control Transport Protocol) service" "DWord"
+	Get-Service BthAvctpSvc | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\DispBrokerDesktopSvc" "Start" "2" "Enabling DispBrokerDesktopSvc (Display Policy Service) service" "DWord"
+	Get-Service DispBrokerDesktopSvc | Set-Service -StartupType automatic
+	
+	# DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation
+	RegChange "SYSTEM\CurrentControlSet\Services\DoSvc" "Start" "2" "Enabling DoSvc (Delivery Optimization) service" "DWord"
+	Get-Service DoSvc | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\OneSyncSvc" "Start" "2" "Enabling OneSyncSvc service" "DWord"
+	Get-Service OneSyncSvc | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\WalletService" "Start" "2" "Enabling WalletService service" "DWord"
+	Get-Service WalletService | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\diagnosticshub.standardcollector.service" "Start" "2" "Enabling diagnosticshub.standardcollector.service service" "DWord"
+	Get-Service diagnosticshub.standardcollector.service | Set-Service -StartupType automatic
+
 	#In very rare cases, Hardware Accelerated GPU Scheduling set to ON (2) may improve latency
 	RegChange "SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" "1" "Disabling Hardware Accelerated GPU Scheduling" "DWord"
-	RegChange "SYSTEM\CurrentControlSet\services\WdiServiceHost" "Start" "3" "Enabling Diagnostic Service Host" "DWord"
-	RegChange "SYSTEM\CurrentControlSet\services\WdiSystemHost" "Start" "3" "Enabling Diagnostic System Host Service" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\services\WdiServiceHost" "Start" "2" "Enabling Diagnostic Service Host" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\services\WdiSystemHost" "Start" "2" "Enabling Diagnostic System Host Service" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\DPS" "Start" "2" "Enabling Diagnostic Policy Service" "DWord"
 	
 	Write-Output "Enabling EpsonCustomerResearchParticipation..."
@@ -1384,11 +1197,7 @@ if ($doPerformanceStuff -eq 0) {
 	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
 	write-Host "Enabling BITS (Background Intelligent Transfer Service)" -ForegroundColor Green -BackgroundColor Black 
 	Get-Service BITS | Set-Service -StartupType automatic
-	
-	write-Host "DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation." -ForegroundColor Green -BackgroundColor Black
-	Write-Host "Enabling DoSvc (Delivery Optimization)..."
-	Get-Service DoSvc | Set-Service -StartupType automatic
-		
+
 	Write-Host "Disabling netsvcs. Its known for huge bandwidth usage..."
 	Get-Service netsvcs | Stop-Service -PassThru | Set-Service -StartupType disabled	
 	
@@ -1404,13 +1213,42 @@ if ($doPerformanceStuff -eq 0) {
 		
 	Write-Host "Enabling LanmanServer Service..."
 	Get-Service Server | Set-Service -StartupType automatic
-	
 }
 
-if ($doPerformanceStuff -eq 1) {	
+if ($doPerformanceStuff -eq 1) {
+	RegChange "SYSTEM\CurrentControlSet\Services\AppMgmt" "Start" "4" "Disabling AppMgmt (Application Management) service" "DWord"
+	Get-Service AppMgmt | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\Spooler" "Start" "4" "Disabling print spooler service" "DWord"
+	Get-Service Spooler | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\StiSvc" "Start" "4" "Disabling StiSvc Windows Image Acquisition (WIA) service" "DWord"
+	Get-Service StiSvc | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\TrkWks" "Start" "4" "Disabling TrkWks (Distributed Link Tracking Client) service" "DWord"
+	Get-Service TrkWks | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\BthAvctpSvc" "Start" "4" "Disabling AVCTP (Audio Video Control Transport Protocol) service" "DWord"
+	Get-Service BthAvctpSvc | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\DispBrokerDesktopSvc" "Start" "4" "Disabling DispBrokerDesktopSvc (Display Policy Service) service" "DWord"
+	Get-Service DispBrokerDesktopSvc | Set-Service -StartupType disabled
+	
+	# DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation
+	RegChange "SYSTEM\CurrentControlSet\Services\DoSvc" "Start" "4" "Disabling DoSvc (Delivery Optimization) service" "DWord"
+	Get-Service DoSvc | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\OneSyncSvc" "Start" "4" "Disabling OneSyncSvc service" "DWord"
+	Get-Service OneSyncSvc | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\WalletService" "Start" "4" "Disabling WalletService service" "DWord"
+	Get-Service WalletService | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\diagnosticshub.standardcollector.service" "Start" "4" "Disabling diagnosticshub.standardcollector.service service" "DWord"
+	Get-Service diagnosticshub.standardcollector.service | Set-Service -StartupType disabled
 	
 	#In very rare cases, Hardware Accelerated GPU Scheduling set to ON (2) may improve latency
-	RegChange "SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" "2" "Enabling Hardware Accelerated GPU Scheduling" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" "2" "Disabling Hardware Accelerated GPU Scheduling" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\WdiServiceHost" "Start" "4" "Disabling Diagnostic Service Host" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\WdiSystemHost" "Start" "4" "Disabling Diagnostic System Host Service" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\DPS" "Start" "4" "Disabling Diagnostic Policy Service" "DWord"
@@ -1433,10 +1271,6 @@ if ($doPerformanceStuff -eq 1) {
 		Write-Host "Disabling BITS Background Intelligent Transfer Service"
 		Get-Service BITS | Stop-Service -PassThru | Set-Service -StartupType disabled		
 	}
-	
-	write-Host "DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation." -ForegroundColor Green -BackgroundColor Black
-	Write-Host "Disabling DoSvc (Delivery Optimization)..."
-	Get-Service DoSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
 	Write-Host "Disabling netsvcs. Its known for huge bandwidth usage..."
 	Get-Service netsvcs | Stop-Service -PassThru | Set-Service -StartupType disabled
@@ -1471,7 +1305,15 @@ if ($doPerformanceStuff -eq 1) {
 		Write-Host "Disabling LanmanServer Service..."
 		Get-Service Server | Stop-Service -PassThru | Set-Service -StartupType disabled
 	}	
+		
+	if ($beWifiSafe -eq 0) {
+		RegChange "SYSTEM\CurrentControlSet\Services\RmSvc" "Start" "4" "Disabling RmSvc (Radio Management Service) service" "DWord"
+		Get-Service RmSvc | Set-Service -StartupType disabled		
+	}
 	
+	if ($beWifiSafe -eq 1) {
+		Write-Host "RmSvc (Radio Management Service) service  NOT disabled because of the beWifiSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+	}
 }
 
 if ($doQualityOfLifeStuff -eq 0) {
@@ -1569,7 +1411,115 @@ if ($doPrivacyStuff -eq 0) {
 	EnablePeek
 	EnablePrefetcher	
 	EnableMemoryDump
-	unProtectPrivacy
+	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "1" "Enabling Windows Feedback Experience program / Advertising ID"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "1" "Enabling Cortana from being used as part of your Windows Search Function" 
+	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "1" "Enabling Windows Feedback Experience from sending anonymous data"      
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "0" "Adding Registry key to allow bloatware apps from returning"	
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "1" "Enabling Reality Portal" 
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "0" "Enabling live tiles"  
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "1" "Enabling Location Tracking"
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "1" "Enabling Location Tracking"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "1" "Enabling People icon on Taskbar"
+	RegChange "Software\Policies\Microsoft\Windows\Explorer" "HidePeopleBar" "0" "Enabling People Bar"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "1" "Enabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "1" "Enabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "1" "Enabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "0" "Enabling Tailored Experiences"	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "1" "Enabling automatic installation of network devices"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" "0" "Enabling handwriting personalization data sharing..." "DWord"	
+	RegChange "SOFTWARE\Policies\Microsoft\SQMClient\Windows" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\AppV\CEIP" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "DisableOptinExperience" "0" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AppModel" "Start" "1" "Enabling AutoLogger\AppModel..." "DWord"
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "1" "Enabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "1" "Enabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DataMarket" "Start" "1" "Enabling AutoLogger\DataMarket..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "1" "Enabling AutoLogger\DefenderApiLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "1" "Enabling AutoLogger\DefenderAuditLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DiagLog" "Start" "1" "Enabling AutoLogger\DiagLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\LwtNetLog" "Start" "1" "Enabling AutoLogger\LwtNetLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "1" "Enabling AutoLogger\Mellanox-Kernel..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "1" "Enabling AutoLogger\NBSMBLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NtfsLog" "Start" "1" "Enabling AutoLogger\NtfsLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\PEAuthLog" "Start" "1" "Enabling AutoLogger\PEAuthLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\RdrLog" "Start" "1" "Enabling AutoLogger\RdrLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\ReadyBoot" "Start" "1" "Enabling AutoLogger\ReadyBoot..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatform" "Start" "1" "Enabling AutoLogger\SetupPlatform..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "1" "Enabling AutoLogger\SetupPlatformTel..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SpoolerLogger" "Start" "1" "Enabling AutoLogger\SpoolerLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SQMLogger" "Start" "1" "Enabling AutoLogger\SQMLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "1" "Enabling AutoLogger\TCPIPLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TileStore" "Start" "1" "Enabling AutoLogger\TileStore..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\UBPM" "Start" "1" "Enabling AutoLogger\UBPM..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WdiContextLog" "Start" "1" "Enabling AutoLogger\WdiContextLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "1" "Enabling AutoLogger\WFP-IPsec Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "1" "Enabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AppModel" "Start" "1" "Enabling AutoLogger\AppModel..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "1" "Enabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "1" "Enabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DataMarket" "Start" "1" "Enabling AutoLogger\DataMarket..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "1" "Enabling AutoLogger\DefenderApiLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "1" "Enabling AutoLogger\DefenderAuditLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "1" "Enabling AutoLogger\DiagLog..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\LwtNetLog" "Start" "1" "Enabling AutoLogger\LwtNetLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "1" "Enabling AutoLogger\Mellanox-Kernel..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "1" "Enabling AutoLogger\NBSMBLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NtfsLog" "Start" "1" "Enabling AutoLogger\NtfsLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\PEAuthLog" "Start" "1" "Enabling AutoLogger\PEAuthLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\RdrLog" "Start" "1" "Enabling AutoLogger\RdrLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\ReadyBoot" "Start" "1" "Enabling AutoLogger\ReadyBoot..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatform" "Start" "1" "Enabling AutoLogger\SetupPlatform..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "1" "Enabling AutoLogger\SetupPlatformTel..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SpoolerLogger" "Start" "1" "Enabling AutoLogger\SpoolerLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SQMLogger" "Start" "1" "Enabling AutoLogger\SQMLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "1" "Enabling AutoLogger\TCPIPLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TileStore" "Start" "1" "Enabling AutoLogger\TileStore..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\UBPM" "Start" "1" "Enabling AutoLogger\UBPM..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WdiContextLog" "Start" "1" "Enabling AutoLogger\WdiContextLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "1" "Enabling AutoLogger\WFP-IPsec Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "1" "Enabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Enabling Windows Insider Program..." "DWord"	
+	RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "2" "Enabling Time Brooker..." "DWord"
+
+	Write-Output "Setting network to private..."
+	Set-NetConnectionProfile -NetworkCategory Private
+   
+   Write-Output "Enabling Background application access..."
+	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
+		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 0
+		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 0
+	}
+	
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Enabling scheduled tasks, Consolidator, UsbCeip, DmClient..."  
+		Get-ScheduledTask  Consolidator | Enable-ScheduledTask
+		Get-ScheduledTask  UsbCeip | Enable-ScheduledTask
+		Get-ScheduledTask  DmClient | Enable-ScheduledTask
+		Get-ScheduledTask  DmClientOnScenarioDownload | Enable-ScheduledTask
+	}
+	
+    # Diagnostics Tracking Service is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations
+    RegChange "SYSTEM\CurrentControlSet\Services\DiagTrack" "Start" "2" "Enabling DiagTrack (Connected User Experiences and Telemetry) service" "DWord"
+	Get-Service DiagTrack | Set-Service -StartupType automatic
+    
+	write-Host "dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
+	Write-Output "Enabling dmwappushservice"
+	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType automatic
 	
 	write-Host "Windows Insider Service contact web servers by its own" -ForegroundColor Green -BackgroundColor Black 
 	Write-Host "Enabling wisvc (Windows Insider Service)..."
@@ -1588,7 +1538,130 @@ if ($doPrivacyStuff -eq 1) {
 	DisablePeek
 	DisablePrefetcher	
 	DisableMemoryDump
-	ProtectPrivacy
+	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "0" "Disabling Windows Feedback Experience program / Advertising ID"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "0" "Stopping Cortana from being used as part of your Windows Search Function" 
+	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "0" "Disabling Windows Feedback Experience from sending anonymous data"         
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "1" "Adding Registry key to prevent bloatware apps from returning"	
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "0" "Disabling Reality Portal"	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "1" "Disabling live tiles"  
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "0" "Disabling Location Tracking"
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "0" "Disabling Location Tracking"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "0" "Disabling People icon on Taskbar"
+	RegChange "Software\Policies\Microsoft\Windows\Explorer" "HidePeopleBar" "1" "Disabling People Bar"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "0" "Disabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "0" "Disabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "0" "Disabling Activity History Feed"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "1" "Disabling Tailored Experiences"	
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "0" "Disabling automatic installation of network devices"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "1" "Disabling Remote Desktop"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "1" "Disabling Remote Desktop"	
+	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server" "fDenyTSConnections" "1" "Disabling Remote Desktop"
+	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "1" "Disabling Remote Desktop"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" "1" "Disabling handwriting personalization data sharing..." "DWord"	
+	RegChange "SOFTWARE\Policies\Microsoft\SQMClient\Windows" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\AppV\CEIP" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "DisableOptinExperience" "1" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
+	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AppModel" "Start" "0" "Disabling AutoLogger\AppModel..." "DWord"
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "0" "Disabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "0" "Disabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DataMarket" "Start" "0" "Disabling AutoLogger\DataMarket..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "0" "Disabling AutoLogger\DefenderApiLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "0" "Disabling AutoLogger\DefenderAuditLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DiagLog" "Start" "0" "Disabling AutoLogger\DiagLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\LwtNetLog" "Start" "0" "Disabling AutoLogger\LwtNetLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "0" "Disabling AutoLogger\Mellanox-Kernel..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "0" "Disabling AutoLogger\NBSMBLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NtfsLog" "Start" "0" "Disabling AutoLogger\NtfsLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\PEAuthLog" "Start" "0" "Disabling AutoLogger\PEAuthLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\RdrLog" "Start" "0" "Disabling AutoLogger\RdrLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\ReadyBoot" "Start" "0" "Disabling AutoLogger\ReadyBoot..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatform" "Start" "0" "Disabling AutoLogger\SetupPlatform..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "0" "Disabling AutoLogger\SetupPlatformTel..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SpoolerLogger" "Start" "0" "Disabling AutoLogger\SpoolerLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SQMLogger" "Start" "0" "Disabling AutoLogger\SQMLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "0" "Disabling AutoLogger\TCPIPLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TileStore" "Start" "0" "Disabling AutoLogger\TileStore..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\UBPM" "Start" "0" "Disabling AutoLogger\UBPM..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WdiContextLog" "Start" "0" "Disabling AutoLogger\WdiContextLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "0" "Disabling AutoLogger\WFP-IPsec Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "0" "Disabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"
+	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AppModel" "Start" "0" "Disabling AutoLogger\AppModel..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "0" "Disabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "0" "Disabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DataMarket" "Start" "0" "Disabling AutoLogger\DataMarket..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "0" "Disabling AutoLogger\DefenderApiLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "0" "Disabling AutoLogger\DefenderAuditLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "0" "Disabling AutoLogger\DiagLog..." "DWord"
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\LwtNetLog" "Start" "0" "Disabling AutoLogger\LwtNetLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "0" "Disabling AutoLogger\Mellanox-Kernel..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "0" "Disabling AutoLogger\NBSMBLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NtfsLog" "Start" "0" "Disabling AutoLogger\NtfsLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\PEAuthLog" "Start" "0" "Disabling AutoLogger\PEAuthLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\RdrLog" "Start" "0" "Disabling AutoLogger\RdrLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\ReadyBoot" "Start" "0" "Disabling AutoLogger\ReadyBoot..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatform" "Start" "0" "Disabling AutoLogger\SetupPlatform..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "0" "Disabling AutoLogger\SetupPlatformTel..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SpoolerLogger" "Start" "0" "Disabling AutoLogger\SpoolerLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SQMLogger" "Start" "0" "Disabling AutoLogger\SQMLogger..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "0" "Disabling AutoLogger\TCPIPLOGGER..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TileStore" "Start" "0" "Disabling AutoLogger\TileStore..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\UBPM" "Start" "0" "Disabling AutoLogger\UBPM..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WdiContextLog" "Start" "0" "Disabling AutoLogger\WdiContextLog..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "0" "Disabling AutoLogger\WFP-IPsec Trace..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "0" "Disabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
+	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Disabling Windows Insider Program..." "DWord"	
+	
+	if ($beTaskScheduleSafe -eq 1) {
+		Write-Host "TimeBrokerSvc NOT disabled because of the beTaskScheduleSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+		RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "2" "Enabling Time Brooker..." "DWord"
+	} else {	
+		RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "4" "Disabling Time Brooker due to huge network usage and for spying users..." "DWord"
+	}
+	
+	Set-NetConnectionProfile -NetworkCategory Public
+   
+	Write-Output "Disabling Background application access..."
+	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
+		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 1
+		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 1
+	}	
+	
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Disabling scheduled tasks, Consolidator, UsbCeip, DmClient..."
+		Get-ScheduledTask  Consolidator | Disable-ScheduledTask
+		Get-ScheduledTask  UsbCeip | Disable-ScheduledTask
+		Get-ScheduledTask  DmClient | Disable-ScheduledTask
+		Get-ScheduledTask  DmClientOnScenarioDownload | Disable-ScheduledTask
+	}
+	
+	# Diagnostics Tracking Service is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations
+    RegChange "SYSTEM\CurrentControlSet\Services\DiagTrack" "Start" "4" "Disabling DiagTrack (Connected User Experiences and Telemetry) service" "DWord"
+	Get-Service DiagTrack | Set-Service -StartupType disabled
+    
+	write-Host "dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
+	Write-Output "Stopping and disabling dmwappushservice"
+	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	$path = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
+	deletePath $path "Clearing ETL Autologs..."
+	hardenPath $path "Hardening ETL Autologs folder..."
+	
+	write-Host "AppHostRegistrationVerifier tries to connect to 13.107.246.19 port 443 when the pc is idle for no known reason." -ForegroundColor Green -BackgroundColor Black
+	deleteFile "$env:WINDIR\system32\AppHostRegistrationVerifier.exe" "Deleting AppHostRegistrationVerifier.exe..."		
+	deleteFile "$env:WINDIR\system32\wbem\wmiprvse.exe" "Deleting WMI Provider Host..."	
 	
 	write-Host "Windows Insider Service contact web servers by its own" -ForegroundColor Green -BackgroundColor Black 
 	Write-Host "Stopping and disabling wisvc (Windows Insider Service)..."
@@ -1607,10 +1680,10 @@ if ($doPrivacyStuff -eq 1) {
 
 EnableDnsCache
 if ($doSecurityStuff -eq 0) {
-	RegChange "SYSTEM\CurrentControlSet\services\WMPNetworkSvc" "Start" "3" "Enabling Windows Media Player Network Sharing Service" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\services\WMPNetworkSvc" "Start" "2" "Enabling Windows Media Player Network Sharing Service" "DWord"
 	
 	# WPAD exposes the system to MITM attack
-	RegChange "SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" "Start" "3" "Enabling WPAD WinHttpAutoProxySvc Service" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" "Start" "2" "Enabling WPAD WinHttpAutoProxySvc Service" "DWord"
 	
 	EnableDnsCache
 	EnableLLMNR
@@ -1739,34 +1812,26 @@ if ($firefoxSettings -eq 1) {
 	$PrefsFiles = Get-Item -Path ($env:APPDATA+"\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
 
-	$aboutConfigArr = @('*"geo.enabled"*', '*"general.warnOnAboutConfig"*', '*"dom.push.enabled"*', '*"dom.webnotifications.enabled"*', '*"app.update.auto"*', '*"app.update.checkInstallTime"*', '*"app.update.auto.migrated"*', '*"app.update.service.enabled"*',  '*"identity.fxaccounts.enabled"*', '*"privacy.firstparty.isolate"*', '*"privacy.firstparty.isolate.block_post_message"*', '*"privacy.resistFingerprinting"*', '*"browser.cache.offline.enable"*', '*"browser.send_pings"*', '*"browser.sessionstore.max_tabs_undo"*', '*"dom.battery.enabled"*', '*"dom.event.clipboardevents.enabled"*', '*"browser.startup.homepage_override.mstone"*', '*"browser.cache.disk.smart_size"*', '*"browser.cache.disk.capacity"*', '*"dom.event.contextmenu.enabled"*', '*"media.videocontrols.picture-in-picture.video-toggle.enabled"*', '*"skipConfirmLaunchExecutable"*', '*"activity-stream.disableSnippets"*', '*"browser.messaging-system.whatsNewPanel.enabled"*', '*"extensions.htmlaboutaddons.recommendations.enabled"*', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail', '*browser.tabs.warnOnCloseOtherTabs*', 'network.trr.mode', 'network.trr.uri', 'network.trr.bootstrapAddress', 'network.security.esni.enabled', 'network.dns.echconfig.enabled', 'network.dns.use_https_rr_as_altsvc')
+	$aboutConfigArr = @('geo.enabled', 'general.warnOnAboutConfig', 'dom.push.enabled', 'dom.webnotifications.enabled', 'app.update.auto', 'app.update.checkInstallTime', 'app.update.auto.migrated', 'app.update.service.enabled',  'identity.fxaccounts.enabled', 'privacy.firstparty.isolate', 'privacy.firstparty.isolate.block_post_message', 'privacy.resistFingerprinting', 'browser.cache.offline.enable', 'browser.send_pings', 'browser.sessionstore.max_tabs_undo', 'dom.battery.enabled', 'dom.event.clipboardevents.enabled', 'browser.startup.homepage_override.mstone', 'browser.cache.disk.smart_size', 'browser.cache.disk.capacity', 'dom.event.contextmenu.enabled', 'media.videocontrols.picture-in-picture.video-toggle.enabled', 'skipConfirmLaunchExecutable', 'activity-stream.disableSnippets', 'browser.messaging-system.whatsNewPanel.enabled', 'extensions.htmlaboutaddons.recommendations.enabled', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail', 'browser.tabs.warnOnCloseOtherTabs', 'network.trr.mode', 'network.trr.uri', 'network.trr.bootstrapAddress', 'network.security.esni.enabled', 'network.dns.echconfig.enabled', 'network.dns.use_https_rr_as_altsvc', 'browser.topsites.blockedSponsors', 'app.update.BITS.enabled', 'app.update.background.interval', 'media.autoplay.default', 'browser.search.widget.inNavBar', 'browser.contentblocking.category', 'network.cookie.cookieBehavior', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features', 'browser.uiCustomization.state')
 
 	foreach ($file in $PrefsFiles) {
 		$path = Get-ItemProperty -Path $file
 		Write-Output "editing $path"
 		$out = @()
 
-		foreach ($line in Get-Content $file){
-			$matchAboutConfig = 0
+		:Outer foreach ($line in Get-Content $file){
 			foreach ($aboutConfigArr2 in $aboutConfigArr){
-				if ($line -like $aboutConfigArr2) {
-					$matchAboutConfig = 1 
-				}	
+				if ($line -match $aboutConfigArr2) {
+					continue Outer
+				}
 			}
-
-			if ($matchAboutConfig -eq 0) {				
-				$out+= $line  
-			}
+			$out+= $line 
 		}	
 		
 		$out+= 'user_pref("geo.enabled", false);'
 		$out+= 'user_pref("general.warnOnAboutConfig", false);'
 		$out+= 'user_pref("dom.push.enabled", false);'
-		$out+= 'user_pref("dom.webnotifications.enabled", false);'
-		$out+= 'user_pref("app.update.auto", false);'
-		$out+= 'user_pref("app.update.checkInstallTime", false);'
-		$out+= 'user_pref("app.update.auto.migrated", false);'
-		$out+= 'user_pref("app.update.service.enabled", false);'
+		$out+= 'user_pref("dom.webnotifications.enabled", false);'		
 		$out+= 'user_pref("identity.fxaccounts.enabled", false);'
 		$out+= 'user_pref("privacy.firstparty.isolate", true);'
 		$out+= 'user_pref("privacy.firstparty.isolate.block_post_message", true);'
@@ -1788,9 +1853,16 @@ if ($firefoxSettings -eq 1) {
 		$out+= 'user_pref("extensions.pocket.onSaveRecs", false);'
 		$out+= 'user_pref("extensions.pocket.enabled", false);'
 		$out+= 'user_pref("browser.aboutConfig.showWarning", false);'
-		$out+= 'user_pref("browser.search.widget.inNavBar", true);'
 		$out+= 'user_pref("browser.urlbar.richSuggestions.tail", false);'
 		$out+= 'user_pref("browser.tabs.warnOnCloseOtherTabs", false);'
+		
+		# Disable update
+		$out+= 'user_pref("app.update.auto", false);'
+		$out+= 'user_pref("app.update.checkInstallTime", false);'
+		$out+= 'user_pref("app.update.auto.migrated", false);'
+		$out+= 'user_pref("app.update.service.enabled", false);'
+		$out+= 'user_pref("app.update.BITS.enabled", false);'		
+		$out+= 'user_pref("app.update.background.interval", "999999999");'
 		
 		# DNS-over-HTTPS (DoH) encrypt the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers
 		$out+= 'user_pref("network.trr.mode", 2);'
@@ -1801,7 +1873,24 @@ if ($firefoxSettings -eq 1) {
 		$out+= 'user_pref("network.dns.echconfig.enabled", true);'
 		$out+= 'user_pref("network.dns.use_https_rr_as_altsvc", true);'
 		
+		# Remove Amazon`s shortcut from startup
+		$out+= 'user_pref("browser.topsites.blockedSponsors", "[\"amazon\"]");'
 		
+		# Allow autoplay of audio and video
+		$out+= 'user_pref("media.autoplay.default", "0");'
+		
+		# Show search bar
+		$out+= 'user_pref("browser.search.widget.inNavBar", true);'
+		$out+= 'user_pref("browser.uiCustomization.state", "{\"placements\":{\"widget-overflow-fixed-list\":[],\"nav-bar\":[\"back-button\",\"forward-button\",\"stop-reload-button\",\"customizableui-special-spring1\",\"urlbar-container\",\"search-container\",\"customizableui-special-spring2\",\"save-to-pocket-button\",\"downloads-button\",\"fxa-toolbar-menu-button\",\"addon_darkreader_org-browser-action\",\"ublock0_raymondhill_net-browser-action\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"tabbrowser-tabs\",\"new-tab-button\",\"alltabs-button\"],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"addon_darkreader_org-browser-action\",\"ublock0_raymondhill_net-browser-action\",\"developer-button\"],\"dirtyAreaCache\":[\"nav-bar\"],\"currentVersion\":17,\"newElementCount\":2}");'
+		
+		# Block third-party cookies
+		$out+= 'user_pref("browser.contentblocking.category", "custom");'
+		$out+= 'user_pref("network.cookie.cookieBehavior", "1");'
+		
+		# Disable recommendations
+		$out+= 'user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);'
+		$out+= 'user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", false);'
+
 		Copy-Item $file $file$currentDate".txt"
 
 		Clear-Content $file
@@ -1871,18 +1960,22 @@ if ($disablePerformanceMonitor -eq 1) {
 	Get-Service PerfHost | Stop-Service -PassThru | Set-Service -StartupType disabled
 }
 
-if ($disableWindowsUpdates -eq 0) {
-
+if ($disableWindowsUpdates -eq 0) {	
+	RegChange "SYSTEM\CurrentControlSet\Services\UsoSvc" "Start" "2" "Enabling UsoSvc service" "DWord"
 	Get-Service UsoSvc | Set-Service -StartupType automatic
-	if($?){   write-Host -ForegroundColor Green "UsoSvc service enabled"  }else{   write-Host -ForegroundColor red "UsoSvc service not enabled" } 
-	
-	Get-Service CryptSvc | Set-Service -StartupType automatic
-	if($?){   write-Host -ForegroundColor Green "CryptSvc service enabled"  }else{   write-Host -ForegroundColor red "CryptSvc service not enabled" } 
 
-	RegChange "SYSTEM\CurrentControlSet\Services\wuauserv" "Start" "4" "Windows Updates service enabled" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Services\CryptSvc" "Start" "2" "CryptSvc service enabled" "DWord"
+	Get-Service CryptSvc | Set-Service -StartupType automatic
+
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" "Start" "2" "Windows Update Medic Service enabled" "DWord"
+	Get-Service WaaSMedicSvc | Set-Service -StartupType automatic
+
+	RegChange "SYSTEM\CurrentControlSet\Services\wuauserv" "Start" "2" "Windows Updates service enabled" "DWord"
 	Get-Service wuauserv | Set-Service -StartupType automatic
 	
 	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
+	RegChange "SYSTEM\CurrentControlSet\Services\BITS" "Start" "2" "BITS (Background Intelligent Transfer Service) enabled" "DWord"
 	Get-Service BITS | Set-Service -StartupType automatic
 	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "NoAutoUpdate" "0" "Windows Update enabled" "DWord"
@@ -1898,44 +1991,40 @@ if ($disableWindowsUpdates -eq 0) {
 }
 
 if ($disableWindowsUpdates -eq 1) {
+	RegChange "SYSTEM\CurrentControlSet\Services\UsoSvc" "Start" "4" "Disabling UsoSvc service" "DWord"
+	Get-Service UsoSvc | Set-Service -StartupType disabled
 
-	Get-Service UsoSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-	if($?){   write-Host -ForegroundColor Green "UsoSvc service disabled"  }else{   write-Host -ForegroundColor red "UsoSvc service not disabled" } 
+	RegChange "SYSTEM\CurrentControlSet\Services\CryptSvc" "Start" "4" "Disabling CryptSvc service" "DWord"
+	Get-Service CryptSvc | Set-Service -StartupType disabled
+
 	
-	sc.exe stop wuauserv | Out-Null
-	if($?){   write-Host -ForegroundColor Green "Windows Updates Service Stoped"  }else{   write-Host -ForegroundColor red "Windows Updates Service Not Stoped" }
+	RegChange "SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" "Start" "4" "Disabling Windows Update Medic Service" "DWord"
+	Get-Service WaaSMedicSvc | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\wuauserv" "Start" "4" "Disabling Windows Updates service" "DWord"
+	Get-Service wuauserv | Set-Service -StartupType disabled
+	
+	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
+	RegChange "SYSTEM\CurrentControlSet\Services\BITS" "Start" "4" "Disabling BITS (Background Intelligent Transfer Service)" "DWord"
+	Get-Service BITS | Set-Service -StartupType disabled
+	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "NoAutoUpdate" "1" "Windows Update enabled" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Device Metadata" "PreventDeviceMetadataFromNetwork" "1" "Disabling retrieve device metadata for installed devices from the Internet" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DontPromptForWindowsUpdate" "1" "Disabling prompt to search Windows Update" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DontSearchWindowsUpdate" "1" "Disabling Windows Update to search for device drivers when no local drivers for a device are present" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DriverUpdateWizardWuSearchEnabled" "0" "Disabling DriverUpdateWizardWuSearchEnabled" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "ExcludeWUDriversInQualityUpdate" "1" "Disabling Windows Update to include updates that have a Driver classification" "DWord"
+	
+}
 
-	sc.exe config wuauserv start=disabled | Out-Null
-	if($?){   write-Host -ForegroundColor Green "Windows Updates Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Service Not Disabled" }
-
-	reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v NoAutoUpdate /t REG_DWORD /d 1 /f | Out-Null
-	if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry not Disabled" }
-
-	reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoUpdate /t REG_DWORD /d 1 /f | Out-Null
-	if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry not Disabled" }
-
-	reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v AUOptions /t REG_DWORD /d 2 /f | Out-Null
-	if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Options Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry Options not Disabled" }
-
-	reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\wuauserv" /v Start /t REG_DWORD /d 4 /f | Out-Null
-	if($?){   write-Host -ForegroundColor Green "Windows Updates Registry Start Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Registry Start not Disabled" }
-
-	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata" -Name "PreventDeviceMetadataFromNetwork" -ErrorAction SilentlyContinue
-	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DontPromptForWindowsUpdate" -ErrorAction SilentlyContinue
-	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DontSearchWindowsUpdate" -ErrorAction SilentlyContinue
-	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DriverUpdateWizardWuSearchEnabled" -ErrorAction SilentlyContinue
-	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "ExcludeWUDriversInQualityUpdate" -ErrorAction SilentlyContinue
+if ($disableMSStore -eq 0) { 
+	RegChange "SYSTEM\CurrentControlSet\Services\InstallService" "Start" "2" "Enabling InstallService MS Store service" "DWord"
+	Get-Service InstallService | Set-Service -StartupType automatic	
 }
 
 if ($disableMSStore -eq 1) { 
-	Write-Host "Disabling MS Store Service..."
+	RegChange "SYSTEM\CurrentControlSet\Services\InstallService" "Start" "4" "Disabling InstallService MS Store service" "DWord"
 	Get-Service InstallService | Stop-Service -PassThru | Set-Service -StartupType disabled	
-}
-
-
-if ($disableMSStore -eq 0) { 
-	Write-Host "Enabling MS Store Service..."
-	Get-Service InstallService | Set-Service -StartupType automatic	
 }
 
 if ($useGoogleDNS -eq 1) { 
@@ -1968,11 +2057,12 @@ if ($unnistallWindowsDefender -eq 1) {
 	deletePath "$env:ProgramData\Microsoft\Windows Defender" "Deleting Defender Antivirus and Defender Antivirus Network Inspection Service folder..."
 	deletePath "$env:ProgramData\Microsoft\Windows Defender\Platform" "Deleting Defender run under demand service MpCmdRun.exe..."
 	deletePath "$env:ProgramData\Microsoft\Windows Defender Advanced Threat Protection" "Deleting windows Windows defender program data folder..."
-	#deletePath "$env:ProgramData\Microsoft\Windows Security Health" "Deleting windows Windows defender program data folder..."
+	deletePath "$env:ProgramData\Microsoft\Windows Security Health" "Deleting windows Windows defender program data folder..."
+	
+	regDeleteKey "SOFTWARE\Microsoft\Windows\CurrentVersion\Run\" "SecurityHealth" "Disabling SecurityHealth startup"
 	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" "SpynetReporting" "0" "Disabling Windows Defender Cloud..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" "SubmitSamplesConsent" "2" "Disabling Windows Defender Cloud Sample..." "DWord"		
-	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" "SubmitSamplesConsent" "2" "Disabling Windows Defender Cloud Sample..." "DWord"			
 	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableConfig" "1" "Disabling Windows Anti Spyware - DisableConfig"
 	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" "1" "Disabling Windows Anti Spyware - DisableAntiSpyware"
 	RegChange "SYSTEM\CurrentControlSet\Services\WdBoot" "Start" "4" "Disabling WdBoot (Windows Defender)"
@@ -1984,7 +2074,10 @@ if ($unnistallWindowsDefender -eq 1) {
 	RegChange "SYSTEM\CurrentControlSet\Services\SecurityHealthService" "Start" "4" "Disabling SecurityHealthService (Windows Defender)"
 	RegChange "SYSTEM\CurrentControlSet\Services\Sense" "Start" "4" "Disabling Sense (Windows Defender)"
 	RegChange "SYSTEM\ControlSet001\Services\WinDefend" "Start" "4" "Disabling WinDefend (Windows Defender)"
-
+	
+	# Necessary bacause Windows still load this service even if its disabled
+	deleteFile "$env:WINDIR\system32\SecurityHealthService.exe" "Deleting SecurityHealthService.exe..."	
+	
 	sc.exe config WinDefend start=disabled | Out-Null
 	if($?){   write-Host -ForegroundColor Green "Windows Updates Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Service Not Disabled" }
 
@@ -2204,21 +2297,6 @@ if ($visual -like "y") {
 	choco install notepadplusplus -y
 }
 
-#DISABLE USELESS SERVICES
-
-Get-Service DcpSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "DcpSvc Disabled"  }else{   write-Host -ForegroundColor red "DcpSvc not Disabled" }
-
-Get-Service OneSyncSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "OneSyncSvc Disabled"  }else{   write-Host -ForegroundColor red "OneSyncSvc not Disabled" }
-
-Get-Service WalletService | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "WalletService Disabled"  }else{   write-Host -ForegroundColor red "WalletService not Disabled" }
-
-Get-Service diagnosticshub.standardcollector.service | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "diagnosticshub Disabled"  }else{   write-Host -ForegroundColor red "diagnosticshub not Disabled" }
-
-
 # REMOVE ONEDRIVE
 kill -processname OneDrive, aaa -Force -Verbose -EA SilentlyContinue
 if($?){   write-Host -ForegroundColor Green "One Drive process has been stoped"  }else{   write-Host -ForegroundColor Green "One Drive process is not running" } 
@@ -2376,3 +2454,5 @@ powercfg.exe -x -hibernate-timeout-dc $hybernateDcTimeout
 
 Remove-PSDrive HKCR
 PAUSE
+
+# NcbService is required by Windows setting app and night light function
