@@ -10,9 +10,12 @@ I do not take responsibility for what may happen to your system. This is at your
 
 ## After (stand by)
 ![](https://raw.githubusercontent.com/gordonbay/Windows-On-Reins/master/.github/AFTER.PNG)
+* The Wifi was turned on a few moments before taking the screenshot in both cases.
 
 ## What it does - Security
 
+- Harden the system to prevent Mimikatz credential scraping attack
+- Harden the system to prevent Airstrike domain account hash capture attack
 - Disable NetBIOS and Link-Local Multicast Name Resolution (LLMNR) protocol. Both imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning
 - Disable SMB Server, it's known for opening doors for mass ransomware attacks - WannaCry and NotPetya
 - Disable Anonymous enumeration of shares. Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system (Stigviewer V-220930)
@@ -20,18 +23,18 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823)
 - Disable Autoplay, "allowing autoplay to execute may introduce malicious code to a system" (Stigviewer V-63673)
 - Disable WPAD (Web Proxy Auto-Discovery Protocol), it exposes the system to MITM attack
+- Apply Google's DNS to all connections to prevent some types of MITM attacks and DNS spoofing
 
 ## What it does - Performance
 
 - Disable the Diagnostic Policy Service. To avoid some I/O operations to the file system and reduce system load
-- Disable Windows Malicious Software Removal Tool due to hight disk usage
+- Disable Windows Malicious Software Removal Tool due to high disk usage
 - Disable NTFS encryption and compression due to processing overhead on filesystem operations
 - Disable of scheduled defragmentation due to lack of parameters and waste of disk cycles
-- Disable Windows Superfetch, due to high RMA usage and is known for causing slow boot times
+- Disable Windows Superfetch, due to high RAM usage and is known for causing slow boot times
 - Disable Windows Hibernation, there are some evidence that if you use HDD and not a SSD disabling it may lead to lower boot times
 - Disable Winmgmt service, Windows Management Instrumentation. This service transfer unusual amount of data, keeps windows updates silent running even if user had it opt-out
 - Allow user to disable Cortana
-- Disable Software Protection Platform
 - Disable SmartScreen Filter, due to huge performance impact, it checks online data about running programs
 - Disable BITS - Background Intelligent Transfer Service, UsoSvc - Update Orchestrator Service, DusmSvc - Data Usage, the all showed the same behavior, its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
 - Disable DoSvc (Delivery Optimization), it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation
@@ -44,6 +47,7 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable Windows Fast Boot, due conflicts with Steam and several other programs
 - Disable Adobe updates
 - Disable Nvidia NGX updates, due to high network usage and lack of settings
+- Apply Google's DNS to all connections to improve name resolution timing
 
 ## What it does - Quality of Life
 
@@ -120,12 +124,14 @@ or just right click the file wor.ps1 and select "Execute with powershell"
 Notes
 ============
 
-- To prevent Windows to intall bloatware, this script must run before connecting to the internet for the first time;
+- To prevent Windows to install bloatware, this script must be run before connecting to the internet for the first time;
 - Disabling Windows defender is unreversible and needs the system to be in safe mode;
 - Some NICs may show the preferred DNS encryption as "Unencrypted Only" after running the the fingerprinting prevention. Thats not true, the DNS is being handled over HTTPS (DoH) and there will be no traffic on port 53. Test using::
 
 <code>pktmon filter remove </code>
+
 <code>pktmon filter add -p 53</code>
+
 <code>start --etw -m real-time</code>
 
 Recommended Filterlists

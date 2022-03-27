@@ -22,6 +22,11 @@ $beWifiSafe = 0
 # 1 = Keep Wifi working
 # Note: Top priority configuration, overrides other settings.
 
+$beMicrophoneSafe = 0
+# 0 = Disable services required to use the microphone. *Recomended.
+# 1 = Keep microphone working
+# Note: Top priority configuration, overrides other settings.
+
 $beXboxSafe = 0
 # 0 = Disable Xbox and Windows Live Games related stuff like Game Bar. *Recomended.
 # 1 = Enable it.
@@ -60,7 +65,7 @@ $beCastSafe = 0
 # Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
 # Note: Top priority configuration, overrides other settings.
 
-$beVpnPppoeSafe = 1
+$beVpnPppoeSafe = 0
 # 0 = Will make the system safer against DNS cache poisoning but VPN or PPPOE conns may stop working. *Recomended.
 # 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
 # Note: Set it to 1 if you pretend to use VPN, PPP conns, if the system is inside a VM or having trouble with internet.
@@ -676,7 +681,7 @@ Function DisableXboxFeatures {
 	}
 	
 	Set-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AutoGameModeEnabled" -Type DWord -Value 0
-	Set-ItemProperty -Path "HKCU:\System\GameConfigStore" -Name "GameDVR_Enabled" -Type DWord -Value 0
+	RegChange "System\GameConfigStore" "GameDVR_Enabled" "0" "Changing Registry key to disable Game DVR - GameDVR_Enabled" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" "0" "Changing Registry key to disable gamebarpresencewriter"
 	
 	If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR")) {
@@ -908,7 +913,10 @@ if ($beXboxSafe -eq 0) {
 
 if ($beWifiSafe -eq 1) {
 	RegChange "SYSTEM\CurrentControlSet\Services\RmSvc" "Start" "2" "Enabling RmSvc (Radio Management Service) service" "DWord"
-	Get-Service RmSvc | Set-Service -StartupType automatic		
+	Get-Service RmSvc | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\WlanSvc" "Start" "2" "Enabling WlanSvc (WLAN Autoconfig) service" "DWord"
+	Get-Service WlanSvc | Set-Service -StartupType automatic
 }
 
 if ($beXboxSafe -eq 1) {
@@ -926,7 +934,7 @@ if ($beXboxSafe -eq 1) {
 		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safeXboxBloatware1 | Add-AppxProvisionedPackage -Online		
 	}
 	
-	RegChange "System\GameConfigStore" "GameDVR_Enabled" "1" "Changing Registry key to ENABLE Game DVR - GameDVR_Enabled"
+	RegChange "System\GameConfigStore" "GameDVR_Enabled" "1" "Changing Registry key to ENABLE Game DVR - GameDVR_Enabled" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" "1" "Changing Registry key to ENABLE gamebarpresencewriter"
 	
 	# The Game bar is a Xbox app Game DVR feature that makes it simple to take control of your gaming activities—such as broadcasting, capturing clips, and sharing captures
@@ -1130,6 +1138,18 @@ if ($disablelastaccess -eq 1) {
 }
 
 if ($doPerformanceStuff -eq 0) {
+	RegChange "SYSTEM\CurrentControlSet\Services\StorSvc" "Start" "2" "Enabling StorSvc (Storage Service) service" "DWord"
+	Get-Service StorSvc | Set-Service -StartupType automatic
+
+	RegChange "SYSTEM\CurrentControlSet\Services\MSDTC" "Start" "2" "Enabling MSDTC (Distributed Transaction Coordinator) service" "DWord"
+	Get-Service MSDTC | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "2" "Enabling TokenBroker (Web Account Manager) service" "DWord"
+	Get-Service TokenBroker | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\Ndu" "Start" "2" "Enabling Ndu (Network Data Usage Monitor) service" "DWord"
+	Get-Service Ndu | Set-Service -StartupType automatic
+	
 	RegChange "SYSTEM\CurrentControlSet\Services\AppMgmt" "Start" "2" "Enabling AppMgmt (Application Management) service" "DWord"
 	Get-Service AppMgmt | Set-Service -StartupType automatic
 	
@@ -1161,8 +1181,10 @@ if ($doPerformanceStuff -eq 0) {
 	RegChange "SYSTEM\CurrentControlSet\Services\diagnosticshub.standardcollector.service" "Start" "2" "Enabling diagnosticshub.standardcollector.service service" "DWord"
 	Get-Service diagnosticshub.standardcollector.service | Set-Service -StartupType automatic
 
-	#In very rare cases, Hardware Accelerated GPU Scheduling set to ON (2) may improve latency
+	# In very rare cases, Hardware Accelerated GPU Scheduling set to ON (2) may improve latency
 	RegChange "SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" "1" "Disabling Hardware Accelerated GPU Scheduling" "DWord"
+
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" "EnableTransparency" "1" "Enabling Windows transparency effect" "DWord"	
 	RegChange "SYSTEM\CurrentControlSet\services\WdiServiceHost" "Start" "2" "Enabling Diagnostic Service Host" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\WdiSystemHost" "Start" "2" "Enabling Diagnostic System Host Service" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\DPS" "Start" "2" "Enabling Diagnostic Policy Service" "DWord"
@@ -1204,18 +1226,30 @@ if ($doPerformanceStuff -eq 0) {
 	#RegChange "SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" "DODownloadMode" "3" "Enabling DeliveryOptimization download mode HTTP blended with Internet Peering..." "DWord"
 	#RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "3" "Enabling DeliveryOptimization download mode HTTP blended with Internet Peering..." "DWord"	
 	#RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "2" "Enabling Edge updates..." "DWord"
-	
-	Write-Host "Enabling Network Location Awareness Service..."
-	Get-Service NlaSvc | Set-Service -StartupType automatic
 		
 	Write-Host "Enabling LanmanWorkstation Service..."
 	Get-Service Workstation | Set-Service -StartupType automatic
 		
 	Write-Host "Enabling LanmanServer Service..."
 	Get-Service Server | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\camsvc" "Start" "2" "Enabling camsvc service" "DWord"
+	Get-Service camsvc | Set-Service -StartupType automatic
 }
 
 if ($doPerformanceStuff -eq 1) {
+	RegChange "SYSTEM\CurrentControlSet\Services\StorSvc" "Start" "4" "Disabling StorSvc (Storage Service) service" "DWord"
+	Get-Service StorSvc | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\MSDTC" "Start" "4" "Disabling MSDTC (Distributed Transaction Coordinator) service" "DWord"
+	Get-Service MSDTC | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "4" "Disabling TokenBroker (Web Account Manager) service" "DWord"
+	Get-Service TokenBroker | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\Ndu" "Start" "4" "Disabling Ndu (Network Data Usage Monitor) service" "DWord"
+	Get-Service Ndu | Set-Service -StartupType disabled
+	
 	RegChange "SYSTEM\CurrentControlSet\Services\AppMgmt" "Start" "4" "Disabling AppMgmt (Application Management) service" "DWord"
 	Get-Service AppMgmt | Set-Service -StartupType disabled
 	
@@ -1249,6 +1283,8 @@ if ($doPerformanceStuff -eq 1) {
 	
 	#In very rare cases, Hardware Accelerated GPU Scheduling set to ON (2) may improve latency
 	RegChange "SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" "2" "Disabling Hardware Accelerated GPU Scheduling" "DWord"
+	
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" "EnableTransparency" "0" "Disabling Windows transparency effect" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\WdiServiceHost" "Start" "4" "Disabling Diagnostic Service Host" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\WdiSystemHost" "Start" "4" "Disabling Diagnostic System Host Service" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\services\DPS" "Start" "4" "Disabling Diagnostic Policy Service" "DWord"
@@ -1308,17 +1344,34 @@ if ($doPerformanceStuff -eq 1) {
 		
 	if ($beWifiSafe -eq 0) {
 		RegChange "SYSTEM\CurrentControlSet\Services\RmSvc" "Start" "4" "Disabling RmSvc (Radio Management Service) service" "DWord"
-		Get-Service RmSvc | Set-Service -StartupType disabled		
+		Get-Service RmSvc | Set-Service -StartupType disabled
+		
+		RegChange "SYSTEM\CurrentControlSet\Services\WlanSvc" "Start" "4" "Disabling WlanSvc (WLAN Autoconfig) service" "DWord"
+		Get-Service WlanSvc | Set-Service -StartupType disabled
 	}
 	
 	if ($beWifiSafe -eq 1) {
 		Write-Host "RmSvc (Radio Management Service) service  NOT disabled because of the beWifiSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+	}
+	
+	if ($beMicrophoneSafe -eq 0) {			
+		RegChange "SYSTEM\CurrentControlSet\Services\camsvc" "Start" "4" "Disabling camsvc service" "DWord"
+		Get-Service camsvc | Set-Service -StartupType disabled
+	}
+	
+	if ($beMicrophoneSafe -eq 1) {			
+		Write-Host "camsvc service  was NOT disabled because of the beMicrophoneSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
+		RegChange "SYSTEM\CurrentControlSet\Services\camsvc" "Start" "2" "Enabling camsvc service" "DWord"
+		Get-Service camsvc | Set-Service -StartupType automatic
 	}
 }
 
 if ($doQualityOfLifeStuff -eq 0) {
 	Get-Service VMwareHostd | Set-Service -StartupType automatic
 	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "2" "Enabling VMware host..." "DWord"
+	
+	# Look for an app in the Microsoft Store
+	RegChange "Software\Policies\Microsoft\Windows\Explorer" "NoUseStoreOpenWith" "0" "Enabling Look for an app in the Microsoft Store" "DWord"
 	
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarDa" "1" "Adding widgets button to taskbar" "DWord"
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarMn" "1" "Adding chat button to taskbar" "DWord"
@@ -1363,6 +1416,9 @@ if ($doQualityOfLifeStuff -eq 0) {
 if ($doQualityOfLifeStuff -eq 1) {
 	Get-Service VMwareHostd | Stop-Service -PassThru | Set-Service -StartupType disabled
 	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "4" "Disabling VMware host..." "DWord"
+	
+	# Look for an app in the Microsoft Store
+	RegChange "Software\Policies\Microsoft\Windows\Explorer" "NoUseStoreOpenWith" "1" "Disabling Look for an app in the Microsoft Store" "DWord"
 	
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarDa" "0" "Removing widgets button from taskbar" "DWord"
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarMn" "0" "Removing chat button from taskbar" "DWord"
@@ -1411,24 +1467,29 @@ if ($doPrivacyStuff -eq 0) {
 	EnablePeek
 	EnablePrefetcher	
 	EnableMemoryDump
-	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "1" "Enabling Windows Feedback Experience program / Advertising ID"
+
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "1" "Enabling Windows location tracking" "DWord"
+	RegChange "System\CurrentControlSet\Services\lfsvc\Service\Configuration" "Status" "1" "Enabling Windows location tracking" "DWord"
+	RegChange "Software\Microsoft\InputPersonalization" "RestrictImplicitInkCollection" "0" "Enabling Windows implicit ink collection" "DWord"
+	RegChange "Software\Microsoft\InputPersonalization" "RestrictImplicitTextCollection" "0" "Enabling Windows implicit text collection" "DWord"
+	RegChange "Software\Microsoft\InputPersonalization\TrainedDataStore" "HarvestContacts" "1" "Enabling Windows contact harvesting" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "1" "Enabling Windows Feedback Experience program / Advertising ID" "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "1" "Enabling Cortana from being used as part of your Windows Search Function" 
-	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "1" "Enabling Windows Feedback Experience from sending anonymous data"      
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "0" "Adding Registry key to allow bloatware apps from returning"	
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "1" "Enabling Reality Portal" 
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "0" "Enabling live tiles"  
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "1" "Enabling Location Tracking"
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "1" "Enabling Location Tracking"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "1" "Enabling People icon on Taskbar"
-	RegChange "Software\Policies\Microsoft\Windows\Explorer" "HidePeopleBar" "0" "Enabling People Bar"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "1" "Enabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "1" "Enabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "1" "Enabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "0" "Enabling Tailored Experiences"	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "1" "Enabling automatic installation of network devices"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop"
+	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "1" "Enabling Windows Feedback Experience from sending anonymous data" "DWord"   
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "0" "Adding Registry key to allow bloatware apps from returning" "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "1" "Enabling Reality Portal" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "0" "Enabling live tiles" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "1" "Enabling Location Tracking" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "1" "Enabling Location Tracking" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "1" "Enabling People icon on Taskbar" "DWord"
+	RegChange "Software\Policies\Microsoft\Windows\Explorer" "HidePeopleBar" "0" "Enabling People Bar" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "1" "Enabling Activity History Feed" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "1" "Enabling Activity History Feed" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "1" "Enabling Activity History Feed" "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "0" "Enabling Tailored Experiences" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "1" "Enabling automatic installation of network devices" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop" "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" "0" "Enabling handwriting personalization data sharing..." "DWord"	
 	RegChange "SOFTWARE\Policies\Microsoft\SQMClient\Windows" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\AppV\CEIP" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
@@ -1517,9 +1578,8 @@ if ($doPrivacyStuff -eq 0) {
     RegChange "SYSTEM\CurrentControlSet\Services\DiagTrack" "Start" "2" "Enabling DiagTrack (Connected User Experiences and Telemetry) service" "DWord"
 	Get-Service DiagTrack | Set-Service -StartupType automatic
     
-	write-Host "dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
-	Write-Output "Enabling dmwappushservice"
-	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType automatic
+	# dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations
+	Get-Service dmwappushservice | Set-Service -StartupType automatic
 	
 	write-Host "Windows Insider Service contact web servers by its own" -ForegroundColor Green -BackgroundColor Black 
 	Write-Host "Enabling wisvc (Windows Insider Service)..."
@@ -1527,7 +1587,11 @@ if ($doPrivacyStuff -eq 0) {
 	Get-Service CryptSvc | Set-Service -StartupType automatic
 	
 	Write-Host "Stopping and disabling EventLog (Windows Event Log)..."
-	Get-Service EventLog | Set-Service -StartupType automatic	
+	Get-Service EventLog | Set-Service -StartupType automatic
+	
+	# Disable Ip helper due transfering a lot of strange data
+	RegChange "SYSTEM\CurrentControlSet\Services\iphlpsvc" "Start" "2" "Enabling Ip Helper service" "DWord"
+	Get-Service iphlpsvc | Set-Service -StartupType automatic
 }
 
 if ($doPrivacyStuff -eq 1) {
@@ -1539,6 +1603,11 @@ if ($doPrivacyStuff -eq 1) {
 	DisablePrefetcher	
 	DisableMemoryDump
 	
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "0" "Disabling Windows location tracking" "DWord"
+	RegChange "System\CurrentControlSet\Services\lfsvc\Service\Configuration" "Status" "0" "Disabling Windows location tracking" "DWord"
+	RegChange "Software\Microsoft\InputPersonalization" "RestrictImplicitInkCollection" "1" "Disabling Windows implicit ink collection" "DWord"
+	RegChange "Software\Microsoft\InputPersonalization" "RestrictImplicitTextCollection" "1" "Disabling Windows implicit text collection" "DWord"
+	RegChange "Software\Microsoft\InputPersonalization\TrainedDataStore" "HarvestContacts" "0" "Disabling Windows contact harvesting" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "0" "Disabling Windows Feedback Experience program / Advertising ID"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "0" "Stopping Cortana from being used as part of your Windows Search Function" 
 	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "0" "Disabling Windows Feedback Experience from sending anonymous data"         
@@ -1651,9 +1720,8 @@ if ($doPrivacyStuff -eq 1) {
     RegChange "SYSTEM\CurrentControlSet\Services\DiagTrack" "Start" "4" "Disabling DiagTrack (Connected User Experiences and Telemetry) service" "DWord"
 	Get-Service DiagTrack | Set-Service -StartupType disabled
     
-	write-Host "dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations." -ForegroundColor Green -BackgroundColor Black
-	Write-Output "Stopping and disabling dmwappushservice"
-	Get-Service dmwappushservice | Stop-Service -PassThru | Set-Service -StartupType disabled
+	# dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations
+	Get-Service dmwappushservice | Set-Service -StartupType disabled
 	
 	$path = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
 	deletePath $path "Clearing ETL Autologs..."
@@ -1676,10 +1744,18 @@ if ($doPrivacyStuff -eq 1) {
 	
 	Write-Host "Stopping and disabling EventLog (Windows Event Log)..."
 	Get-Service EventLog | Stop-Service -PassThru | Set-Service -StartupType disabled
+	
+	# Disable Ip helper due transfering a lot of strange data
+	RegChange "SYSTEM\CurrentControlSet\Services\iphlpsvc" "Start" "4" "Disabling Ip Helper service" "DWord"
+	Get-Service iphlpsvc | Set-Service -StartupType disabled
 }
 
 EnableDnsCache
+
 if ($doSecurityStuff -eq 0) {
+	# Airstrike Attack - FDE bypass and EoP on domain joined Windows workstations. An attacker with physical access to a locked device with WiFi capabilities (such as a laptop or a workstation) can abuse this functionality to force the laptop to authenticate against a rogue access point and capture a MSCHAPv2 challenge response hash for the domain computer account.
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "DontDisplayNetworkSelectionUI" "0" "Disabling the hardening against the Airstrike Attack" "DWord"
+	
 	RegChange "SYSTEM\CurrentControlSet\services\WMPNetworkSvc" "Start" "2" "Enabling Windows Media Player Network Sharing Service" "DWord"
 	
 	# WPAD exposes the system to MITM attack
@@ -1703,14 +1779,35 @@ if ($doSecurityStuff -eq 0) {
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutoplayfornonVolume" "0" "Enabling autoplay " "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutorun" "0" "Enabling autorun " "DWord"
 	
+	# Protect against credential scraping, mimikatz attack
+	# Configures lsass.exe as a protected process and disables wdigest
+	# Enables delegation of non-exported credentials which enables support for Restricted Admin Mode or Remote Credential Guard
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\LSASS.exe" "AuditLevel" "8" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RunAsPPL" "0" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "DisableRestrictedAdmin" "1" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "DisableRestrictedAdminOutboundCreds" "0" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "UseLogonCredential" "1" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "Negotiate" "1" "Hardening LSASS... " "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" "AllowProtectedCreds" "0" "Hardening LSASS... " "DWord"
+	
+	#Enable the LSA protection to prevent Mimikatz from accessing a specific memory location of the LSASS process and scraping credentials
+	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RunAsPPL" "0" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "UseLogonCredential" "1" "Hardening LSASS... " "DWord"
+	
+	#Windows 10 must be configured to enable Remote host allows delegation of non-exportable credentials. (Stig Viewer V-74699)
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" "AllowProtectedCreds" "0" "Hardening LSASS... " "DWord"
+	
 	Write-Host "Enabling Network Location Awareness Service..."
-	Enable-NetAdapterBinding -Name "*" -ComponentID "ms_msclient"		
+	Enable-NetAdapterBinding -Name "*" -ComponentID "ms_msclient"	
+	
 	Write-Host "Enabling Network Location Awareness Service..."
 	Get-Service NlaSvc | Set-Service -StartupType automatic
-
 }
 
 if ($doSecurityStuff -eq 1) {
+	# Airstrike Attack - FDE bypass and EoP on domain joined Windows workstations. An attacker with physical access to a locked device with WiFi capabilities (such as a laptop or a workstation) can abuse this functionality to force the laptop to authenticate against a rogue access point and capture a MSCHAPv2 challenge response hash for the domain computer account.
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "DontDisplayNetworkSelectionUI" "1" "Hardening against the Airstrike Attack" "DWord"
+	
 	RegChange "SYSTEM\CurrentControlSet\services\WMPNetworkSvc" "Start" "4" "Disabling Windows Media Player Network Sharing Service" "DWord"
 	
 	# WPAD exposes the system to MITM attack
@@ -1720,8 +1817,7 @@ if ($doSecurityStuff -eq 1) {
 	DisableLLMNR
 	
 	# NetBIOS imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
-	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "2" "Disabling NetBIOS over TCP/IP..." "DWord"	
-
+	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "2" "Disabling NetBIOS over TCP/IP..." "DWord"
 	
 	#Allowing Anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system. (Stig Viewer V-220930)
 	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RestrictAnonymous" "1" "Disabling Anonymous enumeration of shares..." "Dword" 		
@@ -1735,10 +1831,16 @@ if ($doSecurityStuff -eq 1) {
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutoplayfornonVolume" "1" "Disabling autoplay " "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutorun" "1" "Disabling autorun " "DWord"	
 	
-	#Protect against credential scraping, mimikatz attack
-	#Configures lsass.exe as a protected process and disables wdigest
-	#Enables delegation of non-exported credentials which enables support for Restricted Admin Mode or Remote Credential Guard
+	# Protect against credential scraping, mimikatz attack
+	# Configures lsass.exe as a protected process and disables wdigest
+	# Enables delegation of non-exported credentials which enables support for Restricted Admin Mode or Remote Credential Guard
 	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\LSASS.exe" "AuditLevel" "8" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RunAsPPL" "1" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "DisableRestrictedAdmin" "0" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "DisableRestrictedAdminOutboundCreds" "1" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "UseLogonCredential" "0" "Hardening LSASS... " "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "Negotiate" "0" "Hardening LSASS... " "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" "AllowProtectedCreds" "1" "Hardening LSASS... " "DWord"	
 	
 	#Enable the LSA protection to prevent Mimikatz from accessing a specific memory location of the LSASS process and scraping credentials
 	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RunAsPPL" "1" "Hardening LSASS... " "DWord"
@@ -1747,13 +1849,17 @@ if ($doSecurityStuff -eq 1) {
 	#Windows 10 must be configured to enable Remote host allows delegation of non-exportable credentials. (Stig Viewer V-74699)
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" "AllowProtectedCreds" "1" "Hardening LSASS... " "DWord"
 
-	
 	if ($beNetworkFolderSafe -eq 0) {
 		Write-Host "Disabling Network Location Awareness Service..."
 		Disable-NetAdapterBinding -Name "*" -ComponentID "ms_msclient"
 		
 		Write-Host "Disabling Network Location Awareness Service..."
-		Get-Service NlaSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+		Get-Service NlaSvc | Set-Service -StartupType disabled
+	}
+	
+	if ($beNetworkFolderSafe -eq 1) {
+		Write-Host "Enabling Network Location Awareness Service..."
+		Get-Service NlaSvc | Set-Service -StartupType automatic
 	}
 }
 
@@ -1866,8 +1972,8 @@ if ($firefoxSettings -eq 1) {
 		
 		# DNS-over-HTTPS (DoH) encrypt the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers
 		$out+= 'user_pref("network.trr.mode", 2);'
-		$out+= 'user_pref("network.trr.uri", "https://mozilla.cloudflare-dns.com/dns-query");'
-		$out+= 'user_pref("network.trr.bootstrapAddress", "1.1.1.1");'
+		$out+= 'user_pref("network.trr.uri", "https://dns.google/dns-query");'
+		$out+= 'user_pref("network.trr.bootstrapAddress", "8.8.8.8");'
 		
 		# Enable Encrypted Client Hello (ECH) on Firefox, to prevent TLS from leaking any data by encrypting all messages;
 		$out+= 'user_pref("network.dns.echconfig.enabled", true);'
@@ -1904,7 +2010,7 @@ if ($firefoxCachePath) {
 	killProcess("firefox");	
 	$PrefsFiles = Get-Item -Path ($env:SystemDrive+"\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
-	$aboutConfigArr = @('*"browser.cache.disk.parent_directory"*')
+	$aboutConfigArr = @('*"browser.cache.disk.parent_directory"*','*"browser.cache.disk.capacity"*')
 	
 	foreach ($file in $PrefsFiles) {
 	$path = Get-ItemProperty -Path $file
@@ -1923,7 +2029,7 @@ if ($firefoxCachePath) {
 			$out+= $line  
 		}
 	}	
-	
+	$out+= 'user_pref("browser.cache.disk.capacity", 250000000);'
 	$out+= 'user_pref("browser.cache.disk.parent_directory", "' + $firefoxCachePath + '");'	
 	Copy-Item $file $file$currentDate".txt"
 	Clear-Content $file
@@ -2074,7 +2180,11 @@ if ($unnistallWindowsDefender -eq 1) {
 	RegChange "SYSTEM\CurrentControlSet\Services\SecurityHealthService" "Start" "4" "Disabling SecurityHealthService (Windows Defender)"
 	RegChange "SYSTEM\CurrentControlSet\Services\Sense" "Start" "4" "Disabling Sense (Windows Defender)"
 	RegChange "SYSTEM\ControlSet001\Services\WinDefend" "Start" "4" "Disabling WinDefend (Windows Defender)"
-	
+
+	# Disable SmartScreen Filter
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer" "SmartScreenEnabled" "Off" "Disabling SmartScreen Filter" "String"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\AppHost" "EnableWebContentEvaluation" "0" "Disabling SmartScreen Filter" "DWord"
+
 	# Necessary bacause Windows still load this service even if its disabled
 	deleteFile "$env:WINDIR\system32\SecurityHealthService.exe" "Deleting SecurityHealthService.exe..."	
 	
@@ -2322,9 +2432,6 @@ if($?){   write-Host -ForegroundColor Green "One Drive appdata folder removed"  
 vssadmin delete shadows /all /quiet | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows Shadowcopy removed"  }else{   write-Host -ForegroundColor green "Windows Shadowcopy already disabled" } 
 
-# Disable Ip helper due transfering a lot of strange data
-Get-Service iphlpsvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-
 # Disable notifications
 reg add 'HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Explorer' /v DisableNotificationCenter /t REG_DWORD /d 1 /f
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d 0 /f
@@ -2399,12 +2506,6 @@ Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -Startup
 Get-Service Fax | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "Windows Fax service disabled"  }else{   write-Host -ForegroundColor red "Windows Fax service not disabled" } 
 
-# USELESS ADOBE UPDATES
-Get-Service AdobeARMservice | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "Adobe Acrobat Update service disabled"  }else{   write-Host -ForegroundColor red "Adobe Acrobat Update service not disabled" } 
-Remove-Item -path "${env:ProgramFiles(x86)}/Common Files\Adobe\ARM\" -Force
-if($?){   write-Host -ForegroundColor Green "Adobe shit removed"  }else{   write-Host -ForegroundColor red "Adobe shit removed not removed" } 
-
 # USELESS GEO
 Get-Service lfsvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "Geo service disabled"  }else{   write-Host -ForegroundColor red "Geo service not disabled" } 
@@ -2419,27 +2520,6 @@ if($?){   write-Host -ForegroundColor Green "PcaSvc service disabled"  }else{   
 # USELESS DusmSvc
 Get-Service DusmSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 if($?){   write-Host -ForegroundColor Green "DusmSvc service disabled"  }else{   write-Host -ForegroundColor red "DusmSvc service not disabled" } 
-
-# Disable SmartScreen Filter
-Write-Host "Disabling SmartScreen Filter..."
-Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer" -Name "SmartScreenEnabled" -Type String -Value "Off"
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AppHost" -Name "EnableWebContentEvaluation" -Type DWord -Value 0
-
-# Disable Location Tracking
-Write-Host "Disabling Location Tracking..."
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" -Name "SensorPermissionState" -Type DWord -Value 0
-Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Services\lfsvc\Service\Configuration" -Name "Status" -Type DWord -Value 0
-
-If (!(Test-Path "HKCU:\Software\Microsoft\InputPersonalization")) {
-    New-Item -Path "HKCU:\Software\Microsoft\InputPersonalization" -Force | Out-Null
-}
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\InputPersonalization" -Name "RestrictImplicitTextCollection" -Type DWord -Value 1
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\InputPersonalization" -Name "RestrictImplicitInkCollection" -Type DWord -Value 1
-If (!(Test-Path "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore")) {
-    New-Item -Path "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore" -Force | Out-Null
-}
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore" -Name "HarvestContacts" -Type DWord -Value 0
-
 
 PowerCfg -SetActive $powerPlan
 write-Host -ForegroundColor Green "PowerScheme Sucessfully Applied"
@@ -2456,3 +2536,4 @@ Remove-PSDrive HKCR
 PAUSE
 
 # NcbService is required by Windows setting app and night light function
+# sppsvc necessary to keep Windows activated
