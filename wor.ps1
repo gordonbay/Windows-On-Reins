@@ -27,6 +27,12 @@ $beMicrophoneSafe = 0
 # 1 = Keep microphone working
 # Note: Top priority configuration, overrides other settings.
 
+$beAppxSafe = 0
+# 0 = Disable resources needed for Appx programas, Windows Store and online MS Office features. *Recomended.
+# 1 = Will keep programs like Store and Microsoft Store working. Will Keep office online features working, like corporate login, power query, power bi workspace, "Open in app" option on sharepoint...
+# Note: Top priority configuration, overrides other settings.
+# Note: Will keep Windows updates active
+
 $beXboxSafe = 0
 # 0 = Disable Xbox and Windows Live Games related stuff like Game Bar. *Recomended.
 # 1 = Enable it.
@@ -113,10 +119,6 @@ $disableWindowsUpdates = 1
 # 0 = Enable Windows Updates.
 # 1 = Disable Windows Updates. *Recomended.
 
-$disableMSStore = 1
-# 0 = Enable.
-# 1 = Disable. *Recomended.
-
 $disableTelemetry = 1
 # 0 = Enable Telemetry.
 # 1 = Disable Telemetry. *Recomended.
@@ -187,7 +189,7 @@ $standbyDcTimeout = 25
 $hybernateAcTimeout = 0
 $hybernateDcTimeout = 0
 
-$firefoxSettings = 1
+$firefoxSettings = 0
 # 0 = Keep Firefox settings unchanged.
 # 1 = Apply pro Firefox settings. Disable update, cross-domain cookies... *Recomended.
 
@@ -826,10 +828,31 @@ Function EnableLLMNR {
 # Program - Start
 ##########
 
-if ($troubleshootInstalls -eq 1) {
-	Write-Output "Troubleshoot Install: Enabling Windows Management Instrumentation service enabled."
-	Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType automatic
-	
+if ($troubleshootInstalls -eq 1) {	
+
+
+
+
+	RegChange "SYSTEM\CurrentControlSet\Services\diagnosticshub.standardcollector.service" "Start" "2" "Disabling diagnosticshub.standardcollector.service service" "DWord"
+	Get-Service diagnosticshub.standardcollector.service | Set-Service -StartupType automatic
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
 	write-Host "Troubleshoot Install: Enabling BITS (Background Intelligent Transfer Service)" -ForegroundColor Green -BackgroundColor Black 
 	Get-Service BITS | Set-Service -StartupType automatic
@@ -862,8 +885,6 @@ if ($troubleshootInstalls -eq 1) {
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"
-	
-	PAUSE
 }
 
 if ($legacyRightClicksMenu -eq 0) {
@@ -918,6 +939,35 @@ if ($beWifiSafe -eq 1) {
 	RegChange "SYSTEM\CurrentControlSet\Services\WlanSvc" "Start" "2" "Enabling WlanSvc (WLAN Autoconfig) service" "DWord"
 	Get-Service WlanSvc | Set-Service -StartupType automatic
 }
+
+if ($beAppxSafe -eq 0) {
+	RegChange "SYSTEM\CurrentControlSet\Services\InstallService" "Start" "4" "Disabling InstallService MS Store service" "DWord"
+	Get-Service InstallService | Set-Service -StartupType disabled	
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "4" "Disabling TokenBroker (Windows Store permission manager) service" "DWord"
+	Get-Service TokenBroker | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\ControlSet001\Services\wlidsvc" "Start" "4" "Disabling wlidsvc (Microsoft Windows Live ID Service) service" "DWord"
+	Get-Service wlidsvc | Set-Service -StartupType disabled
+	
+	RegChange "SYSTEM\ControlSet001\Services\PcaSvc" "Start" "4" "Disabling PcaSvc (Program Compatibility Assistant) service" "DWord"
+	Get-Service PcaSvc | Set-Service -StartupType disabled
+}
+
+if ($beAppxSafe -eq 1) {
+	RegChange "SYSTEM\CurrentControlSet\Services\InstallService" "Start" "2" "Enabling InstallService MS Store service" "DWord"
+	Get-Service InstallService | Set-Service -StartupType automatic	
+	
+	RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "2" "Enabling TokenBroker (Windows Store permission manager) service" "DWord"
+	Get-Service TokenBroker | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\ControlSet001\Services\wlidsvc" "Start" "2" "Enabling wlidsvc (Microsoft Windows Live ID Service) service" "DWord"
+	Get-Service wlidsvc | Set-Service -StartupType automatic
+	
+	RegChange "SYSTEM\ControlSet001\Services\PcaSvc" "Start" "2" "Enabling PcaSvc (Program Compatibility Assistant) service" "DWord"
+	Get-Service PcaSvc | Set-Service -StartupType automatic
+}
+
 
 if ($beXboxSafe -eq 1) {
 	$safeXboxBloatware = @(	
@@ -1138,14 +1188,26 @@ if ($disablelastaccess -eq 1) {
 }
 
 if ($doPerformanceStuff -eq 0) {
+	# USELESS FAX
+	Get-Service Fax | Stop-Service -PassThru | Set-Service -StartupType automatic
+	if($?){   write-Host -ForegroundColor Green "Windows Fax service enabled"  }else{   write-Host -ForegroundColor red "Windows Fax service not enabled" } 
+
+	# USELESS GEO
+	Get-Service lfsvc | Stop-Service -PassThru | Set-Service -StartupType automatic
+	if($?){   write-Host -ForegroundColor Green "Geo service enabled"  }else{   write-Host -ForegroundColor red "Geo service not enabled" } 
+
+	# USELESS DusmSvc
+	Get-Service DusmSvc | Stop-Service -PassThru | Set-Service -StartupType automatic
+	if($?){   write-Host -ForegroundColor Green "DusmSvc service enabled"  }else{   write-Host -ForegroundColor red "DusmSvc service not enabled" } 
+
+	Write-Output "Troubleshoot Install: Enabling Windows Management Instrumentation service enabled."
+	Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType automatic
+	
 	RegChange "SYSTEM\CurrentControlSet\Services\StorSvc" "Start" "2" "Enabling StorSvc (Storage Service) service" "DWord"
 	Get-Service StorSvc | Set-Service -StartupType automatic
 
 	RegChange "SYSTEM\CurrentControlSet\Services\MSDTC" "Start" "2" "Enabling MSDTC (Distributed Transaction Coordinator) service" "DWord"
 	Get-Service MSDTC | Set-Service -StartupType automatic
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "2" "Enabling TokenBroker (Web Account Manager) service" "DWord"
-	Get-Service TokenBroker | Set-Service -StartupType automatic
 	
 	RegChange "SYSTEM\CurrentControlSet\Services\Ndu" "Start" "2" "Enabling Ndu (Network Data Usage Monitor) service" "DWord"
 	Get-Service Ndu | Set-Service -StartupType automatic
@@ -1238,14 +1300,26 @@ if ($doPerformanceStuff -eq 0) {
 }
 
 if ($doPerformanceStuff -eq 1) {
+	# USELESS FAX
+	Get-Service Fax | Stop-Service -PassThru | Set-Service -StartupType disabled
+	if($?){   write-Host -ForegroundColor Green "Windows Fax service disabled"  }else{   write-Host -ForegroundColor red "Windows Fax service not disabled" } 
+
+	# USELESS GEO
+	Get-Service lfsvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+	if($?){   write-Host -ForegroundColor Green "Geo service disabled"  }else{   write-Host -ForegroundColor red "Geo service not disabled" } 
+
+	# USELESS DusmSvc
+	Get-Service DusmSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
+	if($?){   write-Host -ForegroundColor Green "DusmSvc service disabled"  }else{   write-Host -ForegroundColor red "DusmSvc service not disabled" } 
+
+	Write-Output "Troubleshoot Install: Enabling Windows Management Instrumentation service enabled."
+	Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType disabled
+	
 	RegChange "SYSTEM\CurrentControlSet\Services\StorSvc" "Start" "4" "Disabling StorSvc (Storage Service) service" "DWord"
 	Get-Service StorSvc | Set-Service -StartupType disabled
 	
 	RegChange "SYSTEM\CurrentControlSet\Services\MSDTC" "Start" "4" "Disabling MSDTC (Distributed Transaction Coordinator) service" "DWord"
 	Get-Service MSDTC | Set-Service -StartupType disabled
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "4" "Disabling TokenBroker (Web Account Manager) service" "DWord"
-	Get-Service TokenBroker | Set-Service -StartupType disabled
 	
 	RegChange "SYSTEM\CurrentControlSet\Services\Ndu" "Start" "4" "Disabling Ndu (Network Data Usage Monitor) service" "DWord"
 	Get-Service Ndu | Set-Service -StartupType disabled
@@ -1299,14 +1373,6 @@ if ($doPerformanceStuff -eq 1) {
 	
 	Write-Output "Disabling LGHUBUpdaterService (bandwidth usage, lack of parameters for users to choose when its suppose to update)..."
 	Get-Service LGHUBUpdaterService | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
-	if ($disableWindowsUpdates -eq 0) {
-		Write-Host "BITS NOT disabled because of the disableWindowsUpdates configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-	}	else {
-		# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
-		Write-Host "Disabling BITS Background Intelligent Transfer Service"
-		Get-Service BITS | Stop-Service -PassThru | Set-Service -StartupType disabled		
-	}
 	
 	Write-Host "Disabling netsvcs. Its known for huge bandwidth usage..."
 	Get-Service netsvcs | Stop-Service -PassThru | Set-Service -StartupType disabled
@@ -1735,13 +1801,6 @@ if ($doPrivacyStuff -eq 1) {
 	Write-Host "Stopping and disabling wisvc (Windows Insider Service)..."
 	Get-Service wisvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
-	if ($disableWindowsUpdates -eq 0) {
-		Write-Host "CryptSvc NOT disabled because of the disableWindowsUpdates configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-	}	else {
-		Write-Host "Stopping and disabling CryptSvc (Cryptographic Services)..."
-		Get-Service CryptSvc | Stop-Service -PassThru | Set-Service -StartupType disabled	
-	}	
-	
 	Write-Host "Stopping and disabling EventLog (Windows Event Log)..."
 	Get-Service EventLog | Stop-Service -PassThru | Set-Service -StartupType disabled
 	
@@ -1918,7 +1977,7 @@ if ($firefoxSettings -eq 1) {
 	$PrefsFiles = Get-Item -Path ($env:APPDATA+"\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
 
-	$aboutConfigArr = @('geo.enabled', 'general.warnOnAboutConfig', 'dom.push.enabled', 'dom.webnotifications.enabled', 'app.update.auto', 'app.update.checkInstallTime', 'app.update.auto.migrated', 'app.update.service.enabled',  'identity.fxaccounts.enabled', 'privacy.firstparty.isolate', 'privacy.firstparty.isolate.block_post_message', 'privacy.resistFingerprinting', 'browser.cache.offline.enable', 'browser.send_pings', 'browser.sessionstore.max_tabs_undo', 'dom.battery.enabled', 'dom.event.clipboardevents.enabled', 'browser.startup.homepage_override.mstone', 'browser.cache.disk.smart_size', 'browser.cache.disk.capacity', 'dom.event.contextmenu.enabled', 'media.videocontrols.picture-in-picture.video-toggle.enabled', 'skipConfirmLaunchExecutable', 'activity-stream.disableSnippets', 'browser.messaging-system.whatsNewPanel.enabled', 'extensions.htmlaboutaddons.recommendations.enabled', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail', 'browser.tabs.warnOnCloseOtherTabs', 'network.trr.mode', 'network.trr.uri', 'network.trr.bootstrapAddress', 'network.security.esni.enabled', 'network.dns.echconfig.enabled', 'network.dns.use_https_rr_as_altsvc', 'browser.topsites.blockedSponsors', 'app.update.BITS.enabled', 'app.update.background.interval', 'media.autoplay.default', 'browser.search.widget.inNavBar', 'browser.contentblocking.category', 'network.cookie.cookieBehavior', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features', 'browser.uiCustomization.state')
+	$aboutConfigArr = @('geo.enabled', 'general.warnOnAboutConfig', 'dom.push.enabled', 'dom.webnotifications.enabled', 'app.update.auto', 'app.update.checkInstallTime', 'app.update.auto.migrated', 'app.update.service.enabled',  'identity.fxaccounts.enabled', 'privacy.firstparty.isolate', 'privacy.firstparty.isolate.block_post_message', 'privacy.resistFingerprinting', 'browser.cache.offline.enable', 'browser.send_pings', 'browser.sessionstore.max_tabs_undo', 'dom.battery.enabled', 'dom.event.clipboardevents.enabled', 'browser.startup.homepage_override.mstone','browser.cache.disk.capacity', 'dom.event.contextmenu.enabled', 'media.videocontrols.picture-in-picture.video-toggle.enabled', 'skipConfirmLaunchExecutable', 'activity-stream.disableSnippets', 'browser.messaging-system.whatsNewPanel.enabled', 'extensions.htmlaboutaddons.recommendations.enabled', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail', 'browser.tabs.warnOnCloseOtherTabs', 'network.trr.mode', 'network.trr.uri', 'network.trr.bootstrapAddress', 'network.security.esni.enabled', 'network.dns.echconfig.enabled', 'network.dns.use_https_rr_as_altsvc', 'browser.topsites.blockedSponsors', 'app.update.BITS.enabled', 'app.update.background.interval', 'media.autoplay.default', 'browser.search.widget.inNavBar', 'browser.contentblocking.category', 'network.cookie.cookieBehavior', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features', 'browser.uiCustomization.state')
 
 	foreach ($file in $PrefsFiles) {
 		$path = Get-ItemProperty -Path $file
@@ -1938,9 +1997,7 @@ if ($firefoxSettings -eq 1) {
 		$out+= 'user_pref("general.warnOnAboutConfig", false);'
 		$out+= 'user_pref("dom.push.enabled", false);'
 		$out+= 'user_pref("dom.webnotifications.enabled", false);'		
-		$out+= 'user_pref("identity.fxaccounts.enabled", false);'
-		$out+= 'user_pref("privacy.firstparty.isolate", true);'
-		$out+= 'user_pref("privacy.firstparty.isolate.block_post_message", true);'
+		$out+= 'user_pref("identity.fxaccounts.enabled", false);'		
 		$out+= 'user_pref("privacy.resistFingerprinting", true);'
 		$out+= 'user_pref("browser.cache.offline.enable", false);'
 		$out+= 'user_pref("browser.send_pings", false);'
@@ -1948,7 +2005,6 @@ if ($firefoxSettings -eq 1) {
 		$out+= 'user_pref("dom.battery.enabled", false);'
 		$out+= 'user_pref("dom.event.clipboardevents.enabled", false);'
 		$out+= 'user_pref("browser.startup.homepage_override.mstone", ignore);'
-		$out+= 'user_pref("browser.cache.disk.smart_size", false);'
 		$out+= 'user_pref("browser.cache.disk.capacity", 10000000);'
 		$out+= 'user_pref("dom.event.contextmenu.enabled", false);'
 		$out+= 'user_pref("media.videocontrols.picture-in-picture.video-toggle.enabled", false);'
@@ -1961,6 +2017,10 @@ if ($firefoxSettings -eq 1) {
 		$out+= 'user_pref("browser.aboutConfig.showWarning", false);'
 		$out+= 'user_pref("browser.urlbar.richSuggestions.tail", false);'
 		$out+= 'user_pref("browser.tabs.warnOnCloseOtherTabs", false);'
+		
+		# Disable cross-domain cookie access
+		$out+= 'user_pref("privacy.firstparty.isolate", true);'
+		$out+= 'user_pref("privacy.firstparty.isolate.block_post_message", true);'
 		
 		# Disable update
 		$out+= 'user_pref("app.update.auto", false);'
@@ -2010,7 +2070,7 @@ if ($firefoxCachePath) {
 	killProcess("firefox");	
 	$PrefsFiles = Get-Item -Path ($env:SystemDrive+"\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
-	$aboutConfigArr = @('*"browser.cache.disk.parent_directory"*','*"browser.cache.disk.capacity"*')
+	$aboutConfigArr = @('*"browser.cache.disk.parent_directory"*','*"browser.cache.disk.capacity"*','*"browser.cache.disk.smart_size.enabled"*')
 	
 	foreach ($file in $PrefsFiles) {
 	$path = Get-ItemProperty -Path $file
@@ -2028,7 +2088,9 @@ if ($firefoxCachePath) {
 		if ($matchAboutConfig -eq 0) {				
 			$out+= $line  
 		}
-	}	
+	}
+	
+	$out+= 'user_pref("browser.cache.disk.smart_size.enabled", false);'
 	$out+= 'user_pref("browser.cache.disk.capacity", 250000000);'
 	$out+= 'user_pref("browser.cache.disk.parent_directory", "' + $firefoxCachePath + '");'	
 	Copy-Item $file $file$currentDate".txt"
@@ -2065,6 +2127,12 @@ if ($disablePerformanceMonitor -eq 1) {
 	Get-Service pla | Stop-Service -PassThru | Set-Service -StartupType disabled
 	Get-Service PerfHost | Stop-Service -PassThru | Set-Service -StartupType disabled
 }
+
+if ($beAppxSafe -eq 1) {
+	# Windows update services are required for Appx to work
+	$disableWindowsUpdates = 0;
+}
+
 
 if ($disableWindowsUpdates -eq 0) {	
 	RegChange "SYSTEM\CurrentControlSet\Services\UsoSvc" "Start" "2" "Enabling UsoSvc service" "DWord"
@@ -2121,16 +2189,6 @@ if ($disableWindowsUpdates -eq 1) {
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DriverUpdateWizardWuSearchEnabled" "0" "Disabling DriverUpdateWizardWuSearchEnabled" "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "ExcludeWUDriversInQualityUpdate" "1" "Disabling Windows Update to include updates that have a Driver classification" "DWord"
 	
-}
-
-if ($disableMSStore -eq 0) { 
-	RegChange "SYSTEM\CurrentControlSet\Services\InstallService" "Start" "2" "Enabling InstallService MS Store service" "DWord"
-	Get-Service InstallService | Set-Service -StartupType automatic	
-}
-
-if ($disableMSStore -eq 1) { 
-	RegChange "SYSTEM\CurrentControlSet\Services\InstallService" "Start" "4" "Disabling InstallService MS Store service" "DWord"
-	Get-Service InstallService | Stop-Service -PassThru | Set-Service -StartupType disabled	
 }
 
 if ($useGoogleDNS -eq 1) { 
@@ -2472,54 +2530,37 @@ if($?){   write-Host -ForegroundColor Green "AllowSuggestedAppsInWindowsInkWorks
 If (!(Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmAgent")) {
     New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmAgent" | Out-Null
 }
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmAgent" -Name "Start" -Type DWord -Value 4
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmAgent" -Name "Start" -Type DWord -Value 2
 if($?){   write-Host -ForegroundColor Green "SgrmAgent disabled"  }else{   write-Host -ForegroundColor red "SgrmAgent not disabled" } 
 
 # Disable SgrmBroker
 If (!(Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmBroker")) {
     New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmBroker" | Out-Null
 }
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmBroker" -Name "Start" -Type DWord -Value 4
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmBroker" -Name "Start" -Type DWord -Value 2
 if($?){   write-Host -ForegroundColor Green "SgrmBroker disabled"  }else{   write-Host -ForegroundColor red "SgrmBroker not disabled" } 
 
 # Disable SgrmAgent
 If (!(Test-Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmAgent")) {
     New-Item -Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmAgent" | Out-Null
 }
-Set-ItemProperty -Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmAgent" -Name "Start" -Type DWord -Value 4
+Set-ItemProperty -Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmAgent" -Name "Start" -Type DWord -Value 2
 if($?){   write-Host -ForegroundColor Green "SgrmAgent disabled"  }else{   write-Host -ForegroundColor red "SgrmAgent not disabled" } 
 
 # Disable SgrmBroker
 If (!(Test-Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmBroker")) {
     New-Item -Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmBroker" | Out-Null
 }
-Set-ItemProperty -Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmBroker" -Name "Start" -Type DWord -Value 4
+Set-ItemProperty -Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmBroker" -Name "Start" -Type DWord -Value 2
 if($?){   write-Host -ForegroundColor Green "SgrmBroker disabled"  }else{   write-Host -ForegroundColor red "SgrmBroker not disabled" } 
 
 # xbox dvr causing fps issues
 reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR /v value /t REG_DWORD /d 0 /f
 
 # WE DONT NEED TELEMETRY AGENT NVIDIA!
-Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -StartupType disabled
+Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -StartupType automatic
 
-# USELESS FAX
-Get-Service Fax | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "Windows Fax service disabled"  }else{   write-Host -ForegroundColor red "Windows Fax service not disabled" } 
 
-# USELESS GEO
-Get-Service lfsvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "Geo service disabled"  }else{   write-Host -ForegroundColor red "Geo service not disabled" } 
-
-Get-Service wlidsvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "wlidsvc disabled"  }else{   write-Host -ForegroundColor red "wlidsvc not disabled" } 
-
-# USELESS PcaSvc
-Get-Service PcaSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "PcaSvc service disabled"  }else{   write-Host -ForegroundColor red "PcaSvc service not disabled" } 
-
-# USELESS DusmSvc
-Get-Service DusmSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-if($?){   write-Host -ForegroundColor Green "DusmSvc service disabled"  }else{   write-Host -ForegroundColor red "DusmSvc service not disabled" } 
 
 PowerCfg -SetActive $powerPlan
 write-Host -ForegroundColor Green "PowerScheme Sucessfully Applied"
