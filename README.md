@@ -68,17 +68,19 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable People's Bar;
 - Show Computer shortcut on desktop;
 - Remove all pinned bloatware from your start menu;
-- Disable sticky keys;
+- Disable sticky keys prompt;
 - Disable Windows from asking your feedback;
 - Disable SecurityHealthService, due to anoying and non configurable popups;
 - Disable WpnService, push notification service;
 - Disable Razer Chroma SDK Server. Its night and you have that game with Razer SDK enabled running and messing up your keys;
 - Disable Windows Licence check;
 - Put "This PC" shortcut on desktop;
+- Disable XPS printing;
 - Disable Game Bar tips;
 - Disable Vmware Host Server, service uses port 80;
 - Firefox: disable recomendations and offers;
-- Firefox: autoplay audio and video;
+- Firefox: enable autoplay audio and video;
+- Firefox: disable sponsor shortcut (Amazon, Trivago);
 
 ## Fingerprinting Prevention and privacy
 
@@ -99,12 +101,15 @@ I do not take responsibility for what may happen to your system. This is at your
 - Disable recycle bin;
 - Enable DNS-over-HTTPS (DoH), both on Windows and Firefox, it encrypts the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers;
 - Firefox: Enable Encrypted Client Hello (ECH), to prevent TLS from leaking any data by encrypting all messages;
+- Firefox: Disable telemetry, data collection and studies;
+- Firefox: Disable project fission and shield (both are some kind of data collector);
 
 ## Gaming
 
 - Disable Windows mouse acceleration (ideal for FPS games);
 - Disable VBS (Virtualization-based security), may have a significant performance boost, specially in games;
 - Ensure that Hardware Accelerated Scheduling is ON, in very rare cases it may reduce latency;
+- Disable Xbox related features, they are known for causing fps issues;
 
 
 Usage

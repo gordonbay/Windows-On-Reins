@@ -22,12 +22,12 @@ $beWifiSafe = 0
 # 1 = Keep Wifi working
 # Note: Top priority configuration, overrides other settings.
 
-$beMicrophoneSafe = 0
+$beMicrophoneSafe = 1
 # 0 = Disable services required to use the microphone. *Recomended.
 # 1 = Keep microphone working
 # Note: Top priority configuration, overrides other settings.
 
-$beAppxSafe = 0
+$beAppxSafe = 1
 # 0 = Disable resources needed for Appx programas, Windows Store and online MS Office features. *Recomended.
 # 1 = Will keep programs like Store and Microsoft Store working. Will Keep office online features working, like corporate login, power query, power bi workspace, "Open in app" option on sharepoint...
 # Note: Top priority configuration, overrides other settings.
@@ -71,7 +71,7 @@ $beCastSafe = 0
 # Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
 # Note: Top priority configuration, overrides other settings.
 
-$beVpnPppoeSafe = 0
+$beVpnPppoeSafe = 1
 # 0 = Will make the system safer against DNS cache poisoning but VPN or PPPOE conns may stop working. *Recomended.
 # 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
 # Note: Set it to 1 if you pretend to use VPN, PPP conns, if the system is inside a VM or having trouble with internet.
@@ -189,11 +189,11 @@ $standbyDcTimeout = 25
 $hybernateAcTimeout = 0
 $hybernateDcTimeout = 0
 
-$firefoxSettings = 0
+$firefoxSettings = 1
 # 0 = Keep Firefox settings unchanged.
 # 1 = Apply pro Firefox settings. Disable update, cross-domain cookies... *Recomended.
 
-$firefoxCachePath = "";
+$firefoxCachePath = "C:\\FIREFOX_CACHE";
 # Leave it EMPTY or...
 # Define a custom folder for Firefox cache files.
 # Example: "E:\\FIREFOX_CACHE";
@@ -211,7 +211,7 @@ $disablePerformanceMonitor = 1
 # 0 = Do nothing;
 # 1 = Disable Windows Performance Logs Monitor and clear all .etl caches. *Recomended.
 
-$unpinStartMenu = 1
+$unpinStartMenu = 0
 # 0 = Do nothing;
 # 1 = Unpin all apps from start menu.
 
@@ -666,33 +666,6 @@ Function DisableThumbnail {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbsDBOnNetworkFolders" "1" "Disabling Windows Thumbnail" "DWord"
 }
 
-# Disable Xbox features
-Function DisableXboxFeatures {
-	Write-Output "Disabling Xbox features..."
-	Get-AppxPackage "Microsoft.XboxApp" | Remove-AppxPackage
-	Get-AppxPackage "Microsoft.XboxIdentityProvider" | Remove-AppxPackage -ErrorAction SilentlyContinue
-	Get-AppxPackage "Microsoft.XboxSpeechToTextOverlay" | Remove-AppxPackage
-	Get-AppxPackage "Microsoft.XboxGameOverlay" | Remove-AppxPackage
-	Get-AppxPackage "Microsoft.XboxGamingOverlay" | Remove-AppxPackage
-	Get-AppxPackage "Microsoft.Xbox.TCUI" | Remove-AppxPackage
-	
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Disabling Xbox scheduled tasks..."
-		Get-ScheduledTask  XblGameSaveTaskLogon | Disable-ScheduledTask
-		Get-ScheduledTask  XblGameSaveTask | Disable-ScheduledTask
-	}
-	
-	Set-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AutoGameModeEnabled" -Type DWord -Value 0
-	RegChange "System\GameConfigStore" "GameDVR_Enabled" "0" "Changing Registry key to disable Game DVR - GameDVR_Enabled" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" "0" "Changing Registry key to disable gamebarpresencewriter"
-	
-	If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR")) {
-		New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR" -Name "AllowGameDVR" -Type DWord -Value 0
-	RegChange "Software\Microsoft\GameBar" "ShowStartupPanel" "0" "Disabling Game Bar Tips" "DWord"
-}
-
 # Prefetch-files contain metadata information about the last run of the program, how many times it was run, which logical drive a program was run and dlls used.
 Function EnablePrefetcher {	
 	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" "EnablePrefetcher" "3" "Enabling Prefetcher" "DWord"
@@ -828,30 +801,14 @@ Function EnableLLMNR {
 # Program - Start
 ##########
 
-if ($troubleshootInstalls -eq 1) {	
+if ($troubleshootInstalls -eq 1) {
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop" "DWord"	
+	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop"
 
-
-
-
+	pause
 	RegChange "SYSTEM\CurrentControlSet\Services\diagnosticshub.standardcollector.service" "Start" "2" "Disabling diagnosticshub.standardcollector.service service" "DWord"
 	Get-Service diagnosticshub.standardcollector.service | Set-Service -StartupType automatic
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
 	write-Host "Troubleshoot Install: Enabling BITS (Background Intelligent Transfer Service)" -ForegroundColor Green -BackgroundColor Black 
@@ -885,6 +842,7 @@ if ($troubleshootInstalls -eq 1) {
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"
+	pause
 }
 
 if ($legacyRightClicksMenu -eq 0) {
@@ -929,7 +887,27 @@ if ($disableNtfsCompression -eq 1) {
 }
 
 if ($beXboxSafe -eq 0) {
-	DisableXboxFeatures
+	Write-Output "Disabling Xbox features..."
+	Get-AppxPackage "Microsoft.XboxApp" | Remove-AppxPackage
+	Get-AppxPackage "Microsoft.XboxIdentityProvider" | Remove-AppxPackage -ErrorAction SilentlyContinue
+	Get-AppxPackage "Microsoft.XboxSpeechToTextOverlay" | Remove-AppxPackage
+	Get-AppxPackage "Microsoft.XboxGameOverlay" | Remove-AppxPackage
+	Get-AppxPackage "Microsoft.XboxGamingOverlay" | Remove-AppxPackage
+	Get-AppxPackage "Microsoft.Xbox.TCUI" | Remove-AppxPackage
+	
+	if ($(serviceStatus("Schedule")) -eq "running") {
+		Write-Output "Disabling Xbox scheduled tasks..."
+		Get-ScheduledTask  XblGameSaveTaskLogon | Disable-ScheduledTask
+		Get-ScheduledTask  XblGameSaveTask | Disable-ScheduledTask
+	}
+	
+	RegChange "Software\Microsoft\GameBar" "AutoGameModeEnabled" "0" "Disabling GameBar" "DWord"
+	RegChange "Software\Microsoft\GameBar" "ShowStartupPanel" "0" "Disabling Game Bar Tips" "DWord"
+	RegChange "System\GameConfigStore" "GameDVR_Enabled" "0" "Changing Registry key to disable Game DVR - GameDVR_Enabled" "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" "0" "Changing Registry key to disable gamebarpresencewriter"
+
+	# xbox dvr causing fps issues
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\GameDVR" "GameDVR" "0" "Disabling Xbox GameDVR..." "DWord"
 }
 
 if ($beWifiSafe -eq 1) {
@@ -1188,6 +1166,14 @@ if ($disablelastaccess -eq 1) {
 }
 
 if ($doPerformanceStuff -eq 0) {
+	# Parental Controls
+	Write-Output "Enabling Windows Parental Controls..."
+	Get-Service WpcMonSvc | Stop-Service -PassThru | Set-Service -StartupType automatic	
+
+	# Diagnostic Execution Service
+	Write-Output "Disabling Windows Diagnostic Execution Service..."
+	Get-Service diagsvc | Stop-Service -PassThru | Set-Service -StartupType automatic	
+
 	# USELESS FAX
 	Get-Service Fax | Stop-Service -PassThru | Set-Service -StartupType automatic
 	if($?){   write-Host -ForegroundColor Green "Windows Fax service enabled"  }else{   write-Host -ForegroundColor red "Windows Fax service not enabled" } 
@@ -1217,6 +1203,8 @@ if ($doPerformanceStuff -eq 0) {
 	
 	RegChange "SYSTEM\CurrentControlSet\Services\Spooler" "Start" "2" "Enabling print spooler service" "DWord"
 	Get-Service Spooler | Set-Service -StartupType automatic
+
+	Remove-Printer -Name "Microsoft XPS Document Writer"
 	
 	RegChange "SYSTEM\CurrentControlSet\Services\StiSvc" "Start" "2" "Enabling StiSvc Windows Image Acquisition (WIA) service" "DWord"
 	Get-Service StiSvc | Set-Service -StartupType automatic
@@ -1300,6 +1288,14 @@ if ($doPerformanceStuff -eq 0) {
 }
 
 if ($doPerformanceStuff -eq 1) {
+	# Parental Controls
+	Write-Output "Disabling Windows Parental Controls..."
+	Get-Service WpcMonSvc | Stop-Service -PassThru | Set-Service -StartupType disabled	
+
+	# Diagnostic Execution Service
+	Write-Output "Disabling Windows Diagnostic Execution Service..."
+	Get-Service diagsvc | Stop-Service -PassThru | Set-Service -StartupType disabled	
+
 	# USELESS FAX
 	Get-Service Fax | Stop-Service -PassThru | Set-Service -StartupType disabled
 	if($?){   write-Host -ForegroundColor Green "Windows Fax service disabled"  }else{   write-Host -ForegroundColor red "Windows Fax service not disabled" } 
@@ -1326,7 +1322,9 @@ if ($doPerformanceStuff -eq 1) {
 	
 	RegChange "SYSTEM\CurrentControlSet\Services\AppMgmt" "Start" "4" "Disabling AppMgmt (Application Management) service" "DWord"
 	Get-Service AppMgmt | Set-Service -StartupType disabled
-	
+
+	Remove-Printer -Name "Microsoft XPS Document Writer"
+
 	RegChange "SYSTEM\CurrentControlSet\Services\Spooler" "Start" "4" "Disabling print spooler service" "DWord"
 	Get-Service Spooler | Set-Service -StartupType disabled
 	
@@ -1399,6 +1397,9 @@ if ($doPerformanceStuff -eq 1) {
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" "DODownloadMode" "100" "Disabling DeliveryOptimization Peering and HTTP download mode (bypass mode)..." "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "100" "Disabling DeliveryOptimization Peering and HTTP download mode (bypass mode)..." "DWord"	
 	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "4" "Disabling Edge updates..." "DWord"
+	
+	regDelete "Software\Microsoft\Windows\CurrentVersion\Run\com.squirrel.Teams.Teams" "Disabling MS Teams updater"
+	regDelete "Software\Microsoft\Windows\CurrentVersion\Run\OneDrive" "Disabling OneDrive auto start"
 	
 	if ($beNetworkPrinterSafe -eq 0) {
 		Write-Host "Disabling LanmanWorkstation Service..."
@@ -1555,7 +1556,8 @@ if ($doPrivacyStuff -eq 0) {
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "0" "Enabling Tailored Experiences" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "1" "Enabling automatic installation of network devices" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop" "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop" "DWord"
+	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop" "DWord"	
+	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" "0" "Enabling handwriting personalization data sharing..." "DWord"	
 	RegChange "SOFTWARE\Policies\Microsoft\SQMClient\Windows" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\AppV\CEIP" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
@@ -1626,7 +1628,7 @@ if ($doPrivacyStuff -eq 0) {
 	Write-Output "Setting network to private..."
 	Set-NetConnectionProfile -NetworkCategory Private
    
-   Write-Output "Enabling Background application access..."
+   	Write-Output "Enabling Background application access..."
 	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
 		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 0
 		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 0
@@ -1658,6 +1660,9 @@ if ($doPrivacyStuff -eq 0) {
 	# Disable Ip helper due transfering a lot of strange data
 	RegChange "SYSTEM\CurrentControlSet\Services\iphlpsvc" "Start" "2" "Enabling Ip Helper service" "DWord"
 	Get-Service iphlpsvc | Set-Service -StartupType automatic
+
+	Write-Host "Enabling Nvidia Telemetry service..."
+	Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -StartupType automatic
 }
 
 if ($doPrivacyStuff -eq 1) {
@@ -1807,6 +1812,9 @@ if ($doPrivacyStuff -eq 1) {
 	# Disable Ip helper due transfering a lot of strange data
 	RegChange "SYSTEM\CurrentControlSet\Services\iphlpsvc" "Start" "4" "Disabling Ip Helper service" "DWord"
 	Get-Service iphlpsvc | Set-Service -StartupType disabled
+
+	Write-Host "Disabling Nvidia Telemetry service..."
+	Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -StartupType disabled
 }
 
 EnableDnsCache
@@ -1977,7 +1985,7 @@ if ($firefoxSettings -eq 1) {
 	$PrefsFiles = Get-Item -Path ($env:APPDATA+"\Mozilla\Firefox\Profiles\*\prefs.js")
 	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
 
-	$aboutConfigArr = @('geo.enabled', 'general.warnOnAboutConfig', 'dom.push.enabled', 'dom.webnotifications.enabled', 'app.update.auto', 'app.update.checkInstallTime', 'app.update.auto.migrated', 'app.update.service.enabled',  'identity.fxaccounts.enabled', 'privacy.firstparty.isolate', 'privacy.firstparty.isolate.block_post_message', 'privacy.resistFingerprinting', 'browser.cache.offline.enable', 'browser.send_pings', 'browser.sessionstore.max_tabs_undo', 'dom.battery.enabled', 'dom.event.clipboardevents.enabled', 'browser.startup.homepage_override.mstone','browser.cache.disk.capacity', 'dom.event.contextmenu.enabled', 'media.videocontrols.picture-in-picture.video-toggle.enabled', 'skipConfirmLaunchExecutable', 'activity-stream.disableSnippets', 'browser.messaging-system.whatsNewPanel.enabled', 'extensions.htmlaboutaddons.recommendations.enabled', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail', 'browser.tabs.warnOnCloseOtherTabs', 'network.trr.mode', 'network.trr.uri', 'network.trr.bootstrapAddress', 'network.security.esni.enabled', 'network.dns.echconfig.enabled', 'network.dns.use_https_rr_as_altsvc', 'browser.topsites.blockedSponsors', 'app.update.BITS.enabled', 'app.update.background.interval', 'media.autoplay.default', 'browser.search.widget.inNavBar', 'browser.contentblocking.category', 'network.cookie.cookieBehavior', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features', 'browser.uiCustomization.state')
+	$aboutConfigArr = @('geo.enabled', 'general.warnOnAboutConfig', 'dom.push.enabled', 'dom.webnotifications.enabled', 'app.update.auto', 'app.update.checkInstallTime', 'app.update.auto.migrated', 'app.update.service.enabled',  'identity.fxaccounts.enabled', 'privacy.firstparty.isolate', 'privacy.firstparty.isolate.block_post_message', 'privacy.resistFingerprinting', 'browser.cache.offline.enable', 'browser.send_pings', 'browser.sessionstore.max_tabs_undo', 'dom.battery.enabled', 'dom.event.clipboardevents.enabled', 'browser.startup.homepage_override.mstone','browser.cache.disk.capacity', 'dom.event.contextmenu.enabled', 'media.videocontrols.picture-in-picture.video-toggle.enabled', 'skipConfirmLaunchExecutable', 'activity-stream.disableSnippets', 'browser.messaging-system.whatsNewPanel.enabled', 'extensions.htmlaboutaddons.recommendations.enabled', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail', 'browser.tabs.warnOnCloseOtherTabs', 'network.trr.mode', 'network.trr.uri', 'network.trr.bootstrapAddress', 'network.security.esni.enabled', 'network.dns.echconfig.enabled', 'network.dns.use_https_rr_as_altsvc', 'browser.topsites.blockedSponsors', 'app.update.BITS.enabled', 'app.update.background.interval', 'media.autoplay.default', 'browser.search.widget.inNavBar', 'browser.contentblocking.category', 'network.cookie.cookieBehavior', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features', 'browser.uiCustomization.state','browser.newtabpage.activity-stream.feeds.telemetry','browser.newtabpage.activity-stream.telemetry','browser.ping-centre.telemetry','datareporting.healthreport.service.enabled','datareporting.healthreport.uploadEnabled','datareporting.policy.dataSubmissionEnabled','datareporting.sessions.current.clean','devtools.onboarding.telemetry.logged','toolkit.telemetry.archive.enabled','toolkit.telemetry.bhrPing.enabled','toolkit.telemetry.enabled','toolkit.telemetry.firstShutdownPing.enabled','toolkit.telemetry.hybridContent.enabled','toolkit.telemetry.newProfilePing.enabled','toolkit.telemetry.prompted','toolkit.telemetry.rejected','toolkit.telemetry.reportingpolicy.firstRun','toolkit.telemetry.server','toolkit.telemetry.shutdownPingSender.enabled','toolkit.telemetry.unified','toolkit.telemetry.unifiedIsOptIn','toolkit.telemetry.updatePing.enabled','app.shield.optoutstudies.enabled')
 
 	foreach ($file in $PrefsFiles) {
 		$path = Get-ItemProperty -Path $file
@@ -2040,7 +2048,7 @@ if ($firefoxSettings -eq 1) {
 		$out+= 'user_pref("network.dns.use_https_rr_as_altsvc", true);'
 		
 		# Remove Amazon`s shortcut from startup
-		$out+= 'user_pref("browser.topsites.blockedSponsors", "[\"amazon\"]");'
+		$out+= 'user_pref("browser.topsites.blockedSponsors", "[\"amazon\",\"trivago\"]");'
 		
 		# Allow autoplay of audio and video
 		$out+= 'user_pref("media.autoplay.default", "0");'
@@ -2056,6 +2064,31 @@ if ($firefoxSettings -eq 1) {
 		# Disable recommendations
 		$out+= 'user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);'
 		$out+= 'user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", false);'
+
+		# Telemetry and data collection
+		$out+= 'user_pref("browser.newtabpage.activity-stream.feeds.telemetry", false);'
+		$out+= 'user_pref("browser.newtabpage.activity-stream.telemetry", false);'
+		$out+= 'user_pref("browser.ping-centre.telemetry", false);'
+		$out+= 'user_pref("datareporting.healthreport.service.enabled", false);'
+		$out+= 'user_pref("datareporting.healthreport.uploadEnabled", false);'
+		$out+= 'user_pref("datareporting.policy.dataSubmissionEnabled", false);'
+		$out+= 'user_pref("datareporting.sessions.current.clean", true);'
+		$out+= 'user_pref("devtools.onboarding.telemetry.logged", false);'
+		$out+= 'user_pref("toolkit.telemetry.archive.enabled", false);'
+		$out+= 'user_pref("toolkit.telemetry.bhrPing.enabled", false);'
+		$out+= 'user_pref("toolkit.telemetry.enabled", false);'
+		$out+= 'user_pref("toolkit.telemetry.firstShutdownPing.enabled", false);'
+		$out+= 'user_pref("toolkit.telemetry.hybridContent.enabled", false);'
+		$out+= 'user_pref("toolkit.telemetry.newProfilePing.enabled", false);'
+		$out+= 'user_pref("toolkit.telemetry.prompted", 2);'
+		$out+= 'user_pref("toolkit.telemetry.rejected", true);'
+		$out+= 'user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);'
+		$out+= 'user_pref("toolkit.telemetry.server", "");'
+		$out+= 'user_pref("toolkit.telemetry.shutdownPingSender.enabled", false);'
+		$out+= 'user_pref("toolkit.telemetry.unified", false);'
+		$out+= 'user_pref("toolkit.telemetry.unifiedIsOptIn", false);'
+		$out+= 'user_pref("toolkit.telemetry.updatePing.enabled", false);'
+		$out+= 'user_pref("app.shield.optoutstudies.enabled", false);'
 
 		Copy-Item $file $file$currentDate".txt"
 
@@ -2462,7 +2495,7 @@ if ($visual -like "y") {
 	choco install k-litecodecpackfull -y
 	choco install imageglass -y
 	choco install 7zip.install -y
-	choco install notepadplusplus -y
+	choco install vscode -y
 }
 
 # REMOVE ONEDRIVE
@@ -2489,13 +2522,6 @@ if($?){   write-Host -ForegroundColor Green "One Drive appdata folder removed"  
 # Disable ShadowCopy
 vssadmin delete shadows /all /quiet | Out-Null
 if($?){   write-Host -ForegroundColor Green "Windows Shadowcopy removed"  }else{   write-Host -ForegroundColor green "Windows Shadowcopy already disabled" } 
-
-# Disable notifications
-reg add 'HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Explorer' /v DisableNotificationCenter /t REG_DWORD /d 1 /f
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications" /v "ToastEnabled" /t REG_DWORD /d 0 /f
-reg add HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v EnableBalloonTips /t REG_DWORD /d 0 /f
-reg add HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer /v DisableNotificationCenter /t REG_DWORD /d 1 /f
-reg add HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Explorer /v DisableNotificationCenter /t REG_DWORD /d 1 /f
 
 # Disable Windows Tile Notifications
 If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Notifications\DisallowTileNotification")) {
@@ -2540,27 +2566,6 @@ If (!(Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmBroker")) {
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmBroker" -Name "Start" -Type DWord -Value 2
 if($?){   write-Host -ForegroundColor Green "SgrmBroker disabled"  }else{   write-Host -ForegroundColor red "SgrmBroker not disabled" } 
 
-# Disable SgrmAgent
-If (!(Test-Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmAgent")) {
-    New-Item -Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmAgent" | Out-Null
-}
-Set-ItemProperty -Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmAgent" -Name "Start" -Type DWord -Value 2
-if($?){   write-Host -ForegroundColor Green "SgrmAgent disabled"  }else{   write-Host -ForegroundColor red "SgrmAgent not disabled" } 
-
-# Disable SgrmBroker
-If (!(Test-Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmBroker")) {
-    New-Item -Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmBroker" | Out-Null
-}
-Set-ItemProperty -Path "HKLM:\SYSTEM\ControlSet001\Services\SgrmBroker" -Name "Start" -Type DWord -Value 2
-if($?){   write-Host -ForegroundColor Green "SgrmBroker disabled"  }else{   write-Host -ForegroundColor red "SgrmBroker not disabled" } 
-
-# xbox dvr causing fps issues
-reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\ApplicationManagement\AllowGameDVR /v value /t REG_DWORD /d 0 /f
-
-# WE DONT NEED TELEMETRY AGENT NVIDIA!
-Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -StartupType automatic
-
-
 
 PowerCfg -SetActive $powerPlan
 write-Host -ForegroundColor Green "PowerScheme Sucessfully Applied"
@@ -2572,6 +2577,20 @@ powercfg.exe -x -standby-timeout-ac $standbyAcTimeout
 powercfg.exe -x -standby-timeout-dc $standbyDcTimeout
 powercfg.exe -x -hibernate-timeout-ac $hybernateAcTimeout
 powercfg.exe -x -hibernate-timeout-dc $hybernateDcTimeout
+
+Write-Output "Patching hosts file..."
+Clear-Content $env:windir\System32\drivers\etc\hosts
+$hostsList = @(		
+	"localhost"
+	
+	# Firefox disable update
+	if ($firefoxSettings -eq 1) {	
+		"aus5.mozilla.org"		
+	} 
+)
+foreach ($line in $hostsList) {
+	Add-Content -Path $env:windir\System32\drivers\etc\hosts -Value $("127.0.0.1 " + $line) -Force	
+}
 
 Remove-PSDrive HKCR
 PAUSE
