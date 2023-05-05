@@ -17,7 +17,7 @@ $troubleshootInstalls = 0
 # Note: Known to fix these installations: windows language pack, Autodesk AutoCad and Appxs.
 # Note: Top priority configuration, overrides other settings.
 
-$beWifiSafe = 0
+$beWifiSafe = 1
 # 0 = May disable services required to use Wifi. *Recomended.
 # 1 = Keep Wifi working
 # Note: Top priority configuration, overrides other settings.
@@ -27,8 +27,8 @@ $beMicrophoneSafe = 1
 # 1 = Keep microphone working
 # Note: Top priority configuration, overrides other settings.
 
-$beAppxSafe = 1
-# 0 = Disable resources needed for Appx programas, Windows Store and online MS Office features. *Recomended.
+$beAppxSafe = 0
+# 0 = Disable resources needed for Appx programs, Windows Store and online MS Office features. *Recomended.
 # 1 = Will keep programs like Store and Microsoft Store working. Will Keep office online features working, like corporate login, power query, power bi workspace, "Open in app" option on sharepoint...
 # Note: Top priority configuration, overrides other settings.
 # Note: Will keep Windows updates active
@@ -193,7 +193,7 @@ $firefoxSettings = 1
 # 0 = Keep Firefox settings unchanged.
 # 1 = Apply pro Firefox settings. Disable update, cross-domain cookies... *Recomended.
 
-$firefoxCachePath = "C:\\FIREFOX_CACHE";
+$firefoxCachePath = "";
 # Leave it EMPTY or...
 # Define a custom folder for Firefox cache files.
 # Example: "E:\\FIREFOX_CACHE";
@@ -1434,6 +1434,8 @@ if ($doPerformanceStuff -eq 1) {
 }
 
 if ($doQualityOfLifeStuff -eq 0) {
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "SaveZoneInformation" "1" "Enabling Attachment being locked when saved..." "DWord"
+
 	Get-Service VMwareHostd | Set-Service -StartupType automatic
 	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "2" "Enabling VMware host..." "DWord"
 	
@@ -1481,6 +1483,10 @@ if ($doQualityOfLifeStuff -eq 0) {
 }
 
 if ($doQualityOfLifeStuff -eq 1) {
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "SaveZoneInformation" "2" "Disabling Attachment being locked when saved..." "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Associations" "DefaultFileTypeRisk" "6152" "Lowering attachments risk level to prevent user prompts..." "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "HideZoneInfoOnProperties" "0" "Enabling Unblock on the files Properties..." "DWord"
+
 	Get-Service VMwareHostd | Stop-Service -PassThru | Set-Service -StartupType disabled
 	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "4" "Disabling VMware host..." "DWord"
 	
@@ -2124,7 +2130,7 @@ if ($firefoxCachePath) {
 	}
 	
 	$out+= 'user_pref("browser.cache.disk.smart_size.enabled", false);'
-	$out+= 'user_pref("browser.cache.disk.capacity", 250000000);'
+	$out+= 'user_pref("browser.cache.disk.capacity", 25000000);'
 	$out+= 'user_pref("browser.cache.disk.parent_directory", "' + $firefoxCachePath + '");'	
 	Copy-Item $file $file$currentDate".txt"
 	Clear-Content $file
