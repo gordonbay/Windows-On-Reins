@@ -10,7 +10,7 @@
 # Function = Option
 # List of Options
 
-$troubleshootInstalls = 0
+$troubleshootInstalls = 1
 # 0 = Do nothing. *Recomended.
 # 1 = Enable essential stuff needed for some installations.
 # Note: Set to 1 if you are having trouble installing something on you pc.
@@ -27,45 +27,45 @@ $beMicrophoneSafe = 1
 # 1 = Keep microphone working
 # Note: Top priority configuration, overrides other settings.
 
-$beAppxSafe = 0
+$beAppxSafe = 1
 # 0 = Disable resources needed for Appx programs, Windows Store and online MS Office features. *Recomended.
 # 1 = Will keep programs like Store and Microsoft Store working. Will Keep office online features working, like corporate login, power query, power bi workspace, "Open in app" option on sharepoint...
 # Note: Top priority configuration, overrides other settings.
 # Note: Will keep Windows updates active
 
-$beXboxSafe = 0
+$beXboxSafe = 1
 # 0 = Disable Xbox and Windows Live Games related stuff like Game Bar. *Recomended.
 # 1 = Enable it.
 # Note: Top priority configuration, overrides other settings.
 
-$beBiometricSafe = 0
+$beBiometricSafe = 1
 # 0 = Disable biometric related stuff. *Recomended.
 # 1 = Enable it.
 # Note: Refers to lockscreen, fingerprint reader, illuminated IR sensor or other biometric sensors.
 # Note: Top priority configuration, overrides other settings.
 
-$beNetworkPrinterSafe = 0
+$beNetworkPrinterSafe = 1
 # 0 = Disable network printer. *Recomended.
 # 1 = Enable it.
 # Note: Top priority configuration, overrides other settings.
 
-$beNetworkFolderSafe = 0
+$beNetworkFolderSafe = 1
 # 0 = Disable network folders. *Recomended.
 # 1 = Enable it.
 # Note: Top priority configuration, overrides other settings.
 
-$beAeroPeekSafe = 0
+$beAeroPeekSafe = 1
 # 0 = Disable Windows Aero Peek. *Recomended.
 # 1 = Enable it to Windows defaults.
 # Note: Top priority configuration, overrides other settings.
 
-$beThumbnailSafe = 0
+$beThumbnailSafe = 1
 # 0 = Disable Windows Thumbnails. *Recomended.
 # 1 = Enable it to Windows defaults.
 # Note: Refers to the use of thumbnails instead of icon to some files.
 # Note: Top priority configuration, overrides other settings.
 
-$beCastSafe = 0
+$beCastSafe = 1
 # 0 = Disable Casting. *Recomended.
 # 1 = Enable it.  
 # Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
@@ -76,12 +76,12 @@ $beVpnPppoeSafe = 1
 # 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
 # Note: Set it to 1 if you pretend to use VPN, PPP conns, if the system is inside a VM or having trouble with internet.
 
-$beTaskScheduleSafe = 0
+$beTaskScheduleSafe = 1
 # 0 = Disable Task Schedule. *Recomended.
 # 1 = Enable it.  
 # Note: Top priority configuration, overrides other settings.
 
-$disableCortana = 1
+$disableCortana = 0
 # 0 = Enable Cortana
 # 1 = Disable Cortana *Recomended
 
@@ -89,96 +89,85 @@ $legacyRightClicksMenu = 1
 # 0 = Use Windows 11 right click menu
 # 1 = Use legacy right click menu *Recomended
 
-$disableStartupSound = 1
+$disableStartupSound = 0
 # 0 = Keep Windows 11 startup sound
 # 1 = Disable Windows 11 startup sound *Recomended
 
-$useGoogleDNS = 1
+$useGoogleDNS = 0
 # 0 = Nothing
 # 1 = Apply Google DNS to connections *Recomended.
 
-$installNvidiaControlPanel = 1
-# 0 = Remove Nvidia Appx.
-# 1 = Install Nvidia control panel. *Recomended.
-# Note: The script will check if your GPU vendor is Nvidia
-# Note: Refers to the new Nvidia Appx. Nvidia driver install dont cames with control panel anymore.
 
-$darkTheme = 1
+$darkTheme = 0
 # 0 = Use Windows and apps default light theme.
 # 1 = Enable dark theme. *Recomended.
 
-$draculaThemeNotepad = 1
-# 0 = Disable Dracula theme for Notepad++.
-# 1 = Enable Dracula theme for Notepad++. *Recomended.
 
-$disableWindowsFirewall = 1
+$disableWindowsFirewall = 0
 # 0 = Enable.
 # 1 = Disable. *Recomended.
 
-$disableWindowsUpdates = 1
+$disableWindowsUpdates = 0
 # 0 = Enable Windows Updates.
 # 1 = Disable Windows Updates. *Recomended.
 
-$disableTelemetry = 1
+$disableTelemetry = 0
 # 0 = Enable Telemetry.
 # 1 = Disable Telemetry. *Recomended.
 # Note: Microsoft uses telemetry to periodically collect information about Windows systems. It is possible to acquire information as the computer hardware serial number, the connection records for external storage devices, and traces of executed processes.
 # Note: This tweak may cause Enterprise edition to stop receiving Windows updates.
 
-$disableSMBServer = 1
+$disableSMBServer = -0
 # 0 = Enable SMB Server. 
 # 1 = Disable it. *Recomended.
 # Note: SMB Server is used for file and printer sharing.
 
-$disablelastaccess = 1
+$disablelastaccess = 0
 # 0 = Enable it.
 # 1 = Disable last file access date. *Recomended.
 
-$doQualityOfLifeStuff = 1
+$doQualityOfLifeStuff = 0
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase quality of life. *Recomended.
 
-$doPerformanceStuff = 1
+$doPerformanceStuff = 0
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system performance. *Recomended.
 
-$doPrivacyStuff = 1
+$doPrivacyStuff = 0
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system privacy. *Recomended.
 
-$doSecurityStuff = 1
+$doSecurityStuff = 0
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to increase system security. *Recomended.
 
-$doFingerprintPrevention = 1
+$doFingerprintPrevention = 0
 # 0 = Reverse system settings to default.
 # 1 = Perform routines to prevent fingerprints. *Recomended.
 
-$disableSystemRestore = 1
+$disableSystemRestore = 0
 # 0 = Enable system restore
 # 1 = Disable system restore. *Recomended.
 
-$disableNtfsEncryption = 1
+$disableNtfsEncryption = 0
 # 0 = Enable NTFS file encryption
 # 1 = Disable NTFS file encryption. *Recomended.
 # NTFS file encryption is the built-in encryption tool in Windows used to encrypt files and folders on NTFS drives to protect them from unwanted access
 # Disabling it can reduce the processing overhead of filesystem operations
 
-$disableNtfsCompression = 1
+$disableNtfsCompression = 0
 # 0 = Enable NTFS file compression
 # 1 = Disable NTFS file compression. *Recomended.
 # Disabling it can increase performance
 
-$disableVBS = 1
+$disableVBS = 0
 # 0 = Enable VBS
 # 1 = Disable VBS. *Recomended.
 # VBS (Virtualization-based security) prevent unsigned or questionable drivers and software from getting into memory
 # Disabling it may have a significant performance boost, specially in games
 
-#$powerPlan = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' # (High performance)
-#$powerPlan = '381b4222-f694-41f0-9685-ff5bb260df2e' # (Balanced)
-#$powerPlan = 'a1841308-3541-4fab-bc81-f71556f20b4a' # (Power saver)
-$powerPlan = 'a1841308-3541-4fab-bc81-f71556f20b4a' # (Power saver)
+$powerPlan = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' # (High performance)
 
 $diskAcTimeout = 0
 $diskDcTimeout = 0
@@ -189,25 +178,17 @@ $standbyDcTimeout = 25
 $hybernateAcTimeout = 0
 $hybernateDcTimeout = 0
 
-$firefoxSettings = 1
-# 0 = Keep Firefox settings unchanged.
-# 1 = Apply pro Firefox settings. Disable update, cross-domain cookies... *Recomended.
 
-$firefoxCachePath = "";
-# Leave it EMPTY or...
-# Define a custom folder for Firefox cache files.
-# Example: "E:\\FIREFOX_CACHE";
-
-$remove3dObjFolder = 1
+$remove3dObjFolder = 0
 # 0 = Keep 3d object folder.
 # 1 = Remove 3d object folder. *Recomended.
 
-$disableWindowsSounds = 1
+$disableWindowsSounds = 0
 # 0 = Do nothing (it won't reenable it);
 # 1 = Disable Windows sound effects. *Recomended.
 # If you want to re-enable it, will have to do it manually
 
-$disablePerformanceMonitor = 1
+$disablePerformanceMonitor = 0
 # 0 = Do nothing;
 # 1 = Disable Windows Performance Logs Monitor and clear all .etl caches. *Recomended.
 
@@ -215,97 +196,16 @@ $unpinStartMenu = 0
 # 0 = Do nothing;
 # 1 = Unpin all apps from start menu.
 
-$unnistallWindowsDefender = 1
+$unnistallWindowsDefender = 0
 # 0 = Do nothing (won't re-install it);
 # 1 = Unnistall Windows Defender, irreversible. Safe mode is required.
 
-$disableBloatware = 1
+$disableBloatware = 0
 # 0 = Install Windows Bloatware that are not commented in bloatwareList array.
 # 1 = Remove non commented bloatware in bloatwareList array. *Recomended.
 # Note: On bloatwareList comment the lines on Appxs that you want to keep/install.
 
-$editor='"%programfiles%\Notepad++\notepad++.exe"'
 
-$bloatwareList = @(		
-	# Non commented lines will be uninstalled
-	
-	# Maybe userful AppX       
-	#"*Microsoft.Advertising.Xaml_10.1712.5.0_x64__8wekyb3d8bbwe*"
-	#"*Microsoft.Advertising.Xaml_10.1712.5.0_x86__8wekyb3d8bbwe*"
-	#"*Microsoft.MSPaint*"
-	#"*Microsoft.MicrosoftStickyNotes*"
-	#"*Microsoft.Windows.Photos*"
-	#"*Microsoft.WindowsCalculator*"
-	#"*Microsoft.WindowsStore*"
-	#"*Microsoft.WindowsCamera*"
-	"*Microsoft.BingWeather*"
-	"MicrosoftTeams*"
-	
-	# Unnecessary AppX Apps
-	"*Microsoft.DrawboardPDF*"
-	"*E2A4F912-2574-4A75-9BB0-0D023378592B*"
-	"*Microsoft.Appconnector*"
-	"Microsoft.3dbuilder"
-	"Microsoft.3dbuilder"
-	"Microsoft.BingNews"
-	"Microsoft.GetHelp"
-	"Microsoft.Getstarted"
-	"Microsoft.Messaging"
-	"*Microsoft3DViewer*"
-	"Microsoft.MicrosoftOfficeHub"
-	"Microsoft.MicrosoftSolitaireCollection"
-	"Microsoft.NetworkSpeedTest"
-	"Microsoft.News"
-	"Microsoft.Office.Lens"
-	"Microsoft.Office.OneNote"
-	"Microsoft.Office.Sway"
-	"Microsoft.OneConnect"
-	"Microsoft.People"
-	"Microsoft.Print3D"
-	"Microsoft.RemoteDesktop"
-	"Microsoft.SkypeApp"
-	"Microsoft.StorePurchaseApp"
-	"Microsoft.Office.Todo.List"
-	"Microsoft.Whiteboard"
-	"Microsoft.WindowsAlarms"        
-	"microsoft.windowscommunicationsapps"
-	"*Microsoft.WindowsFeedbackHub*"
-	"Microsoft.WindowsMaps"
-	"Microsoft.WindowsSoundRecorder"
-	"Microsoft.ZuneMusic"
-	"Microsoft.ZuneVideo"
-
-	# Sponsored AppX
-	"*DolbyLaboratories.DolbyAccess*"
-	"*Microsoft.Asphalt8Airborne*"
-	"*46928bounde.EclipseManager*"
-	"*ActiproSoftwareLLC*"
-	"*AdobeSystemsIncorporated.AdobePhotoshopExpress*"
-	"*Duolingo-LearnLanguagesforFree*"
-	"*PandoraMediaInc*"
-	"*CandyCrush*"
-	"*BubbleWitch3Saga*"
-	"*Wunderlist*"
-	"*Flipboard.Flipboard*"
-	"*Twitter*"
-	"*Facebook*"
-	"*Spotify*"
-	"*Minecraft*"
-	"*Royal Revolt*"
-	"*Sway*"
-	"*Speed Test*"
-	"*FarmHeroesSaga*"
-	"Prime*"
-	"*Clipchamp*"
-	"*Disney*"
-	"*Netflix*"
-	"*Keeper*"
-	"*Instagram*"
-	"*Amazon*"
-	"*Roblox*"
-	"*AdobePhotoshop*"
-	
-	
 	# Special Cases
 	# Dont Touch
 	if ($beXboxSafe -eq 0) {	
