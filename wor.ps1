@@ -71,7 +71,7 @@ $beCastSafe = 0
 # Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
 # Note: Top priority configuration, overrides other settings.
 
-$beVpnPppoeSafe = 1
+$beVpnPppoeSafe = 0
 # 0 = Will make the system safer against DNS cache poisoning but VPN or PPPOE conns may stop working. *Recomended.
 # 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
 # Note: Set it to 1 if you pretend to use VPN, PPP conns, if the system is inside a VM or having trouble with internet.
@@ -81,7 +81,7 @@ $beTaskScheduleSafe = 0
 # 1 = Enable it.  
 # Note: Top priority configuration, overrides other settings.
 
-$disableCortana = 1
+$disableCortana = 0
 # 0 = Enable Cortana
 # 1 = Disable Cortana *Recomended
 
@@ -178,7 +178,7 @@ $disableVBS = 1
 #$powerPlan = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' # (High performance)
 #$powerPlan = '381b4222-f694-41f0-9685-ff5bb260df2e' # (Balanced)
 #$powerPlan = 'a1841308-3541-4fab-bc81-f71556f20b4a' # (Power saver)
-$powerPlan = 'a1841308-3541-4fab-bc81-f71556f20b4a' # (Power saver)
+$powerPlan = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' # (High performance)
 
 $diskAcTimeout = 0
 $diskDcTimeout = 0
@@ -211,7 +211,7 @@ $disablePerformanceMonitor = 1
 # 0 = Do nothing;
 # 1 = Disable Windows Performance Logs Monitor and clear all .etl caches. *Recomended.
 
-$unpinStartMenu = 0
+$unpinStartMenu = 1
 # 0 = Do nothing;
 # 1 = Unpin all apps from start menu.
 
@@ -806,7 +806,6 @@ if ($troubleshootInstalls -eq 1) {
 	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop" "DWord"	
 	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop"
 
-	pause
 	RegChange "SYSTEM\CurrentControlSet\Services\diagnosticshub.standardcollector.service" "Start" "2" "Disabling diagnosticshub.standardcollector.service service" "DWord"
 	Get-Service diagnosticshub.standardcollector.service | Set-Service -StartupType automatic
 
@@ -921,29 +920,37 @@ if ($beWifiSafe -eq 1) {
 if ($beAppxSafe -eq 0) {
 	RegChange "SYSTEM\CurrentControlSet\Services\InstallService" "Start" "4" "Disabling InstallService MS Store service" "DWord"
 	Get-Service InstallService | Set-Service -StartupType disabled	
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "4" "Disabling TokenBroker (Windows Store permission manager) service" "DWord"
-	Get-Service TokenBroker | Set-Service -StartupType disabled
-	
-	RegChange "SYSTEM\ControlSet001\Services\wlidsvc" "Start" "4" "Disabling wlidsvc (Microsoft Windows Live ID Service) service" "DWord"
-	Get-Service wlidsvc | Set-Service -StartupType disabled
+	Stop-Service InstallService -Force -NoWait
 	
 	RegChange "SYSTEM\ControlSet001\Services\PcaSvc" "Start" "4" "Disabling PcaSvc (Program Compatibility Assistant) service" "DWord"
 	Get-Service PcaSvc | Set-Service -StartupType disabled
+	Stop-Service PcaSvc -Force -NoWait 
+	RegChange "SYSTEM\ControlSet001\Services\wlidsvc" "Start" "4" "Disabling wlidsvc (Microsoft Windows Live ID Service) service" "DWord"
+	Get-Service wlidsvc | Set-Service -StartupType disabled
+	Stop-Service wlidsvc -Force -NoWait
+
+	#TokenBroker required for nightlight windows feature
+	#RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "4" "Disabling TokenBroker (Windows Store permission manager) service" "DWord"
+	#Get-Service TokenBroker | Set-Service -StartupType disabled
+	#Stop-Service TokenBroker -Force -NoWait	
 }
 
 if ($beAppxSafe -eq 1) {
 	RegChange "SYSTEM\CurrentControlSet\Services\InstallService" "Start" "2" "Enabling InstallService MS Store service" "DWord"
 	Get-Service InstallService | Set-Service -StartupType automatic	
+	Start-Service InstallService -Force -NoWait 
 	
 	RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "2" "Enabling TokenBroker (Windows Store permission manager) service" "DWord"
 	Get-Service TokenBroker | Set-Service -StartupType automatic
+	Start-Service TokenBroker -Force -NoWait 
 	
 	RegChange "SYSTEM\ControlSet001\Services\wlidsvc" "Start" "2" "Enabling wlidsvc (Microsoft Windows Live ID Service) service" "DWord"
 	Get-Service wlidsvc | Set-Service -StartupType automatic
+	Start-Service wlidsvc -Force -NoWait 
 	
 	RegChange "SYSTEM\ControlSet001\Services\PcaSvc" "Start" "2" "Enabling PcaSvc (Program Compatibility Assistant) service" "DWord"
 	Get-Service PcaSvc | Set-Service -StartupType automatic
+	Start-Service PcaSvc -Force -NoWait 
 }
 
 
@@ -1416,21 +1423,22 @@ if ($doPerformanceStuff -eq 1) {
 		RegChange "SYSTEM\CurrentControlSet\Services\WlanSvc" "Start" "4" "Disabling WlanSvc (WLAN Autoconfig) service" "DWord"
 		Get-Service WlanSvc | Set-Service -StartupType disabled
 	}
-	
+
 	if ($beWifiSafe -eq 1) {
 		Write-Host "RmSvc (Radio Management Service) service  NOT disabled because of the beWifiSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
 	}
-	
+
+
 	if ($beMicrophoneSafe -eq 0) {			
 		RegChange "SYSTEM\CurrentControlSet\Services\camsvc" "Start" "4" "Disabling camsvc service" "DWord"
 		Get-Service camsvc | Set-Service -StartupType disabled
 	}
-	
+
 	if ($beMicrophoneSafe -eq 1) {			
 		Write-Host "camsvc service  was NOT disabled because of the beMicrophoneSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
 		RegChange "SYSTEM\CurrentControlSet\Services\camsvc" "Start" "2" "Enabling camsvc service" "DWord"
 		Get-Service camsvc | Set-Service -StartupType automatic
-	}
+	}	
 }
 
 if ($doQualityOfLifeStuff -eq 0) {
@@ -1447,7 +1455,10 @@ if ($doQualityOfLifeStuff -eq 0) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SoftLandingEnabled" "1" "Enabling Get tips and suggestion when i use Windows" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "0" "Enabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "1" "Enabling Action Center toasts..." "DWord"
+
+	# Required for notification center bar
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "0" "Enabling Action Center notification center..." "DWord"
+	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "1" "Enabling Action Center toast push notifications..." "DWord"
 	RegChange "Control Panel\Accessibility" "DynamicScrollbars" "1" "Enabling dynamic scrollbars..." "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\MRT" "DontOfferThroughWUAU " "0" "Enabling Malicious Software Removal Tool offering" "DWord"
@@ -1473,6 +1484,7 @@ if ($doQualityOfLifeStuff -eq 0) {
 		Write-Host "Enabling Error reporting task..."
 		Get-ScheduledTask  *QueueReporting* | Enable-ScheduledTask
 	}
+
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "1" "Hiding This PC shortcut on desktop..." "DWord"
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "1" "Hiding This PC shortcut on desktop..." "DWord"
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ShowSyncProviderNotifications" "1" "Enabling Windows Ads within file explorer..." "DWord"
@@ -1480,6 +1492,9 @@ if ($doQualityOfLifeStuff -eq 0) {
 	RegChange "Control Panel\Mouse" "MouseSpeed" "1" "Disabling Windows enhanced pointer precision..." "DWord"
 	RegChange "Control Panel\Mouse" "MouseThreshold1" "6" "Enabling Windows enhanced pointer acceleration..." "DWord"
 	RegChange "Control Panel\Mouse" "MouseThreshold2" "10" "Enabling Windows enhanced pointer acceleration..." "DWord"
+
+	# k-lite codec pack updater
+	deleteFile "$env:WINDIR\K-Lite Codec Pack\Tools\CodecTweakTool.exe" "Deleting SecurityHealthService.exe..."	
 }
 
 if ($doQualityOfLifeStuff -eq 1) {
@@ -1493,14 +1508,20 @@ if ($doQualityOfLifeStuff -eq 1) {
 	# Look for an app in the Microsoft Store
 	RegChange "Software\Policies\Microsoft\Windows\Explorer" "NoUseStoreOpenWith" "1" "Disabling Look for an app in the Microsoft Store" "DWord"
 	
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarDa" "0" "Removing widgets button from taskbar" "DWord"
+	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarDa" "0" "Removing widgets button from taskbar" "DWord"	
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarMn" "0" "Removing chat button from taskbar" "DWord"
+	
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SoftLandingEnabled" "0" "Disabling Get tips and suggestion when i use Windows" "DWord"
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "1" "Disabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
+
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "0" "Disabling Action Center global toasts..." "DWord"	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "1" "Disabling Action Center notification center..." "DWord"
+
+	# Required for notification center bar
+	#RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "1" "Disabling Action Center notification center..." "DWord"
+
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "0" "Disabling Action Center toast push notifications..." "DWord"
-	RegChange "Control Panel\Accessibility" "DynamicScrollbars " "0" "Disabling dynamic scrollbars..." "DWord"
+	
+	RegChange "Control Panel\Accessibility" "DynamicScrollbars " "0" "Disabling dynamic scrollbars..." "DWord"	
 	RegChange "SOFTWARE\Policies\Microsoft\MRT" "DontOfferThroughWUAU " "1" "Disabling Malicious Software Removal Tool offering" "DWord"
 	
 	write-Host "Fast Boot is known to cause problems with steam" -ForegroundColor Green -BackgroundColor Black 
@@ -1512,10 +1533,13 @@ if ($doQualityOfLifeStuff -eq 1) {
 	Get-Service "Razer Chroma SDK Server" | Stop-Service -PassThru | Set-Service -StartupType disabled
 	Write-Output "Disabling Razer Chroma SDK Service..."
 	Get-Service "Razer Chroma SDK Service" | Stop-Service -PassThru | Set-Service -StartupType disabled
+
 	Write-Output "Disabling WpnService, push notification anoyance service..."
 	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType disabled
+
+	# WpnUserService is required by the taskbar to work properly
+	# RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Disabling WpnUserService, push notification anoyance service..." "DWord"	
 	
-	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Disabling WpnUserService, push notification anoyance service..." "DWord"	
 	RegChange "Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" "NoGenTicket" "0" "Disabling Licence Checking..." "DWord"	
 	RegChange "SOFTWARE\Microsoft\Windows\Windows Error Reporting" "Disabled" "1" "Disabling Error reporting..." "DWord"
 	if ($(serviceStatus("Schedule")) -eq "running") {
@@ -1531,7 +1555,6 @@ if ($doQualityOfLifeStuff -eq 1) {
 	RegChange "Control Panel\Mouse" "MouseSpeed" "0" "Disabling Windows enhanced pointer precision..." "DWord"
 	RegChange "Control Panel\Mouse" "MouseThreshold1" "0" "Disabling Windows enhanced pointer acceleration..." "DWord"
 	RegChange "Control Panel\Mouse" "MouseThreshold2" "0" "Disabling Windows enhanced pointer acceleration..." "DWord"
-	
 }
 
 if ($doPrivacyStuff -eq 0) {
@@ -1678,7 +1701,7 @@ if ($doPrivacyStuff -eq 1) {
 	DisableThumbnail
 	DisablePeek
 	DisablePrefetcher	
-	DisableMemoryDump
+	DisableMemoryDump	
 	
 	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "0" "Disabling Windows location tracking" "DWord"
 	RegChange "System\CurrentControlSet\Services\lfsvc\Service\Configuration" "Status" "0" "Disabling Windows location tracking" "DWord"
@@ -1770,6 +1793,7 @@ if ($doPrivacyStuff -eq 1) {
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Disabling Windows Insider Program..." "DWord"	
 	
+
 	if ($beTaskScheduleSafe -eq 1) {
 		Write-Host "TimeBrokerSvc NOT disabled because of the beTaskScheduleSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
 		RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "2" "Enabling Time Brooker..." "DWord"
@@ -1797,6 +1821,8 @@ if ($doPrivacyStuff -eq 1) {
     RegChange "SYSTEM\CurrentControlSet\Services\DiagTrack" "Start" "4" "Disabling DiagTrack (Connected User Experiences and Telemetry) service" "DWord"
 	Get-Service DiagTrack | Set-Service -StartupType disabled
     
+	
+	
 	# dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations
 	Get-Service dmwappushservice | Set-Service -StartupType disabled
 	
@@ -1811,10 +1837,11 @@ if ($doPrivacyStuff -eq 1) {
 	write-Host "Windows Insider Service contact web servers by its own" -ForegroundColor Green -BackgroundColor Black 
 	Write-Host "Stopping and disabling wisvc (Windows Insider Service)..."
 	Get-Service wisvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
-	Write-Host "Stopping and disabling EventLog (Windows Event Log)..."
-	Get-Service EventLog | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
+
+	# EventLog disabled causes Windows to crash
+	# Write-Host "Stopping and disabling EventLog (Windows Event Log)..."
+	# Get-Service EventLog | Stop-Service -PassThru | Set-Service -StartupType disabled	
+		
 	# Disable Ip helper due transfering a lot of strange data
 	RegChange "SYSTEM\CurrentControlSet\Services\iphlpsvc" "Start" "4" "Disabling Ip Helper service" "DWord"
 	Get-Service iphlpsvc | Set-Service -StartupType disabled
@@ -2167,7 +2194,7 @@ if ($disablePerformanceMonitor -eq 1) {
 	Get-Service PerfHost | Stop-Service -PassThru | Set-Service -StartupType disabled
 }
 
-if ($beAppxSafe -eq 1) {
+if ($beAppxSafe -eq 0) {
 	# Windows update services are required for Appx to work
 	$disableWindowsUpdates = 0;
 }
@@ -2278,6 +2305,12 @@ if ($unnistallWindowsDefender -eq 1) {
 	RegChange "SYSTEM\CurrentControlSet\Services\Sense" "Start" "4" "Disabling Sense (Windows Defender)"
 	RegChange "SYSTEM\ControlSet001\Services\WinDefend" "Start" "4" "Disabling WinDefend (Windows Defender)"
 
+	# WebThreatDefSvc
+	RegChange "SYSTEM\ControlSet001\Services\webthreatdefsvc" "Start" "4" "Disabling WebThreatDefSvc" "DWord"
+	Get-Service webthreatdefsvc | Set-Service -StartupType disabled
+	RegChange "SYSTEM\ControlSet001\Services\webthreatdefusersvc" "Start" "4" "Disabling WebThreatDefSvc" "DWord"
+	Get-Service webthreatdefusersvc | Set-Service -StartupType disabled
+	
 	# Disable SmartScreen Filter
 	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer" "SmartScreenEnabled" "Off" "Disabling SmartScreen Filter" "String"
 	RegChange "Software\Microsoft\Windows\CurrentVersion\AppHost" "EnableWebContentEvaluation" "0" "Disabling SmartScreen Filter" "DWord"
