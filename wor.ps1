@@ -17,12 +17,12 @@ $troubleshootInstalls = 0
 # Note: Known to fix these installations: windows language pack, Autodesk AutoCad and Appxs.
 # Note: Top priority configuration, overrides other settings.
 
-$beWifiSafe = 1
+$beWifiSafe = 0
 # 0 = May disable services required to use Wifi. *Recomended.
 # 1 = Keep Wifi working
 # Note: Top priority configuration, overrides other settings.
 
-$beMicrophoneSafe = 1
+$beMicrophoneSafe = 0
 # 0 = Disable services required to use the microphone. *Recomended.
 # 1 = Keep microphone working
 # Note: Top priority configuration, overrides other settings.
@@ -46,6 +46,11 @@ $beBiometricSafe = 0
 
 $beNetworkPrinterSafe = 0
 # 0 = Disable network printer. *Recomended.
+# 1 = Enable it.
+# Note: Top priority configuration, overrides other settings.
+
+$bePrinterSafe = 0
+# 0 = Disable local printer. *Recomended.
 # 1 = Enable it.
 # Note: Top priority configuration, overrides other settings.
 
@@ -76,12 +81,7 @@ $beVpnPppoeSafe = 0
 # 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
 # Note: Set it to 1 if you pretend to use VPN, PPP conns, if the system is inside a VM or having trouble with internet.
 
-$beTaskScheduleSafe = 0
-# 0 = Disable Task Schedule. *Recomended.
-# 1 = Enable it.  
-# Note: Top priority configuration, overrides other settings.
-
-$disableCortana = 0
+$disableCortana = 1
 # 0 = Enable Cortana
 # 1 = Disable Cortana *Recomended
 
@@ -107,10 +107,6 @@ $darkTheme = 1
 # 0 = Use Windows and apps default light theme.
 # 1 = Enable dark theme. *Recomended.
 
-$draculaThemeNotepad = 1
-# 0 = Disable Dracula theme for Notepad++.
-# 1 = Enable Dracula theme for Notepad++. *Recomended.
-
 $disableWindowsFirewall = 1
 # 0 = Enable.
 # 1 = Disable. *Recomended.
@@ -125,12 +121,12 @@ $disableTelemetry = 1
 # Note: Microsoft uses telemetry to periodically collect information about Windows systems. It is possible to acquire information as the computer hardware serial number, the connection records for external storage devices, and traces of executed processes.
 # Note: This tweak may cause Enterprise edition to stop receiving Windows updates.
 
-$disableSMBServer = 1
+$disableSMBServer = 0
 # 0 = Enable SMB Server. 
 # 1 = Disable it. *Recomended.
 # Note: SMB Server is used for file and printer sharing.
 
-$disablelastaccess = 1
+$disablelastaccess = 0
 # 0 = Enable it.
 # 1 = Disable last file access date. *Recomended.
 
@@ -219,12 +215,14 @@ $unnistallWindowsDefender = 1
 # 0 = Do nothing (won't re-install it);
 # 1 = Unnistall Windows Defender, irreversible. Safe mode is required.
 
+$unnistallOneDrive = 1
+# 0 = Do nothing (won't re-install it);
+# 1 = Unnistall.
+
 $disableBloatware = 1
 # 0 = Install Windows Bloatware that are not commented in bloatwareList array.
 # 1 = Remove non commented bloatware in bloatwareList array. *Recomended.
 # Note: On bloatwareList comment the lines on Appxs that you want to keep/install.
-
-$editor='"%programfiles%\Notepad++\notepad++.exe"'
 
 $bloatwareList = @(		
 	# Non commented lines will be uninstalled
@@ -608,26 +606,10 @@ function killProcess{
 		$firefox = Get-Process $processName -ErrorAction SilentlyContinue
 		if ($firefox) {
 			$firefox | Stop-Process -Force
-			Sleep 1			
+			Sleep 1
 		}
 	}
 	return
-}
-
-Function DisableUAC {
-	New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
-	if($?){   write-Host -ForegroundColor Green "Windows UAC disabled"  }else{   write-Host -ForegroundColor green "Windows UAC not disabled" } 
-	rd "%UserProfile%\OneDrive" /q /s > nul 2>&1
-	rd "%SystemDrive%\OneDriveTemp" /q /s > nul 2>&1
-	rd "%LocalAppData%\Microsoft\OneDrive" /q /s > nul 2>&1
-	rd "%ProgramData%\Microsoft OneDrive" /q /s > nul 2>&1
-	reg delete "HKEY_CLASSES_ROOT\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /f > nul 2>&1
-	reg delete "HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /f > nul 2>&1
-	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSyncNGSC" /t REG_DWORD /d 1 /f > nul
-	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSync" /t REG_DWORD /d 1 /f > nul
-	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableMeteredNetworkFileSync" /t REG_DWORD /d 1 /f > nul
-	reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableLibrariesDefaultSaveToOneDrive" /t REG_DWORD /d 1 /f > nul
-	reg add "HKCU\SOFTWARE\Microsoft\OneDrive" /v "DisablePersonalSync" /t REG_DWORD /d 1 /f > nul
 }
 
 Function EnablePeek {	
@@ -672,22 +654,6 @@ Function EnablePrefetcher {
 }
 Function DisablePrefetcher {	
 	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" "EnablePrefetcher" "0" "Disabling Prefetcher" "DWord"
-}
-
-# 
-Function DisableDnsCache {
-	if ($beVpnPppoeSafe -eq 1) {
-		Write-Host "DNS cache NOT disabled because of the beVpnPppoeSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-		return
-	}
-	
-	Write-Output "Flushing DNS."
-	ipconfig /flushDNS
-	RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "4" "Disabling DNS Cache Service" "DWord"
-}
-
-Function EnableDnsCache {	
-	RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "2" "Enabling DNS Cache Service" "DWord"
 }
 
 Function EnableMemoryDump {
@@ -801,6 +767,10 @@ Function EnableLLMNR {
 # Program - Start
 ##########
 
+if ($beNetworkPrinterSafe -eq 1) {
+	$bePrinterSafe = 1
+}
+
 if ($troubleshootInstalls -eq 1) {
 	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop" "DWord"
 	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop" "DWord"	
@@ -816,9 +786,6 @@ if ($troubleshootInstalls -eq 1) {
 	write-Host "DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation." -ForegroundColor Green -BackgroundColor Black
 	Write-Host "Troubleshoot Install: Enabling DoSvc (Delivery Optimization)..."
 	Get-Service DoSvc | Set-Service -StartupType automatic
-	
-	Write-Output "Troubleshoot Install: Windows Management Instrumentation enabled by registry."
-	New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 2 -Force
 	
 	Write-Output "Troubleshoot Install: Windows firewall service enabled by registry."
 	New-ItemProperty -Path HKLM:SYSTEM\CurrentControlSet\Services\MpsSvc -Name Start -PropertyType DWord -Value 2 -Force -EA SilentlyContinue | Out-Null	
@@ -860,8 +827,21 @@ if ($disableStartupSound -eq 1) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation" "DisableStartupSound" "1" "Disabling Windows startup sound..." "DWord"
 }
 
+if ($disableCortana -eq 0) {
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchPrivacy" "1" "Setting ConnectedSearchPrivacy to 3..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWeb" "1" "Setting ConnectedSearchUseWeb to 0..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWebOverMeteredConnections" "1" "Setting ConnectedSearchUseWebOverMeteredConnections to 0..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "DisableWebSearch" "1" "Disabling Cortana web search..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "CortanaEnabled" "1" "Disabling Cortana..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "BingSearchEnabled" "1" "Disabling BingSearch..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "CanCortanaBeEnabled" "1" "Setting CanCortanaBeEnabled to 0..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Personalization\Settings" "AcceptedPrivacyPolicy" "1" "Setting AcceptedPrivacyPolicy to 0..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "DeviceHistoryEnabled" "1" "Setting DeviceHistoryEnabled to 0..." "DWord"
+	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "HistoryViewEnabled" "1" "Setting HistoryViewEnabled to 0..." "DWord"
+}
+
 if ($disableCortana -eq 1) {
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchPrivacy" "3" "Setting ConnectedSearchPrivacy to 3..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchPrivacy" "0" "Setting ConnectedSearchPrivacy to 3..." "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWeb" "0" "Setting ConnectedSearchUseWeb to 0..." "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWebOverMeteredConnections" "0" "Setting ConnectedSearchUseWebOverMeteredConnections to 0..." "DWord"
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "DisableWebSearch" "1" "Disabling Cortana web search..." "DWord"
@@ -929,10 +909,10 @@ if ($beAppxSafe -eq 0) {
 	Get-Service wlidsvc | Set-Service -StartupType disabled
 	Stop-Service wlidsvc -Force -NoWait
 
-	#TokenBroker required for nightlight windows feature
+	#TokenBroker required for night light windows feature
 	#RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "4" "Disabling TokenBroker (Windows Store permission manager) service" "DWord"
 	#Get-Service TokenBroker | Set-Service -StartupType disabled
-	#Stop-Service TokenBroker -Force -NoWait	
+	#Stop-Service TokenBroker -Force -NoWait
 }
 
 if ($beAppxSafe -eq 1) {
@@ -1016,26 +996,6 @@ if (GPUVendor -eq "nvidia" -and installNvidiaControlPanel -eq 1) {
 	Write-Output "Trying to install Nvidia control panel."
 }
 
-if ($draculaThemeNotepad -eq 0) {	
-	Write-Output "Checking if Notepad++ is installed..."	
-	$fileToCheck = "$Env:USERPROFILE\AppData\Roaming\Notepad++\config.xml"
-	if (Test-Path $fileToCheck -PathType leaf)	{
-		uninstallDraculaNotepad	
-	} else { 		
-		Write-Output "Notepad++ is not installed." 
-	}
-}
-
-if ($draculaThemeNotepad -eq 1) {	
-	Write-Output "Checking if Notepad++ is installed..."	
-	$fileToCheck = "$Env:USERPROFILE\AppData\Roaming\Notepad++\config.xml"
-	if (Test-Path $fileToCheck -PathType leaf)	{
-		installDraculaNotepad	
-	} else { 		
-		Write-Output "Notepad++ is not installed." 
-	}
-}
-
 # SMB Server is known for opening doors for mass ransomware attacks - WannaCry and NotPetya
 if ($disableSMBServer -eq 0) {	
 	Write-Output "Enabling SMB Server..."	
@@ -1087,7 +1047,7 @@ if ($disableTelemetry -eq 0) {
 	}
 }
 
-if ($disableTelemetry -eq 1) {	
+if ($disableTelemetry -eq 1) {
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
 	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"
@@ -1193,9 +1153,11 @@ if ($doPerformanceStuff -eq 0) {
 	Get-Service DusmSvc | Stop-Service -PassThru | Set-Service -StartupType automatic
 	if($?){   write-Host -ForegroundColor Green "DusmSvc service enabled"  }else{   write-Host -ForegroundColor red "DusmSvc service not enabled" } 
 
+	# Winmgmt is required by VMware autorization service
 	Write-Output "Troubleshoot Install: Enabling Windows Management Instrumentation service enabled."
-	Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType automatic
-	
+	Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType automatic	
+	New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 2 -Force
+
 	RegChange "SYSTEM\CurrentControlSet\Services\StorSvc" "Start" "2" "Enabling StorSvc (Storage Service) service" "DWord"
 	Get-Service StorSvc | Set-Service -StartupType automatic
 
@@ -1219,6 +1181,7 @@ if ($doPerformanceStuff -eq 0) {
 	RegChange "SYSTEM\CurrentControlSet\Services\TrkWks" "Start" "2" "Enabling TrkWks (Distributed Link Tracking Client) service" "DWord"
 	Get-Service TrkWks | Set-Service -StartupType automatic
 	
+	# Required by bluetooth
 	RegChange "SYSTEM\CurrentControlSet\Services\BthAvctpSvc" "Start" "2" "Enabling AVCTP (Audio Video Control Transport Protocol) service" "DWord"
 	Get-Service BthAvctpSvc | Set-Service -StartupType automatic
 	
@@ -1295,6 +1258,12 @@ if ($doPerformanceStuff -eq 0) {
 }
 
 if ($doPerformanceStuff -eq 1) {
+	# Why not?	
+	killProcess("ai");
+	deleteFile "$env:Programfiles\Microsoft Office\root\vfs\ProgramFilesCommonX64\Microsoft Shared\Office16\ai.exe" "Deleting office ai.exe..."	
+	killProcess("DIM");
+	deleteFile "$env:Programfiles\Corel\CUH\v2\DIM.EXE" "Deleting Corel Updater..."
+
 	# Parental Controls
 	Write-Output "Disabling Windows Parental Controls..."
 	Get-Service WpcMonSvc | Stop-Service -PassThru | Set-Service -StartupType disabled	
@@ -1315,11 +1284,15 @@ if ($doPerformanceStuff -eq 1) {
 	Get-Service DusmSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
 	if($?){   write-Host -ForegroundColor Green "DusmSvc service disabled"  }else{   write-Host -ForegroundColor red "DusmSvc service not disabled" } 
 
-	Write-Output "Troubleshoot Install: Enabling Windows Management Instrumentation service enabled."
-	Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType disabled
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\StorSvc" "Start" "4" "Disabling StorSvc (Storage Service) service" "DWord"
-	Get-Service StorSvc | Set-Service -StartupType disabled
+	# Winmgmt is required by VMware autorization service
+	# Write-Output "Troubleshoot Install: Enabling Windows Management Instrumentation service enabled."
+	# Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType disabled
+	# New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 4 -Force
+
+	if ($beWSL2Safe -eq 0) {
+		RegChange "SYSTEM\CurrentControlSet\Services\StorSvc" "Start" "4" "Disabling StorSvc (Storage Service) service" "DWord"
+		Get-Service StorSvc | Set-Service -StartupType disabled
+	}
 	
 	RegChange "SYSTEM\CurrentControlSet\Services\MSDTC" "Start" "4" "Disabling MSDTC (Distributed Transaction Coordinator) service" "DWord"
 	Get-Service MSDTC | Set-Service -StartupType disabled
@@ -1341,15 +1314,22 @@ if ($doPerformanceStuff -eq 1) {
 	RegChange "SYSTEM\CurrentControlSet\Services\TrkWks" "Start" "4" "Disabling TrkWks (Distributed Link Tracking Client) service" "DWord"
 	Get-Service TrkWks | Set-Service -StartupType disabled
 	
-	RegChange "SYSTEM\CurrentControlSet\Services\BthAvctpSvc" "Start" "4" "Disabling AVCTP (Audio Video Control Transport Protocol) service" "DWord"
-	Get-Service BthAvctpSvc | Set-Service -StartupType disabled
+	# Required by bluetooth
+	# RegChange "SYSTEM\CurrentControlSet\Services\BthAvctpSvc" "Start" "4" "Disabling AVCTP (Audio Video Control Transport Protocol) service" "DWord"
+	# Get-Service BthAvctpSvc | Set-Service -StartupType disabled
 	
 	RegChange "SYSTEM\CurrentControlSet\Services\DispBrokerDesktopSvc" "Start" "4" "Disabling DispBrokerDesktopSvc (Display Policy Service) service" "DWord"
 	Get-Service DispBrokerDesktopSvc | Set-Service -StartupType disabled
 	
-	# DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation
-	RegChange "SYSTEM\CurrentControlSet\Services\DoSvc" "Start" "4" "Disabling DoSvc (Delivery Optimization) service" "DWord"
-	Get-Service DoSvc | Set-Service -StartupType disabled
+	if ($beAppxSafe -eq 1) {
+		# DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation
+		RegChange "SYSTEM\CurrentControlSet\Services\DoSvc" "Start" "2" "Enabling DoSvc (Delivery Optimization) service" "DWord"
+		Get-Service DoSvc | Set-Service -StartupType automatic
+	} else {
+		# DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation
+		RegChange "SYSTEM\CurrentControlSet\Services\DoSvc" "Start" "4" "Disabling DoSvc (Delivery Optimization) service" "DWord"
+		Get-Service DoSvc | Set-Service -StartupType disabled
+	}
 	
 	RegChange "SYSTEM\CurrentControlSet\Services\OneSyncSvc" "Start" "4" "Disabling OneSyncSvc service" "DWord"
 	Get-Service OneSyncSvc | Set-Service -StartupType disabled
@@ -1406,8 +1386,7 @@ if ($doPerformanceStuff -eq 1) {
 	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "4" "Disabling Edge updates..." "DWord"
 	
 	regDelete "Software\Microsoft\Windows\CurrentVersion\Run\com.squirrel.Teams.Teams" "Disabling MS Teams updater"
-	regDelete "Software\Microsoft\Windows\CurrentVersion\Run\OneDrive" "Disabling OneDrive auto start"
-	
+		
 	if ($beNetworkPrinterSafe -eq 0) {
 		Write-Host "Disabling LanmanWorkstation Service..."
 		Get-Service Workstation | Stop-Service -PassThru | Set-Service -StartupType disabled
@@ -1559,10 +1538,20 @@ if ($doQualityOfLifeStuff -eq 1) {
 
 if ($doPrivacyStuff -eq 0) {
 	Write-Output "Reverse privacy stuff..."
+
+	regDelete "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Option\CompatTelRunner.exe" "Enabling CompatTelRunner"
+
 	EnableThumbnail
 	EnablePeek
 	EnablePrefetcher	
 	EnableMemoryDump
+
+	# Copilot
+	RegChange "Software\Policies\Microsoft\Windows\WindowsCopilot" "TurnOffWindowsCopilot" "0" "Enabling CoPilot..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot" "TurnOffWindowsCopilot" "0" "Enabling CoPilot..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Edge" "HubsSidebarEnabled" "1" "Enabling CoPilot..." "DWord"
+	RegChange "Software\Policies\Microsoft\Windows\Explorer" "DisableSearchBoxSuggestions" "0" "Enabling CoPilot..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableSearchBoxSuggestions" "0" "Enabling CoPilot..." "DWord"
 
 	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "1" "Enabling Windows location tracking" "DWord"
 	RegChange "System\CurrentControlSet\Services\lfsvc\Service\Configuration" "Status" "1" "Enabling Windows location tracking" "DWord"
@@ -1652,7 +1641,6 @@ if ($doPrivacyStuff -eq 0) {
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "1" "Enabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Enabling Windows Insider Program..." "DWord"	
-	RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "2" "Enabling Time Brooker..." "DWord"
 
 	Write-Output "Setting network to private..."
 	Set-NetConnectionProfile -NetworkCategory Private
@@ -1696,13 +1684,27 @@ if ($doPrivacyStuff -eq 0) {
 
 if ($doPrivacyStuff -eq 1) {
 	Write-Output "Doing privacy stuff..."
-	
+
+	killProcess("compattelrunner");
+	deleteFile "$env:SystemRoot\System32\compattelrunner.exe" "Deleting office compattelrunner.exe..."	
+	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Option\CompatTelRunner.exe" "Debugger" "%windir%\System32\taskkill.exe" "Disabling CompatTelRunner..." "String"
+
+	killProcess("CUH");
+	deleteFile "$env:Programfiles(x86)\Corel\CUH\v2\CUH.exe" "Deleting Corel Updater (CUH.exe)..."	
+
 	clearCaches
 	DisableThumbnail
 	DisablePeek
 	DisablePrefetcher	
 	DisableMemoryDump	
 	
+	# Copilot
+	RegChange "Software\Policies\Microsoft\Windows\WindowsCopilot" "TurnOffWindowsCopilot" "1" "Disabling CoPilot..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot" "TurnOffWindowsCopilot" "1" "Disabling CoPilot..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Edge" "HubsSidebarEnabled" "0" "Disabling CoPilot..." "DWord"
+	RegChange "Software\Policies\Microsoft\Windows\Explorer" "DisableSearchBoxSuggestions" "1" "Disabling CoPilot..." "DWord"
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableSearchBoxSuggestions" "1" "Disabling CoPilot..." "DWord"
+
 	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "0" "Disabling Windows location tracking" "DWord"
 	RegChange "System\CurrentControlSet\Services\lfsvc\Service\Configuration" "Status" "0" "Disabling Windows location tracking" "DWord"
 	RegChange "Software\Microsoft\InputPersonalization" "RestrictImplicitInkCollection" "1" "Disabling Windows implicit ink collection" "DWord"
@@ -1793,14 +1795,6 @@ if ($doPrivacyStuff -eq 1) {
 	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"	
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Disabling Windows Insider Program..." "DWord"	
 	
-
-	if ($beTaskScheduleSafe -eq 1) {
-		Write-Host "TimeBrokerSvc NOT disabled because of the beTaskScheduleSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-		RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "2" "Enabling Time Brooker..." "DWord"
-	} else {	
-		RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "4" "Disabling Time Brooker due to huge network usage and for spying users..." "DWord"
-	}
-	
 	Set-NetConnectionProfile -NetworkCategory Public
    
 	Write-Output "Disabling Background application access..."
@@ -1850,8 +1844,6 @@ if ($doPrivacyStuff -eq 1) {
 	Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -StartupType disabled
 }
 
-EnableDnsCache
-
 if ($doSecurityStuff -eq 0) {
 	# Airstrike Attack - FDE bypass and EoP on domain joined Windows workstations. An attacker with physical access to a locked device with WiFi capabilities (such as a laptop or a workstation) can abuse this functionality to force the laptop to authenticate against a rogue access point and capture a MSCHAPv2 challenge response hash for the domain computer account.
 	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "DontDisplayNetworkSelectionUI" "0" "Disabling the hardening against the Airstrike Attack" "DWord"
@@ -1861,7 +1853,7 @@ if ($doSecurityStuff -eq 0) {
 	# WPAD exposes the system to MITM attack
 	RegChange "SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" "Start" "2" "Enabling WPAD WinHttpAutoProxySvc Service" "DWord"
 	
-	EnableDnsCache
+	RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "2" "Enabling DNS Cache Service" "DWord"
 	EnableLLMNR
 	
 	# NetBIOS imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
@@ -1906,15 +1898,23 @@ if ($doSecurityStuff -eq 0) {
 
 if ($doSecurityStuff -eq 1) {
 	# Airstrike Attack - FDE bypass and EoP on domain joined Windows workstations. An attacker with physical access to a locked device with WiFi capabilities (such as a laptop or a workstation) can abuse this functionality to force the laptop to authenticate against a rogue access point and capture a MSCHAPv2 challenge response hash for the domain computer account.
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "DontDisplayNetworkSelectionUI" "1" "Hardening against the Airstrike Attack" "DWord"
-	
+	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "DontDisplayNetworkSelectionUI" "1" "Hardening against the Airstrike Attack" "DWord"	
 	RegChange "SYSTEM\CurrentControlSet\services\WMPNetworkSvc" "Start" "4" "Disabling Windows Media Player Network Sharing Service" "DWord"
 	
-	# WPAD exposes the system to MITM attack
-	RegChange "SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" "Start" "4" "Disabeling WPAD WinHttpAutoProxySvc Service" "DWord"
-	
-	DisableDnsCache
+	if ($bePrinterSafe -eq 0) {
+		# WPAD exposes the system to MITM attack
+		RegChange "SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" "Start" "4" "Disabling WPAD WinHttpAutoProxySvc Service" "DWord"
+	} else {
+		# WPAD exposes the system to MITM attack
+		RegChange "SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" "Start" "2" "Enabling WPAD WinHttpAutoProxySvc Service" "DWord"
+	}
 	DisableLLMNR
+
+	Write-Output "Flushing DNS."
+	ipconfig /flushDNS
+	if ($beWSL2Safe -eq 0) {
+		RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "4" "Disabling DNS Cache Service" "DWord"
+	}
 	
 	# NetBIOS imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
 	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "2" "Disabling NetBIOS over TCP/IP..." "DWord"
@@ -1971,7 +1971,6 @@ if ($doFingerprintPrevention -eq 0) {
 	
 	# DNS-over-HTTPS (DoH) encrypt the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers
 	RegChange "SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" "EnableAutoDoh" "0" "Disabling DNS over HTTPS (DoH)... " "DWord"
-
 }
 
 if ($doFingerprintPrevention -eq 1) {
@@ -1982,9 +1981,7 @@ if ($doFingerprintPrevention -eq 1) {
 	
 	# DNS-over-HTTPS (DoH) encrypt the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers
 	RegChange "SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" "EnableAutoDoh" "2" "Enabling DNS over HTTPS (DoH)... " "DWord"
-
 }
-
 
 if ($darkTheme -eq 0) {
 	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "AppsUseLightTheme" "1" "Disabling dark theme mode" "DWord"
@@ -2081,7 +2078,7 @@ if ($firefoxSettings -eq 1) {
 		$out+= 'user_pref("network.dns.use_https_rr_as_altsvc", true);'
 		
 		# Remove Amazon`s shortcut from startup
-		$out+= 'user_pref("browser.topsites.blockedSponsors", "[\"amazon\",\"trivago\"]");'
+		$out+= 'user_pref("browser.topsites.blockedSponsors", "[\"amazon\",\"trivago\",\"booking\"]");'
 		
 		# Allow autoplay of audio and video
 		$out+= 'user_pref("media.autoplay.default", "0");'
@@ -2194,11 +2191,10 @@ if ($disablePerformanceMonitor -eq 1) {
 	Get-Service PerfHost | Stop-Service -PassThru | Set-Service -StartupType disabled
 }
 
-if ($beAppxSafe -eq 0) {
+if ($beAppxSafe -eq 1) {
 	# Windows update services are required for Appx to work
 	$disableWindowsUpdates = 0;
 }
-
 
 if ($disableWindowsUpdates -eq 0) {	
 	RegChange "SYSTEM\CurrentControlSet\Services\UsoSvc" "Start" "2" "Enabling UsoSvc service" "DWord"
@@ -2279,11 +2275,11 @@ if ($unnistallWindowsDefender -eq 1) {
 	takeownRegistry("HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinDefend")
 	
 	Write-Output "Disabling Windows Defender Application Guard..."
-	Disable-WindowsOptionalFeature -online -FeatureName "Windows-Defender-ApplicationGuard" -NoRestart -WarningAction SilentlyContinue | Out-Null
+	Disable-WindowsOptionalFeature -FeatureName "Windows-Defender-ApplicationGuard" -NoRestart -WarningAction SilentlyContinue | Out-Null
 	
 	deletePath "$env:Programfiles\windows defender" "Deleting Defender run under demand service MpCmdRun.exe..."
 	deletePath "$env:Programfiles\Windows Defender Advanced Threat Protection" "Deleting Windows Defender Advanced Threat Protection folder..."
-	deletePath "$env:Programfiles (x86)\Windows Defender" "Deleting windows Windows defender x86 folder..."
+	deletePath "$env:Programfiles(x86)\Windows Defender" "Deleting windows Windows defender x86 folder..."
 	deletePath "$env:ProgramData\Microsoft\Windows Defender" "Deleting Defender Antivirus and Defender Antivirus Network Inspection Service folder..."
 	deletePath "$env:ProgramData\Microsoft\Windows Defender\Platform" "Deleting Defender run under demand service MpCmdRun.exe..."
 	deletePath "$env:ProgramData\Microsoft\Windows Defender Advanced Threat Protection" "Deleting windows Windows defender program data folder..."
@@ -2459,11 +2455,81 @@ if ($unnistallWindowsDefender -eq 1) {
 	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowEmailScanning disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowEmailScanning not disabled" } 
 }
 
+if ($unnistallOneDrive -eq 1) {
 
+	Write-Output "Checking if you are in safe mode..."
+	$mySafeMode = gwmi win32_computersystem | select BootupState
+	if ($mySafeMode -notlike '*Normal boot*') {
+		write-host 'Safe mode confirmed.'	
 
+		killProcess("OneDrive");
+		killProcess("explorer");
+
+		Write-Output "Remove OneDrive"
+		if (Test-Path "$env:systemroot\System32\OneDriveSetup.exe") {
+			& "$env:systemroot\System32\OneDriveSetup.exe" /uninstall
+		}
+		if (Test-Path "$env:systemroot\SysWOW64\OneDriveSetup.exe") {
+			& "$env:systemroot\SysWOW64\OneDriveSetup.exe" /uninstall
+		}
+
+		Write-Output "Removing OneDrive leftovers"
+		Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:localappdata\Microsoft\OneDrive"
+		Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:programdata\Microsoft OneDrive"
+		Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:systemdrive\OneDriveTemp"
+		# check if directory is empty before removing:
+		If ((Get-ChildItem "$env:userprofile\OneDrive" -Recurse | Measure-Object).Count -eq 0) {
+			Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:userprofile\OneDrive"
+		}
+
+		Write-Output "Disable OneDrive via Group Policies"
+		New-FolderForced -Path "HKLM:\SOFTWARE\Wow6432Node\Policies\Microsoft\Windows\OneDrive"
+		Set-ItemProperty -Path "HKLM:\SOFTWARE\Wow6432Node\Policies\Microsoft\Windows\OneDrive" "DisableFileSyncNGSC" 1
+
+		Write-Output "Remove Onedrive from explorer sidebar"
+		New-PSDrive -PSProvider "Registry" -Root "HKEY_CLASSES_ROOT" -Name "HKCR"
+		mkdir -Force "HKCR:\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}"
+		Set-ItemProperty -Path "HKCR:\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" "System.IsPinnedToNameSpaceTree" 0
+		mkdir -Force "HKCR:\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}"
+		Set-ItemProperty -Path "HKCR:\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" "System.IsPinnedToNameSpaceTree" 0
+		Remove-PSDrive "HKCR"
+
+		# Thank you Matthew Israelsson
+		Write-Output "Removing run hook for new users"
+		reg load "hku\Default" "C:\Users\Default\NTUSER.DAT"
+		reg delete "HKEY_USERS\Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f
+		reg unload "hku\Default"
+
+		Write-Output "Removing startmenu entry"
+		Remove-Item -Force -ErrorAction SilentlyContinue "$env:userprofile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk"
+
+		Write-Output "Removing scheduled task"
+		Get-ScheduledTask -TaskPath '\' -TaskName 'OneDrive*' -ea SilentlyContinue | Unregister-ScheduledTask -Confirm:$false
+
+		Write-Output "Restarting explorer"
+		Start-Process "explorer.exe"			
+	} else {		
+		write-host 'System needs to be in safe mode to unninstall OneDrive.' -ForegroundColor Black -BackgroundColor Red			
+	}
+}
 
 ##########
 # Program - End
+##########
+#--------------------------------------------------------------------------
+
+##########
+# Fixes - Start
+##########
+#--------------------------------------------------------------------------
+
+RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "2" "Enabling Time Brooker (required by Chrome Installer - Error 44)..." "DWord"
+RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "2" "Enabling NcbService (Network Connection Broker) (NcbService required for night light windows feature)..." "DWord"
+Get-Service NcbService | Set-Service -StartupType automatic
+Start-Service NcbService -Force -NoWait 
+
+##########
+# Fixes - End
 ##########
 #--------------------------------------------------------------------------
 
@@ -2484,15 +2550,6 @@ while("y","n" -notcontains $showhidden)
 {
 	$showhidden = Read-Host "y or n?"
 }
-
-
-$disableuac = Read-Host "Disable UAC and remove windows apps (y/n)"
-switch ($disableuac) {
-	y {
-	DisableUAC
-	}
-}
-
 
 $ink = Read-Host "Disable Windows INK (y/n)"
 while("y","n" -notcontains $ink)
@@ -2536,27 +2593,6 @@ if ($visual -like "y") {
 	choco install 7zip.install -y
 	choco install vscode -y
 }
-
-# REMOVE ONEDRIVE
-kill -processname OneDrive, aaa -Force -Verbose -EA SilentlyContinue
-if($?){   write-Host -ForegroundColor Green "One Drive process has been stoped"  }else{   write-Host -ForegroundColor Green "One Drive process is not running" } 
-
-if (Test-Path "$env:SYSTEMROOT\SysWOW64\OneDriveSetup.exe") {
-"$env:SYSTEMROOT\SysWOW64\OneDriveSetup.exe /uninstall" | Out-Null
-if($?){   write-Host -ForegroundColor Green "One Drive has been uninstalled"  }else{   write-Host -ForegroundColor red "One Drive uninstaller failed!" } 
-}Else{
-write-Host -ForegroundColor yellow "One Drive unnistaller is not present on the system"
-}
-
-Remove-Item "$env:USERPROFILE\OneDrive\*.*" -Force -ErrorAction SilentlyContinue
-if($?){   write-Host -ForegroundColor Green "One Drive files removed"  }else{   write-Host -ForegroundColor red "One Drive files not Removed" } 
-
-Remove-Item "C:\OneDriveTemp\*.*" -Force -EA SilentlyContinue | Out-Null
-if($?){   write-Host -ForegroundColor Green "One Drive temp files Removed (Step 2)"  }else{   write-Host -ForegroundColor green "One Drive temp files not present" } 
-
-Remove-Item "$env:LOCALAPPDATA\Microsoft\OneDrive\" -Force -EA SilentlyContinue | Out-Null
-if($?){   write-Host -ForegroundColor Green "One Drive appdata folder removed"  }else{   write-Host -ForegroundColor green "One Drive appdata folder not present" } 
-
 
 # Disable ShadowCopy
 vssadmin delete shadows /all /quiet | Out-Null
