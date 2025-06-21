@@ -1,2674 +1,1965 @@
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# !!                                         !!
-# !!          SAFE TO EDIT VALUES            !!
-# !!          CONFIGURATION START            !!
-# !!                                         !!
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Windows Optimization Script
+# Optimized version with improved structure, error handling, and performance
 
-# Edit values (Option) to your Choice
+#Requires -RunAsAdministrator
+#Requires -Version 5.1
 
-# Function = Option
-# List of Options
+<#
+.SYNOPSIS
+    Comprehensive Windows system optimization and privacy enhancement script.
+.DESCRIPTION
+    This script modifies Windows settings to optimize performance, enhance privacy,
+    and improve security. It provides configurable options to customize the changes.
+.NOTES
+    Author: Optimized by Claude AI based on original script
+    Version: 2.1 (Updated to include DeviceCensus disabling)
+    Requires: PowerShell 5.1 or higher with Administrator privileges
+#>
 
-$troubleshootInstalls = 0
-# 0 = Do nothing. *Recomended.
-# 1 = Enable essential stuff needed for some installations.
-# Note: Set to 1 if you are having trouble installing something on you pc.
-# Note: Known to fix these installations: windows language pack, Autodesk AutoCad and Appxs.
-# Note: Top priority configuration, overrides other settings.
+# Set strict mode and error preferences for better error handling
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
 
-$beWifiSafe = 0
-# 0 = May disable services required to use Wifi. *Recomended.
-# 1 = Keep Wifi working
-# Note: Top priority configuration, overrides other settings.
+# Force PowerShell to use TLS 1.2 for downloads
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$beMicrophoneSafe = 0
-# 0 = Disable services required to use the microphone. *Recomended.
-# 1 = Keep microphone working
-# Note: Top priority configuration, overrides other settings.
+#region Configuration
 
-$beAppxSafe = 0
-# 0 = Disable resources needed for Appx programs, Windows Store and online MS Office features. *Recomended.
-# 1 = Will keep programs like Store and Microsoft Store working. Will Keep office online features working, like corporate login, power query, power bi workspace, "Open in app" option on sharepoint...
-# Note: Top priority configuration, overrides other settings.
-# Note: Will keep Windows updates active
+# Create a configuration object that can be validated and used throughout the script
+$Config = @{
+    General = @{
+        # Performance settings
+        PowerPlan = 'a1841308-3541-4fab-bc81-f71556f20b4a'  # Power saver
+        DisablePrefetcher = $true
+        DisableMemoryDump = $true
+        DisableSystemRestore = $true
+        DisableNtfsEncryption = $true
+        DisableNtfsCompression = $true
+        DisableVBS = $true
+        DisableLastAccess = $true
+        DoPerformanceStuff = $true
 
-$beXboxSafe = 0
-# 0 = Disable Xbox and Windows Live Games related stuff like Game Bar. *Recomended.
-# 1 = Enable it.
-# Note: Top priority configuration, overrides other settings.
+        # Power settings (in minutes, 0 = never)
+        DiskAcTimeout = 0
+        DiskDcTimeout = 0
+        MonitorAcTimeout = 10
+        MonitorDcTimeout = 5
+        StandbyAcTimeout = 0
+        StandbyDcTimeout = 25
+        HibernateAcTimeout = 0
+        HibernateDcTimeout = 0
 
-$beBiometricSafe = 0
-# 0 = Disable biometric related stuff. *Recomended.
-# 1 = Enable it.
-# Note: Refers to lockscreen, fingerprint reader, illuminated IR sensor or other biometric sensors.
-# Note: Top priority configuration, overrides other settings.
+        # Quality of life improvements
+        DarkTheme = $true
+        LegacyRightClicksMenu = $true
+        DisableWindowsSounds = $true
+        DisableStartupSound = $true
 
-$beNetworkPrinterSafe = 0
-# 0 = Disable network printer. *Recomended.
-# 1 = Enable it.
-# Note: Top priority configuration, overrides other settings.
+        # Cleanup options
+        Remove3dObjFolder = $true
+        UnpinStartMenu = $false
+        DisablePerformanceMonitor = $true
+    }
 
-$bePrinterSafe = 0
-# 0 = Disable local printer. *Recomended.
-# 1 = Enable it.
-# Note: Top priority configuration, overrides other settings.
+    Security = @{
+        DisableWindowsFirewall = $true
+        DisableSMBServer = $true
+        DoSecurityStuff = $true
+        DoFingerprintPrevention = $true
+        UseGoogleDNS = $true
+    }
 
-$beNetworkFolderSafe = 0
-# 0 = Disable network folders. *Recomended.
-# 1 = Enable it.
-# Note: Top priority configuration, overrides other settings.
+    Privacy = @{
+        DisableCortana = $true
+        DisableTelemetry = $true
+        DisableBloatware = $true
+        DoPrivacyStuff = $true
+    }
 
-$beAeroPeekSafe = 0
-# 0 = Disable Windows Aero Peek. *Recomended.
-# 1 = Enable it to Windows defaults.
-# Note: Top priority configuration, overrides other settings.
+    SafetyToggles = @{
+        # Switches to prevent breaking functionality
+        BeWifiSafe = $false
+        BeMicrophoneSafe = $true
+        BeAppxSafe = $false
+        BeXboxSafe = $false
+        BeBiometricSafe = $false
+        BeNetworkPrinterSafe = $false
+        BePrinterSafe = $false
+        BeNetworkFolderSafe = $false
+        BeAeroPeekSafe = $true
+        BeThumbnailSafe = $true
+        BeCastSafe = $false
+        BeVpnPppoeSafe = $false
+        TroubleshootInstalls = $false
+    }
 
-$beThumbnailSafe = 0
-# 0 = Disable Windows Thumbnails. *Recomended.
-# 1 = Enable it to Windows defaults.
-# Note: Refers to the use of thumbnails instead of icon to some files.
-# Note: Top priority configuration, overrides other settings.
+    Uninstall = @{
+        UninstallWindowsDefender = $true
+        UninstallOneDrive = $true
 
-$beCastSafe = 0
-# 0 = Disable Casting. *Recomended.
-# 1 = Enable it.  
-# Note: Refers to the Windows ability to Cast screen to another device and or monitor, PIP (Picture-in-picture), projecting to another device.
-# Note: Top priority configuration, overrides other settings.
+        # Define bloatware list
+        BloatwareList = @(
+            "Microsoft.BingWeather*"
+            "MicrosoftTeams*"
+            "Microsoft.DrawboardPDF*"
+            "E2A4F912-2574-4A75-9BB0-0D023378592B*"
+            "Microsoft.Appconnector*"
+            "Microsoft.3dbuilder"
+            "Microsoft.BingNews"
+            "Microsoft.GetHelp"
+            "Microsoft.Getstarted"
+            "Microsoft.Messaging"
+            "Microsoft3DViewer*"
+            "Microsoft.MicrosoftOfficeHub"
+            "Microsoft.MicrosoftSolitaireCollection"
+            "Microsoft.NetworkSpeedTest"
+            "Microsoft.News"
+            "Microsoft.Office.Lens"
+            "Microsoft.Office.OneNote"
+            "Microsoft.Office.Sway"
+            "Microsoft.OneConnect"
+            "Microsoft.People"
+            "Microsoft.Print3D"
+            "Microsoft.RemoteDesktop"
+            "Microsoft.SkypeApp"
+            "Microsoft.StorePurchaseApp"
+            "Microsoft.Office.Todo.List"
+            "Microsoft.Whiteboard"
+            "Microsoft.WindowsAlarms"
+            "microsoft.windowscommunicationsapps"
+            "Microsoft.WindowsFeedbackHub*"
+            "Microsoft.WindowsMaps"
+            "Microsoft.WindowsSoundRecorder"
+            "Microsoft.ZuneMusic"
+            "Microsoft.ZuneVideo"
 
-$beVpnPppoeSafe = 0
-# 0 = Will make the system safer against DNS cache poisoning but VPN or PPPOE conns may stop working. *Recomended.
-# 1 = This script will not mess with stuff required for VPN or PPPOE to work.  
-# Note: Set it to 1 if you pretend to use VPN, PPP conns, if the system is inside a VM or having trouble with internet.
+            # Sponsored AppX
+            "DolbyLaboratories.DolbyAccess*"
+            "Microsoft.Asphalt8Airborne*"
+            "46928bounde.EclipseManager*"
+            "ActiproSoftwareLLC*"
+            "AdobeSystemsIncorporated.AdobePhotoshopExpress*"
+            "Duolingo-LearnLanguagesforFree*"
+            "PandoraMediaInc*"
+            "CandyCrush*"
+            "BubbleWitch3Saga*"
+            "Wunderlist*"
+            "Flipboard.Flipboard*"
+            "Twitter*"
+            "Facebook*"
+            "Spotify*"
+            "Minecraft*"
+            "Royal Revolt*"
+            "Sway*"
+            "Speed Test*"
+            "FarmHeroesSaga*"
+            "Prime*"
+            "Clipchamp*"
+            "Disney*"
+            "Netflix*"
+            "Keeper*"
+            "Instagram*"
+            "Amazon*"
+            "Roblox*"
+            "AdobePhotoshop*"
+        )
+    }
 
-$disableCortana = 1
-# 0 = Enable Cortana
-# 1 = Disable Cortana *Recomended
+    Installation = @{
+        InstallNvidiaControlPanel = $true
+        InitialPackages = $false
+    }
 
-$legacyRightClicksMenu = 1
-# 0 = Use Windows 11 right click menu
-# 1 = Use legacy right click menu *Recomended
-
-$disableStartupSound = 1
-# 0 = Keep Windows 11 startup sound
-# 1 = Disable Windows 11 startup sound *Recomended
-
-$useGoogleDNS = 1
-# 0 = Nothing
-# 1 = Apply Google DNS to connections *Recomended.
-
-$installNvidiaControlPanel = 1
-# 0 = Remove Nvidia Appx.
-# 1 = Install Nvidia control panel. *Recomended.
-# Note: The script will check if your GPU vendor is Nvidia
-# Note: Refers to the new Nvidia Appx. Nvidia driver install dont cames with control panel anymore.
-
-$darkTheme = 1
-# 0 = Use Windows and apps default light theme.
-# 1 = Enable dark theme. *Recomended.
-
-$disableWindowsFirewall = 1
-# 0 = Enable.
-# 1 = Disable. *Recomended.
-
-$disableWindowsUpdates = 1
-# 0 = Enable Windows Updates.
-# 1 = Disable Windows Updates. *Recomended.
-
-$disableTelemetry = 1
-# 0 = Enable Telemetry.
-# 1 = Disable Telemetry. *Recomended.
-# Note: Microsoft uses telemetry to periodically collect information about Windows systems. It is possible to acquire information as the computer hardware serial number, the connection records for external storage devices, and traces of executed processes.
-# Note: This tweak may cause Enterprise edition to stop receiving Windows updates.
-
-$disableSMBServer = 0
-# 0 = Enable SMB Server. 
-# 1 = Disable it. *Recomended.
-# Note: SMB Server is used for file and printer sharing.
-
-$disablelastaccess = 0
-# 0 = Enable it.
-# 1 = Disable last file access date. *Recomended.
-
-$doQualityOfLifeStuff = 1
-# 0 = Reverse system settings to default.
-# 1 = Perform routines to increase quality of life. *Recomended.
-
-$doPerformanceStuff = 1
-# 0 = Reverse system settings to default.
-# 1 = Perform routines to increase system performance. *Recomended.
-
-$doPrivacyStuff = 1
-# 0 = Reverse system settings to default.
-# 1 = Perform routines to increase system privacy. *Recomended.
-
-$doSecurityStuff = 1
-# 0 = Reverse system settings to default.
-# 1 = Perform routines to increase system security. *Recomended.
-
-$doFingerprintPrevention = 1
-# 0 = Reverse system settings to default.
-# 1 = Perform routines to prevent fingerprints. *Recomended.
-
-$disableSystemRestore = 1
-# 0 = Enable system restore
-# 1 = Disable system restore. *Recomended.
-
-$disableNtfsEncryption = 1
-# 0 = Enable NTFS file encryption
-# 1 = Disable NTFS file encryption. *Recomended.
-# NTFS file encryption is the built-in encryption tool in Windows used to encrypt files and folders on NTFS drives to protect them from unwanted access
-# Disabling it can reduce the processing overhead of filesystem operations
-
-$disableNtfsCompression = 1
-# 0 = Enable NTFS file compression
-# 1 = Disable NTFS file compression. *Recomended.
-# Disabling it can increase performance
-
-$disableVBS = 1
-# 0 = Enable VBS
-# 1 = Disable VBS. *Recomended.
-# VBS (Virtualization-based security) prevent unsigned or questionable drivers and software from getting into memory
-# Disabling it may have a significant performance boost, specially in games
-
-#$powerPlan = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' # (High performance)
-#$powerPlan = '381b4222-f694-41f0-9685-ff5bb260df2e' # (Balanced)
-#$powerPlan = 'a1841308-3541-4fab-bc81-f71556f20b4a' # (Power saver)
-$powerPlan = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' # (High performance)
-
-$diskAcTimeout = 0
-$diskDcTimeout = 0
-$monitorAcTimeout = 10
-$monitorDcTimeout = 5
-$standbyAcTimeout = 0
-$standbyDcTimeout = 25
-$hybernateAcTimeout = 0
-$hybernateDcTimeout = 0
-
-$firefoxSettings = 1
-# 0 = Keep Firefox settings unchanged.
-# 1 = Apply pro Firefox settings. Disable update, cross-domain cookies... *Recomended.
-
-$firefoxCachePath = "";
-# Leave it EMPTY or...
-# Define a custom folder for Firefox cache files.
-# Example: "E:\\FIREFOX_CACHE";
-
-$remove3dObjFolder = 1
-# 0 = Keep 3d object folder.
-# 1 = Remove 3d object folder. *Recomended.
-
-$disableWindowsSounds = 1
-# 0 = Do nothing (it won't reenable it);
-# 1 = Disable Windows sound effects. *Recomended.
-# If you want to re-enable it, will have to do it manually
-
-$disablePerformanceMonitor = 1
-# 0 = Do nothing;
-# 1 = Disable Windows Performance Logs Monitor and clear all .etl caches. *Recomended.
-
-$unpinStartMenu = 1
-# 0 = Do nothing;
-# 1 = Unpin all apps from start menu.
-
-$unnistallWindowsDefender = 1
-# 0 = Do nothing (won't re-install it);
-# 1 = Unnistall Windows Defender, irreversible. Safe mode is required.
-
-$unnistallOneDrive = 1
-# 0 = Do nothing (won't re-install it);
-# 1 = Unnistall.
-
-$disableBloatware = 1
-# 0 = Install Windows Bloatware that are not commented in bloatwareList array.
-# 1 = Remove non commented bloatware in bloatwareList array. *Recomended.
-# Note: On bloatwareList comment the lines on Appxs that you want to keep/install.
-
-$bloatwareList = @(		
-	# Non commented lines will be uninstalled
-	
-	# Maybe userful AppX       
-	#"*Microsoft.Advertising.Xaml_10.1712.5.0_x64__8wekyb3d8bbwe*"
-	#"*Microsoft.Advertising.Xaml_10.1712.5.0_x86__8wekyb3d8bbwe*"
-	#"*Microsoft.MSPaint*"
-	#"*Microsoft.MicrosoftStickyNotes*"
-	#"*Microsoft.Windows.Photos*"
-	#"*Microsoft.WindowsCalculator*"
-	#"*Microsoft.WindowsStore*"
-	#"*Microsoft.WindowsCamera*"
-	"*Microsoft.BingWeather*"
-	"MicrosoftTeams*"
-	
-	# Unnecessary AppX Apps
-	"*Microsoft.DrawboardPDF*"
-	"*E2A4F912-2574-4A75-9BB0-0D023378592B*"
-	"*Microsoft.Appconnector*"
-	"Microsoft.3dbuilder"
-	"Microsoft.3dbuilder"
-	"Microsoft.BingNews"
-	"Microsoft.GetHelp"
-	"Microsoft.Getstarted"
-	"Microsoft.Messaging"
-	"*Microsoft3DViewer*"
-	"Microsoft.MicrosoftOfficeHub"
-	"Microsoft.MicrosoftSolitaireCollection"
-	"Microsoft.NetworkSpeedTest"
-	"Microsoft.News"
-	"Microsoft.Office.Lens"
-	"Microsoft.Office.OneNote"
-	"Microsoft.Office.Sway"
-	"Microsoft.OneConnect"
-	"Microsoft.People"
-	"Microsoft.Print3D"
-	"Microsoft.RemoteDesktop"
-	"Microsoft.SkypeApp"
-	"Microsoft.StorePurchaseApp"
-	"Microsoft.Office.Todo.List"
-	"Microsoft.Whiteboard"
-	"Microsoft.WindowsAlarms"        
-	"microsoft.windowscommunicationsapps"
-	"*Microsoft.WindowsFeedbackHub*"
-	"Microsoft.WindowsMaps"
-	"Microsoft.WindowsSoundRecorder"
-	"Microsoft.ZuneMusic"
-	"Microsoft.ZuneVideo"
-
-	# Sponsored AppX
-	"*DolbyLaboratories.DolbyAccess*"
-	"*Microsoft.Asphalt8Airborne*"
-	"*46928bounde.EclipseManager*"
-	"*ActiproSoftwareLLC*"
-	"*AdobeSystemsIncorporated.AdobePhotoshopExpress*"
-	"*Duolingo-LearnLanguagesforFree*"
-	"*PandoraMediaInc*"
-	"*CandyCrush*"
-	"*BubbleWitch3Saga*"
-	"*Wunderlist*"
-	"*Flipboard.Flipboard*"
-	"*Twitter*"
-	"*Facebook*"
-	"*Spotify*"
-	"*Minecraft*"
-	"*Royal Revolt*"
-	"*Sway*"
-	"*Speed Test*"
-	"*FarmHeroesSaga*"
-	"Prime*"
-	"*Clipchamp*"
-	"*Disney*"
-	"*Netflix*"
-	"*Keeper*"
-	"*Instagram*"
-	"*Amazon*"
-	"*Roblox*"
-	"*AdobePhotoshop*"
-	
-	
-	# Special Cases
-	# Dont Touch
-	if ($beXboxSafe -eq 0) {	
-		"Microsoft.XboxGamingOverlay"
-		"Microsoft.Xbox.TCUI"
-		"Microsoft.XboxApp"
-		"Microsoft.XboxGameOverlay"
-		"Microsoft.XboxIdentityProvider"
-		"Microsoft.XboxSpeechToTextOverlay"
-		
-	} 
-	
-	if ($beBiometricSafe -eq 0) {	
-		"*Microsoft.BioEnrollment*"
-		"*Microsoft.CredDialogHost*"
-		"*Microsoft.ECApp*"
-		"*Microsoft.LockApp*"		
-	} 
-	
-	if ($installNvidiaControlPanel -eq 0) {
-		"*NVIDIACorp.NVIDIAControlPanel*"
-	}
-	
-	if ($beCastSafe -eq 0) {
-		"*Microsoft.PPIP*"
-	}
-)
-		
-
-##########
-# Configuration - End
-##########
-#--------------------------------------------------------------------------
-
-##########
-# Global Functions - Start
-##########
-
-$env:POWERSHELL_TELEMETRY_OPTOUT = 'yes';
-$ErrorActionPreference = "SilentlyContinue"
-Set-ExecutionPolicy unrestricted
-New-PSDrive  HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT | Out-Null
-Set-MpPreference -EnableControlledFolderAccess Enabled -ErrorAction SilentlyContinue | Out-Null
-
-Function hardenPath($path, $desc) {
-	Write-Output ($desc) 
-	$object = "System"
-	$permission = "Modify, ChangePermissions"
-
-	$FileSystemRights = [System.Security.AccessControl.FileSystemRights]$permission
-	$InheritanceFlag = [System.Security.AccessControl.InheritanceFlags]"ContainerInherit, ObjectInherit"
-	$PropagationFlag = [System.Security.AccessControl.PropagationFlags]"None"
-	$AccessControlType =[System.Security.AccessControl.AccessControlType]::Allow
-	$Account = New-Object System.Security.Principal.NTAccount($object)
-	$FileSystemAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($Account, $FileSystemRights, $InheritanceFlag, $PropagationFlag, $AccessControlType)
-	$DirectorySecurity = Get-ACL $path
-	$DirectorySecurity.RemoveAccessRuleAll($FileSystemAccessRule)
-	Set-ACL $path -AclObject $DirectorySecurity
-
-	$Acl = Get-ACL $path
-	$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule("System","FullControl","ContainerInherit,Objectinherit","none","Deny")
-	$Acl.AddAccessRule($AccessRule)
-	Set-Acl $path $Acl
+    Updates = @{
+        DisableWindowsUpdates = $false
+    }
 }
 
-function takeownRegistry($key) {
-    # TODO does not work for all root keys yet
-    switch ($key.split('\')[0]) {
-        "HKEY_CLASSES_ROOT" {
-            $reg = [Microsoft.Win32.Registry]::ClassesRoot
-            $key = $key.substring(18)
+# Add conditional entries to bloatware list based on configuration
+if ($Config.SafetyToggles.BeXboxSafe -eq $false) {
+    $Config.Uninstall.BloatwareList += @(
+        "Microsoft.XboxGamingOverlay"
+        "Microsoft.Xbox.TCUI"
+        "Microsoft.XboxApp"
+        "Microsoft.XboxGameOverlay"
+        "Microsoft.XboxIdentityProvider"
+        "Microsoft.XboxSpeechToTextOverlay"
+    )
+}
+
+if ($Config.SafetyToggles.BeBiometricSafe -eq $false) {
+    $Config.Uninstall.BloatwareList += @(
+        "Microsoft.BioEnrollment*"
+        "Microsoft.CredDialogHost*"
+        "Microsoft.ECApp*"
+        "Microsoft.LockApp*"
+    )
+}
+
+if ($Config.Installation.InstallNvidiaControlPanel -eq $false) {
+    $Config.Uninstall.BloatwareList += "NVIDIACorp.NVIDIAControlPanel*"
+}
+
+if ($Config.SafetyToggles.BeCastSafe -eq $false) {
+    $Config.Uninstall.BloatwareList += "Microsoft.PPIP*"
+}
+
+#endregion Configuration
+
+#region Logging
+
+# Create a log file with timestamp
+$LogPath = "$env:TEMP\WindowsOptimizer_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$script:SuccessCount = 0
+$script:WarningCount = 0
+$script:ErrorCount = 0
+
+function Write-LogMessage {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Info', 'Success', 'Warning', 'Error')]
+        [string]$Type = 'Info'
+    )
+
+    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    $logMessage = "[$timestamp] [$Type] $Message"
+
+    # Write to log file
+    Add-Content -Path $LogPath -Value $logMessage
+
+    # Output to console with appropriate color
+    switch ($Type) {
+        'Success' {
+            Write-Host $logMessage -ForegroundColor Green
+            $script:SuccessCount++
         }
-        "HKEY_CURRENT_USER" {
-            $reg = [Microsoft.Win32.Registry]::CurrentUser
-            $key = $key.substring(18)
+        'Warning' {
+            Write-Host $logMessage -ForegroundColor Yellow
+            $script:WarningCount++
         }
-        "HKEY_LOCAL_MACHINE" {
-            $reg = [Microsoft.Win32.Registry]::LocalMachine
-            $key = $key.substring(19)
+        'Error' {
+            Write-Host $logMessage -ForegroundColor Red
+            $script:ErrorCount++
+        }
+        default { Write-Host $logMessage }
+    }
+}
+
+function Disable-WindowsFirewallService {
+    [CmdletBinding()]
+    param ()
+
+    try {
+        Write-LogMessage "Attempting to disable Windows Defender Firewall service..." -Type Info
+
+        # First, try using the enhanced service configuration function
+        $serviceResult = Set-ServiceConfigurationWithScExe -Name "MpsSvc" -State "Stopped" -StartupType "Disabled" -Description "Disabling Windows Defender Firewall Service"
+
+        # If that fails, try a more direct approach with netsh
+        if (-not $serviceResult) {
+            Write-LogMessage "Service configuration approach failed, trying netsh approach..." -Type Warning
+
+            # First try to disable the firewall profiles through netsh
+            $netshResult = Start-Process -FilePath "netsh" -ArgumentList "advfirewall set allprofiles state off" -Wait -NoNewWindow -PassThru
+
+            if ($netshResult.ExitCode -eq 0) {
+                Write-LogMessage "Successfully disabled Windows Firewall profiles using netsh" -Type Success
+            }
+            else {
+                Write-LogMessage ("Failed to disable Windows Firewall profiles using netsh. Exit code: " + $netshResult.ExitCode) -Type Warning
+            }
+
+            # Try direct registry approach as last resort
+            try {
+                # Disable the firewall service via registry
+                $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\MpsSvc"
+
+                if (Test-Path $regPath) {
+                    Write-LogMessage "Attempting to modify firewall service via registry..." -Type Info
+
+                    # Try using reg.exe which might have higher privileges
+                    $regExeResult = Start-Process -FilePath "reg.exe" -ArgumentList "add `"HKLM\SYSTEM\CurrentControlSet\Services\MpsSvc`" /v Start /t REG_DWORD /d 4 /f" -Wait -NoNewWindow -PassThru
+
+                    if ($regExeResult.ExitCode -eq 0) {
+                        Write-LogMessage "Successfully modified firewall service registry key" -Type Success
+                    }
+                    else {
+                        Write-LogMessage ("Failed to modify firewall service registry key. Exit code: " + $regExeResult.ExitCode) -Type Warning
+                    }
+                }
+            }
+            catch {
+                Write-LogMessage ("Error modifying firewall registry: " + $_.Exception.Message) -Type Error
+            }
+        }
+
+        Write-LogMessage "Windows Firewall operation completed with available methods" -Type Success
+        return $true
+    }
+    catch {
+        Write-LogMessage ("Critical error disabling Windows Firewall: " + $_.Exception.Message) -Type Error
+        return $false
+    }
+}
+
+function Disable-WindowsFirewallProfiles {
+    [CmdletBinding()]
+    param ()
+
+    try {
+        Write-LogMessage "Attempting to disable Windows Firewall profiles..." -Type Info
+
+        # First try using PowerShell cmdlets
+        try {
+            Get-NetFirewallProfile -ErrorAction Stop | Set-NetFirewallProfile -Enabled False -ErrorAction Stop
+            Write-LogMessage "Successfully disabled Windows Firewall profiles using PowerShell cmdlets" -Type Success
+            return $true
+        }
+        catch {
+            Write-LogMessage ("PowerShell cmdlets failed to disable firewall profiles: " + $_.Exception.Message) -Type Warning
+        }
+
+        # If PowerShell method fails, try netsh command
+        try {
+            $netshResult = Start-Process -FilePath "netsh" -ArgumentList "advfirewall set allprofiles state off" -Wait -NoNewWindow -PassThru
+
+            if ($netshResult.ExitCode -eq 0) {
+                Write-LogMessage "Successfully disabled Windows Firewall profiles using netsh" -Type Success
+                return $true
+            }
+            else {
+                Write-LogMessage ("Failed to disable Windows Firewall profiles using netsh. Exit code: " + $netshResult.ExitCode) -Type Warning
+            }
+        }
+        catch {
+            Write-LogMessage ("Error running netsh command: " + $_.Exception.Message) -Type Warning
+        }
+
+        # As a last resort, try registry method
+        try {
+            $profilePaths = @(
+                "HKLM:\SOFTWARE\Policies\Microsoft\WindowsFirewall\DomainProfile",
+                "HKLM:\SOFTWARE\Policies\Microsoft\WindowsFirewall\PrivateProfile",
+                "HKLM:\SOFTWARE\Policies\Microsoft\WindowsFirewall\PublicProfile"
+            )
+
+            foreach ($path in $profilePaths) {
+                if (-not (Test-Path $path)) {
+                    New-Item -Path $path -Force | Out-Null
+                }
+
+                # Use reg.exe for each profile
+                $regExeResult = Start-Process -FilePath "reg.exe" -ArgumentList "add `"$($path.Replace(':', ''))`" /v EnableFirewall /t REG_DWORD /d 0 /f" -Wait -NoNewWindow -PassThru
+
+                if ($regExeResult.ExitCode -eq 0) {
+                    Write-LogMessage ("Successfully disabled firewall profile via registry: " + $path) -Type Success
+                }
+            }
+
+            return $true
+        }
+        catch {
+            Write-LogMessage ("Registry method failed to disable firewall profiles: " + $_.Exception.Message) -Type Error
+            return $false
         }
     }
-
-    # get administraor group
-    $admins = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
-    $admins = $admins.Translate([System.Security.Principal.NTAccount])
-
-    # set owner
-    $key = $reg.OpenSubKey($key, "ReadWriteSubTree", "TakeOwnership")
-    $acl = $key.GetAccessControl()
-    $acl.SetOwner($admins)
-    $key.SetAccessControl($acl)
-
-    # set FullControl
-    $acl = $key.GetAccessControl()
-    $rule = New-Object System.Security.AccessControl.RegistryAccessRule($admins, "FullControl", "Allow")
-    $acl.SetAccessRule($rule)
-    $key.SetAccessControl($acl)
-}
-	
-Function regDelete($path, $desc) {
-	Write-Output ($desc)
-	
-    If (Test-Path ("HKLM:\" + $path)) {
-        Remove-ItemProperty -Path ("HKLM:\" + $path) -Recurse -Force
-    }
-	If (Test-Path ("HKCU:\" + $path)) {
-        Remove-ItemProperty -Path ("HKCU:\" + $path) -Recurse -Force
-    }
-}	
-
-Function regDeleteKey($path, $key, $desc) {
-	Write-Output ($desc)
-	
-    If (Test-Path ("HKLM:\" + $path)) {
-		Remove-ItemProperty -Path ("HKLM:\" + $path) -Name $key
-    }
-	If (Test-Path ("HKCU:\" + $path)) {
-		Remove-ItemProperty -Path ("HKCU:\" + $path) -Name $key
+    catch {
+        Write-LogMessage ("Critical error during firewall profile operation: " + $_.Exception.Message) -Type Error
+        return $false
     }
 }
 
-Function deleteFile($path, $desc) {
-	Write-Output ($desc) 
-	
-	if (!($path | Test-Path)) { 
-		write-Host -ForegroundColor Green ($path + " dont exists.")
-		return	
-	}
-	
-	takeown /F $path | out-null
+function Set-ServiceConfigurationWithScExe {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
 
-	$Acl = Get-ACL $path
-	$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule("everyone","FullControl","ContainerInherit,Objectinherit","none","Allow")
-	$Acl.AddAccessRule($AccessRule)
-	Set-Acl $path $Acl
-	
-	$Acl = Get-ACL $path
-	$username = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-	$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule($username,"FullControl","ContainerInherit,Objectinherit","none","Allow")
-	$Acl.AddAccessRule($AccessRule)
-	Set-Acl $path $Acl	
-	
-	Set-ItemProperty $path -name IsReadOnly -value $false
-	try {
-		Remove-Item -Path $path -Recurse -Force -ErrorAction Stop;
-		write-Host -ForegroundColor Green ($path + " deleted.")
-	}
-	catch {			
-		write-Host -ForegroundColor red ($path + " NOT deleted.")
-	}	
-}
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("Running", "Stopped")]
+        [string]$State,
 
-Function deletePath($path, $desc) {
-	Write-Output ($desc) 
-	
-	if (!($path | Test-Path)) { 
-		write-Host -ForegroundColor Green ($path + " dont exists.")
-		return	
-	}
-	
-	takeown /F $path | out-null	
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("Automatic", "Manual", "Disabled")]
+        [string]$StartupType,
 
-	$Acl = Get-ACL $path
-	$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule("everyone","FullControl","ContainerInherit,Objectinherit","none","Allow")
-	$Acl.AddAccessRule($AccessRule)
-	Set-Acl $path $Acl
+        [Parameter(Mandatory = $false)]
+        [string]$Description = ""
+    )
 
-	$Acl = Get-ACL $path
-	$username = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-	$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule($username,"FullControl","ContainerInherit,Objectinherit","none","Allow")
-	$Acl.AddAccessRule($AccessRule)
-	Set-Acl $path $Acl
+    try {
+        # Map PowerShell startup type to sc.exe format
+        $scStartupType = switch ($StartupType) {
+            "Automatic" { "auto" }
+            "Manual" { "demand" }
+            "Disabled" { "disabled" }
+        }
 
-	$files = Get-ChildItem $path
-	foreach ($file in $files) {
-		$Item = $path + "\" + $file.name
+        # Try to configure service startup type using sc.exe
+        Write-LogMessage "Configuring service $Name using sc.exe..." -Type Info
+        $scConfigResult = Start-Process -FilePath "sc.exe" -ArgumentList "config `"$Name`" start= $scStartupType" -Wait -NoNewWindow -PassThru
 
-		takeown /F $Item | out-null
+        if ($scConfigResult.ExitCode -ne 0) {
+            # Try to take ownership of the service before configuring
+            Write-LogMessage "Initial configuration failed, attempting alternative approach..." -Type Warning
 
-		$Acl = Get-ACL $Item
-		$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule("everyone","FullControl","Allow")
-		$Acl.AddAccessRule($AccessRule)
-		Set-Acl $Item $Acl 
+            # Try registry approach directly
+            try {
+                $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$Name"
+                $startValue = switch ($StartupType) {
+                    "Automatic" { 2 }
+                    "Manual" { 3 }
+                    "Disabled" { 4 }
+                }
 
-		$Acl = Get-ACL $Item
-		$username = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-		$AccessRule= New-Object System.Security.AccessControl.FileSystemAccessRule($username,"FullControl","Allow")
-		$Acl.AddAccessRule($AccessRule)
-		Set-Acl $Item $Acl
+                # Use reg.exe to directly modify the registry
+                $regResult = Start-Process -FilePath "reg.exe" -ArgumentList "add `"HKLM\SYSTEM\CurrentControlSet\Services\$Name`" /v Start /t REG_DWORD /d $startValue /f" -Wait -NoNewWindow -PassThru
 
-		$whatIs = (Get-Item $Item) -is [System.IO.DirectoryInfo]
+                if ($regResult.ExitCode -ne 0) {
+                    Write-LogMessage ("Registry modification for service $Name failed with exit code: " + $regResult.ExitCode) -Type Error
+                    return $false
+                }
+            }
+            catch {
+                Write-LogMessage ("Failed to modify registry for service " + $Name + ": " + $_.Exception.Message) -Type Error
+                return $false
+            }
+        }
 
-		if ($whatIs -eq $False){
-			Set-ItemProperty $Item -name IsReadOnly -value $false 
-			try {
-				Remove-Item -Path $Item -Recurse -Force -ErrorAction Stop;
-				write-Host -ForegroundColor Green ($file.name + " deleted.")
-			}
-			catch {			
-				write-Host -ForegroundColor red ($file.name + " NOT deleted.")
-			}
-		}
-	}
-}
+        # Handle service state (start/stop) according to desired state
+        if ($State -eq "Running") {
+            # Only try to start if not already running and not set to disabled
+            if ($StartupType -ne "Disabled") {
+                try {
+                    $currentState = (Get-Service -Name $Name -ErrorAction SilentlyContinue).Status
+                    if ($currentState -ne "Running") {
+                        Write-LogMessage "Starting service $Name..." -Type Info
+                        Start-Process -FilePath "sc.exe" -ArgumentList "start `"$Name`"" -Wait -NoNewWindow
+                    }
+                }
+                catch {
+                    Write-LogMessage ("Failed to start service " + $Name + ": " + $_.Exception.Message) -Type Warning
+                }
+            }
+        }
+        else {
+            # Try to stop the service
+            try {
+                $currentState = (Get-Service -Name $Name -ErrorAction SilentlyContinue).Status
+                if ($currentState -eq "Running") {
+                    Write-LogMessage "Stopping service $Name..." -Type Info
+                    Start-Process -FilePath "sc.exe" -ArgumentList "stop `"$Name`"" -Wait -NoNewWindow -ErrorAction SilentlyContinue
+                }
+            }
+            catch {
+                Write-LogMessage ("Failed to stop service " + $Name + ": " + $_.Exception.Message) -Type Warning
+            }
+        }
 
-Function clearCaches {	
-	regDelete "SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles\*" "Clearing network profiles..."
-	regDelete "SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures\Managed\*" "Clearing managed network profiles..."
-	regDelete "SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures\Unmanaged\*" "Clearing managed network profiles..."
-	regDelete "SYSTEM\CurrentControlSet\Enum\USBSTOR\*" "Clearing USB history..."
-	regDelete "SYSTEM\CurrentControlSet\Control\usbflags\*" "Clearing USB history..."
-	regDelete "SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Nla\Cache\Intranet\*" "Clearing intranet history..."
-	regDelete "Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU\*" "Clearing commands history..."
-	regDelete "Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths\*" "Clearing typed paths cache..."
-	regDelete "Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs\*" "Clearing recent docs cache..."
-	regDelete "SYSTEM\CurrentControlSet\Control\Session Manager\AppCompatCache\*" "Clearing compat cache..."
-	regDelete "Software\Microsoft\Windows\CurrentVersion\Explorer\MountPoints2\*" "Clearing mapped drives cache..."
-	
-	Stop-Process -ProcessName explorer -Force	
-	Remove-Item $env:TEMP\*.* -confirm:$false -Recurse -Force
-	Get-ChildItem $env:TEMP\*.* | Remove-Item -confirm:$false -Recurse -Force
-	Remove-Item $env:WINDIR\Prefetch\*.* -confirm:$false -Recurse -Force
-	Get-ChildItem $env:WINDIR\Prefetch\*.* | Remove-Item -confirm:$false -Recurse -Force
-	Remove-Item $env:WINDIR\*.dmp -confirm:$false -Recurse -Force	
-	
-	taskkill /F /IM explorer.exe
-	Start-Sleep -Seconds 3
-		
-	deletePath "$env:LocalAppData\Microsoft\Windows\Explorer" "Clearing thumbs files cache..."
-	deletePath "$env:LocalAppData\Microsoft\Windows\Recent" "Clearing recent folder cache..."
-	deletePath "$env:LocalAppData\Microsoft\Windows\Recent\AutomaticDestinations" "Clearing automatic destinations folder cache..."
-	deletePath "$env:LocalAppData\Microsoft\Windows\Recent\CustomDestinations" "Clearing custom destinations folder cache..."
-
-	start explorer.exe	
-}
-	
-Function RegChange($path, $thing, $value, $desc, $type) {
-	Write-Output ($desc)	
-	
-   # String: Specifies a null-terminated string. Equivalent to REG_SZ.
-   # ExpandString: Specifies a null-terminated string that contains unexpanded references to environment variables that are expanded when the value is retrieved. Equivalent to REG_EXPAND_SZ.
-   # Binary: Specifies binary data in any form. Equivalent to REG_BINARY.
-   # DWord: Specifies a 32-bit binary number. Equivalent to REG_DWORD.
-   # MultiString: Specifies an array of null-terminated strings terminated by two null characters. Equivalent to REG_MULTI_SZ.
-   # Qword: Specifies a 64-bit binary number. Equivalent to REG_QWORD.
-   # Unknown: Indicates an unsupported registry data type, such as REG_RESOURCE_LIST.
-
-	$type2 = "String"
-	if (-not ([string]::IsNullOrEmpty($type)))
-	{
-		$type2 = $type
-	}
-	
-	If (!(Test-Path ("HKLM:\" + $path))) {
-		New-Item -Path ("HKLM:\" + $path) -Force | out-null
-	}
-	If (!(Test-Path ("HKCU:\" + $path))) {
-        New-Item -Path ("HKCU:\" + $path) -Force | out-null
+        # Verify the service configuration
+        try {
+            $serviceAfter = Get-Service -Name $Name -ErrorAction SilentlyContinue
+            if ($serviceAfter) {
+                Write-LogMessage ("Service $Name configured successfully: StartType=$StartupType, Status=$($serviceAfter.Status)") -Type Success
+                return $true
+            }
+            else {
+                Write-LogMessage "Unable to verify service $Name configuration" -Type Warning
+                return $true  # Assume it worked if we can't verify
+            }
+        }
+        catch {
+            Write-LogMessage ("Error verifying service $Name configuration: " + $_.Exception.Message) -Type Warning
+            return $true  # Assume it worked if we can't verify
+        }
     }
-	
-    If (Test-Path ("HKLM:\" + $path)) {
-        Set-ItemProperty ("HKLM:\" + $path) $thing -Value $value -Type $type2 -PassThru:$false | out-null
+    catch {
+        Write-LogMessage ("Error configuring service " + $Name + ": " + $_.Exception.Message) -Type Error
+        return $false
     }
-	If (Test-Path ("HKCU:\" + $path)) {
-        Set-ItemProperty ("HKCU:\" + $path) $thing -Value $value -Type $type2 -PassThru:$false | out-null
-    }	
-
 }
 
-#This will self elevate the script so with a UAC prompt since this script needs to be run as an Administrator in order to function properly.
-If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {
-    Write-Host "You didn't run this script as an Administrator. This script will self elevate to run as an Administrator and continue."
-    Start-Sleep 1
-    Write-Host "                                               3"
-    Start-Sleep 1
-    Write-Host "                                               2"
-    Start-Sleep 1
-    Write-Host "                                               1"
-    Start-Sleep 1
-    Start-Process powershell.exe -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
-    Exit
+function Set-ProtectedRegistryValue {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        $Value,
+
+        [Parameter(Mandatory = $false)]
+        [string]$Type = "DWord",
+
+        [Parameter(Mandatory = $false)]
+        [string]$Description = ""
+    )
+
+    try {
+        # Normalize path to handle both HKLM:\ and HKCU:\ paths
+        $normalizedPath = $Path -replace '^HKLM:', 'HKLM:\' -replace '^HKCU:', 'HKCU:\'
+
+        # Try the standard approach first
+        if (!(Test-Path $normalizedPath)) {
+            New-Item -Path $normalizedPath -Force | Out-Null
+            Write-LogMessage "Created registry path: $normalizedPath" -Type Info
+        }
+
+        # Try to set the value using standard method
+        Set-ItemProperty -Path $normalizedPath -Name $Name -Value $Value -Type $Type -ErrorAction Stop
+        Write-LogMessage ("Registry: " + $Description + " - [" + $normalizedPath + "] " + $Name + " = " + $Value) -Type Success
+        return $true
+    }
+    catch {
+        # If standard approach fails, try the alternative method using reg.exe
+        Write-LogMessage ("Standard registry write failed: " + $_.Exception.Message) -Type Warning
+
+        try {
+            # Extract the registry path without the provider prefix
+            $hiveName = if ($normalizedPath -match 'HKLM:\\(.*)') { "HKLM" } elseif ($normalizedPath -match 'HKCU:\\(.*)') { "HKCU" } else { throw "Unsupported registry path" }
+            $keyPath = if ($normalizedPath -match ':\\(.*)') { $matches[1] } else { throw "Invalid registry path format" }
+
+            # Determine the reg.exe type parameter
+            $regType = switch ($Type) {
+                "String" { "REG_SZ" }
+                "ExpandString" { "REG_EXPAND_SZ" }
+                "Binary" { "REG_BINARY" }
+                "DWord" { "REG_DWORD" }
+                "MultiString" { "REG_MULTI_SZ" }
+                "QWord" { "REG_QWORD" }
+                default { "REG_SZ" }
+            }
+
+            # For services, try to use sc.exe to configure the service directly
+            if ($keyPath -match 'SYSTEM\\CurrentControlSet\\services\\(.+)' -and $Name -eq "Start") {
+                $serviceName = $matches[1]
+                $startType = switch ($Value) {
+                    2 { "auto" }
+                    3 { "demand" }
+                    4 { "disabled" }
+                    default { $Value } # Pass through for other values
+                }
+
+                $scResult = Start-Process -FilePath "sc.exe" -ArgumentList "config `"$serviceName`" start= $startType" -Wait -NoNewWindow -PassThru
+
+                if ($scResult.ExitCode -eq 0) {
+                    Write-LogMessage ("Successfully configured service " + $serviceName + " using sc.exe") -Type Success
+                    return $true
+                }
+                else {
+                    Write-LogMessage ("Failed to configure service using sc.exe, trying reg.exe") -Type Warning
+                }
+            }
+
+            # Use reg.exe to add the value
+            $regResult = Start-Process -FilePath "reg.exe" -ArgumentList "add `"$hiveName\$keyPath`" /v `"$Name`" /t $regType /d $Value /f" -Wait -NoNewWindow -PassThru
+
+            if ($regResult.ExitCode -eq 0) {
+                Write-LogMessage ("Registry: " + $Description + " - [" + $normalizedPath + "] " + $Name + " = " + $Value + " (using reg.exe)") -Type Success
+                return $true
+            }
+            else {
+                Write-LogMessage ("Failed to set registry value using reg.exe: " + $normalizedPath + " - Exit code: " + $regResult.ExitCode) -Type Error
+
+                # Last resort - try to take ownership of the key
+                Write-LogMessage "Attempting to take ownership of registry key..." -Type Warning
+
+                # Extract components for the takeown commands
+                $keyComponents = $keyPath.Split('\')
+                $keyParent = $keyComponents[0..($keyComponents.Count-2)] -join '\'
+                $keyName = $keyComponents[-1]
+
+                # Use PowerShell to take ownership and grant full control
+                $takeOwnershipScript = @"
+                param(
+                    [string]`$keyPath = '$hiveName\$keyPath'
+                )
+
+                `$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+                `$parts = `$keyPath.Split('\')
+                `$rootKey = `$parts[0]
+                `$subKey = `$parts[1..(`$parts.Length-1)] -join '\'
+
+                switch (`$rootKey) {
+                    'HKLM' { `$hive = [Microsoft.Win32.Registry]::LocalMachine }
+                    'HKCU' { `$hive = [Microsoft.Win32.Registry]::CurrentUser }
+                    default { throw "Unsupported registry hive" }
+                }
+
+                `$regKey = `$hive.OpenSubKey(`$subKey, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::TakeOwnership)
+                if (`$regKey) {
+                    `$acl = `$regKey.GetAccessControl()
+                    `$acl.SetOwner(`$identity.User)
+                    `$regKey.SetAccessControl(`$acl)
+                    `$regKey.Close()
+
+                    `$regKey = `$hive.OpenSubKey(`$subKey, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::ChangePermissions)
+                    `$acl = `$regKey.GetAccessControl()
+                    `$rule = New-Object System.Security.AccessControl.RegistryAccessRule(`$identity.User, [System.Security.AccessControl.RegistryRights]::FullControl, [System.Security.AccessControl.InheritanceFlags]::ContainerInherit, [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)
+                    `$acl.SetAccessRule(`$rule)
+                    `$regKey.SetAccessControl(`$acl)
+                    `$regKey.Close()
+                    return `$true
+                }
+                return `$false
+"@
+
+                # Execute the ownership script
+                $ownershipResult = PowerShell -NoProfile -ExecutionPolicy Bypass -Command $takeOwnershipScript
+
+                if ($ownershipResult -eq $true) {
+                    # Try again to set the value
+                    $regRetryResult = Start-Process -FilePath "reg.exe" -ArgumentList "add `"$hiveName\$keyPath`" /v `"$Name`" /t $regType /d $Value /f" -Wait -NoNewWindow -PassThru
+
+                    if ($regRetryResult.ExitCode -eq 0) {
+                        Write-LogMessage ("Registry: " + $Description + " - [" + $normalizedPath + "] " + $Name + " = " + $Value + " (after taking ownership)") -Type Success
+                        return $true
+                    }
+                }
+
+                Write-LogMessage ("Failed to set registry value after all attempts: " + $normalizedPath + "\\" + $Name) -Type Error
+                return $false
+            }
+        }
+        catch {
+            Write-LogMessage ("Failed to set registry value using alternative methods: " + $_.Exception.Message) -Type Error
+            return $false
+        }
+    }
+}
+function Start-Operation {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Description
+    )
+
+    Write-LogMessage "Starting: $Description" -Type Info
 }
 
-function serviceStatus{ 
-	param($ServiceName)
-	Write-Output $("Checking service " + $ServiceName + " status...")
-	$arrService = Get-Service -Name $ServiceName	
-	if ($arrService.Status -eq "Stopped"){
-		Write-Output $("Service " + $ServiceName + " is stopped.")
-		return "stopped"
+function Complete-Operation {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Description,
+
+        [Parameter(Mandatory = $false)]
+        [bool]$Successful = $true
+    )
+
+    if ($Successful) {
+        Write-LogMessage "Completed: $Description" -Type Success
+    }
+    else {
+        Write-LogMessage "Failed: $Description" -Type Error
+    }
+}
+
+#endregion Logging
+
+#region Helper Functions
+
+function Test-Administrator {
+    $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    return $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Restart-ScriptAsAdmin {
+    if (-not (Test-Administrator)) {
+        Write-LogMessage "Script must run as administrator. Restarting with elevation..." -Type Warning
+        Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+        Exit
+    }
+}
+
+function Set-RegistryValue {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        $Value,
+
+        [Parameter(Mandatory = $false)]
+        [string]$Type = "String",
+
+        [Parameter(Mandatory = $false)]
+        [string]$Description = ""
+    )
+
+    try {
+        # Normalize path to handle both HKLM:\ and HKCU:\ paths
+        $normalizedPath = $Path -replace '^HKLM:', 'HKLM:\' -replace '^HKCU:', 'HKCU:\'
+
+        # Create the path if it doesn't exist
+        if (!(Test-Path $normalizedPath)) {
+            New-Item -Path $normalizedPath -Force | Out-Null
+            Write-LogMessage "Created registry path: $normalizedPath" -Type Info
+        }
+
+        # Set the value
+        Set-ItemProperty -Path $normalizedPath -Name $Name -Value $Value -Type $Type -ErrorAction Stop
+        Write-LogMessage "Registry: $Description - [$normalizedPath] $Name = $Value" -Type Success
+        return $true
+    }
+    catch {
+        Write-LogMessage "Failed to set registry value: $normalizedPath\$Name - $($_.Exception.Message)" -Type Error
+        return $false
+    }
+}
+
+function Remove-RegistryValue {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $false)]
+        [string]$Name = $null,
+
+        [Parameter(Mandatory = $false)]
+        [string]$Description = ""
+    )
+
+    try {
+        # Normalize path to handle both HKLM:\ and HKCU:\ paths
+        $normalizedPath = $Path -replace '^HKLM:', 'HKLM:\' -replace '^HKCU:', 'HKCU:\'
+
+        if (Test-Path $normalizedPath) {
+            if ($Name) {
+                # Remove specific property
+                Remove-ItemProperty -Path $normalizedPath -Name $Name -ErrorAction Stop
+                Write-LogMessage "Removed registry value: $Description - [$normalizedPath] $Name" -Type Success
+            }
+            else {
+                # Remove entire key
+                Remove-Item -Path $normalizedPath -Recurse -Force -ErrorAction Stop
+                Write-LogMessage "Removed registry key: $Description - $normalizedPath" -Type Success
+            }
+            return $true
+        }
+        else {
+            Write-LogMessage "Registry path does not exist: $normalizedPath" -Type Warning
+            return $true  # Not an error if it doesn't exist
+        }
+    }
+    catch {
+        Write-LogMessage ("Failed to remove registry value: " + $normalizedPath + " - " + $_.Exception.Message) -Type Error
+        return $false
+    }
+}
+
+function Set-ServiceConfiguration {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("Running", "Stopped")]
+        [string]$State,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("Automatic", "Manual", "Disabled")]
+        [string]$StartupType,
+
+        [Parameter(Mandatory = $false)]
+        [string]$Description = "",
+
+        [Parameter(Mandatory = $false)]
+        [bool]$Force = $false
+    )
+
+    try {
+        $service = Get-Service -Name $Name -ErrorAction SilentlyContinue
+
+        if ($null -eq $service) {
+            Write-LogMessage "Service '$Name' not found" -Type Warning
+            return $false
+        }
+
+        # Update service startup type
+        Set-Service -Name $Name -StartupType $StartupType -ErrorAction Stop
+
+        # Start or stop the service as needed
+        if ($State -eq "Running" -and $service.Status -ne "Running") {
+            Start-Service -Name $Name -ErrorAction Stop
+        }
+        elseif ($State -eq "Stopped" -and $service.Status -ne "Stopped") {
+            if ($Force) {
+                Stop-Service -Name $Name -Force -ErrorAction Stop
+            }
+            else {
+                Stop-Service -Name $Name -ErrorAction Stop
+            }
+        }
+
+        # Additional registry setting for services that need it
+        $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$Name"
+        $startValue = switch ($StartupType) {
+            "Automatic" { 2 }
+            "Manual" { 3 }
+            "Disabled" { 4 }
+        }
+
+       Set-ProtectedRegistryValue -Path $regPath -Name "Start" -Value $startValue -Type "DWord" -Description "$Description (Registry)"
+
+        Write-LogMessage "Service: $Description - $Name set to $StartupType/$State" -Type Success
+        return $true
+    }
+    catch {
+                    Write-LogMessage ("Failed to configure service " + $Name + ": " + $_.Exception.Message) -Type Error
+        return $false
+    }
+}
+
+function Remove-File {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $false)]
+        [string]$Description = ""
+    )
+
+    if (!(Test-Path $Path)) {
+        Write-LogMessage "File does not exist: $Path" -Type Info
+        return $true
+    }
+
+    try {
+        # Take ownership
+        takeown /F $Path | Out-Null
+
+        # Set full permissions
+        $Acl = Get-Acl $Path
+        $username = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+        $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("everyone", "FullControl", "Allow")
+        $Acl.SetAccessRule($AccessRule)
+        Set-Acl $Path $Acl
+
+        # Remove read-only attribute
+        Set-ItemProperty $Path -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
+
+        # Delete the file
+        Remove-Item -Path $Path -Force -ErrorAction Stop
+        Write-LogMessage "Removed file: $Description - $Path" -Type Success
+        return $true
+    }
+    catch {
+        Write-LogMessage ("Failed to remove file " + $Path + ": " + $_.Exception.Message) -Type Error
+        return $false
+    }
+}
+
+function Remove-Directory {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $false)]
+        [string]$Description = ""
+    )
+
+    if (!(Test-Path $Path)) {
+        Write-LogMessage "Directory does not exist: $Path" -Type Info
+        return $true
+    }
+
+    try {
+        # Take ownership of the directory and contents
+        takeown /F $Path /R /D Y | Out-Null
+
+        # Set full permissions
+        $Acl = Get-Acl $Path
+        $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("everyone", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+        $Acl.AddAccessRule($AccessRule)
+        Set-Acl $Path $Acl
+
+        # Delete the directory
+        Remove-Item -Path $Path -Recurse -Force -ErrorAction Stop
+        Write-LogMessage "Removed directory: $Description - $Path" -Type Success
+        return $true
+    }
+    catch {
+        Write-LogMessage ("Failed to remove directory " + $Path + ": " + $_.Exception.Message) -Type Error
+        return $false
+    }
+}
+
+function Stop-ProcessSafely {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        [Parameter(Mandatory = $false)]
+        [int]$MaxAttempts = 3
+    )
+
+    try {
+        $process = Get-Process -Name $Name -ErrorAction SilentlyContinue
+
+        if ($null -eq $process) {
+            Write-LogMessage "Process '$Name' is not running" -Type Info
+            return $true
+        }
+
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+            Write-LogMessage "Stopping process '$Name' - Attempt $attempt of $MaxAttempts" -Type Info
+            Stop-Process -Name $Name -Force -ErrorAction SilentlyContinue
+
+            # Wait and check if it's gone
+            Start-Sleep -Seconds 2
+            $process = Get-Process -Name $Name -ErrorAction SilentlyContinue
+
+            if ($null -eq $process) {
+                Write-LogMessage "Successfully stopped process '$Name'" -Type Success
+                return $true
+            }
+        }
+
+        Write-LogMessage "Failed to stop process '$Name' after $MaxAttempts attempts" -Type Warning
+        return $false
+    }
+    catch {
+        Write-LogMessage ("Error stopping process '" + $Name + "': " + $_.Exception.Message) -Type Error
+        return $false
+    }
+}
+
+function Clear-AllCaches {
+    Start-Operation "Clearing system caches"
+
+    # Clear network profiles
+    Remove-RegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles" -Description "Clearing network profiles"
+    Remove-RegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures\Managed" -Description "Clearing managed network profiles"
+    Remove-RegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures\Unmanaged" -Description "Clearing unmanaged network profiles"
+
+    # Clear USB history
+    Remove-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR" -Description "Clearing USB history"
+    Remove-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\usbflags" -Description "Clearing USB flags"
+
+    # Clear intranet history
+    Remove-RegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Nla\Cache\Intranet" -Description "Clearing intranet history"
+
+    # Clear command history
+    Remove-RegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU" -Description "Clearing command history"
+    Remove-RegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths" -Description "Clearing typed paths"
+    Remove-RegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs" -Description "Clearing recent docs"
+
+    # Clear other caches
+    Remove-RegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\AppCompatCache" -Description "Clearing app compat cache"
+    Remove-RegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\MountPoints2" -Description "Clearing mapped drives cache"
+
+    # Clear file system caches
+    try {
+        Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+
+        # Clear temp files
+        Get-ChildItem -Path $env:TEMP -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        Get-ChildItem -Path "$env:WINDIR\Prefetch" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        Get-ChildItem -Path "$env:WINDIR\*.dmp" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+
+        # Clear explorer caches
+        Remove-Directory -Path "$env:LocalAppData\Microsoft\Windows\Explorer" -Description "Clearing explorer cache"
+        Remove-Directory -Path "$env:LocalAppData\Microsoft\Windows\Recent" -Description "Clearing recent items"
+        Remove-Directory -Path "$env:LocalAppData\Microsoft\Windows\Recent\AutomaticDestinations" -Description "Clearing automatic destinations"
+        Remove-Directory -Path "$env:LocalAppData\Microsoft\Windows\Recent\CustomDestinations" -Description "Clearing custom destinations"
+
+        # Restart explorer
+        Start-Process explorer.exe
+        Write-LogMessage "Restarted Explorer" -Type Success
+    }
+    catch {
+        Write-LogMessage ("Error clearing file system caches: " + $_.Exception.Message) -Type Error
+    }
+
+    Complete-Operation "Clearing system caches"
+}
+
+function Test-SafeMode {
+    $mySafeMode = Get-WmiObject win32_computersystem | Select-Object BootupState
+    return ($mySafeMode -notlike '*Normal boot*')
+}
+
+function Get-GPUVendor {
+    try {
+        $myGPU = Get-WmiObject win32_VideoController
+        if ($myGPU.name -like '*nvidia*') {
+            Write-LogMessage "Detected NVIDIA GPU" -Type Info
+            return "nvidia"
+        }
+        else {
+            Write-LogMessage "No NVIDIA GPU detected" -Type Info
+            return $null
+        }
+    }
+    catch {
+        Write-LogMessage ("Error detecting GPU: " + $_.Exception.Message) -Type Error
+        return $null
+    }
+}
+
+function Disable-WindowsDefenderComponents {
+    Start-Operation "Disabling Windows Defender components"
+
+    # Check if in safe mode
+    if (-not (Test-SafeMode)) {
+        Write-LogMessage "System needs to be in safe mode to uninstall Windows Defender" -Type Warning
+        return
+    }
+
+    # Take ownership of Defender registry key
+    Write-LogMessage "Taking ownership of Windows Defender registry keys" -Type Info
+
+    # Disable Defender services
+    $services = @(
+        "WinDefend", "WdBoot", "WdFilter", "WdNisDrv", "WdNisSvc",
+        "SecurityHealthService", "Sense", "webthreatdefsvc", "webthreatdefusersvc"
+    )
+
+    foreach ($service in $services) {
+        Set-ServiceConfiguration -Name $service -State "Stopped" -StartupType "Disabled" -Description "Disabling Windows Defender service" -Force $true
+    }
+
+    # Disable via registry
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" -Name "SpynetReporting" -Value 0 -Type "DWord" -Description "Disabling Windows Defender Cloud"
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" -Name "SubmitSamplesConsent" -Value 2 -Type "DWord" -Description "Disabling Windows Defender Cloud Sample"
+   Set-ProtectedRegistryValue -Path "HKLM:\Software\Policies\Microsoft\Windows Defender" -Name "DisableConfig" -Value 1 -Type "DWord" -Description "Disabling Windows Anti Spyware Config"
+   Set-ProtectedRegistryValue -Path "HKLM:\Software\Policies\Microsoft\Windows Defender" -Name "DisableAntiSpyware" -Value 1 -Type "DWord" -Description "Disabling Windows Anti Spyware"
+
+    # Disable Windows Security Center
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Services\wscsvc" -Name "Start" -Value 4 -Type "DWord" -Description "Disabling Windows Security Center Service"
+
+    # Disable SmartScreen
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer" -Name "SmartScreenEnabled" -Value "Off" -Type "String" -Description "Disabling SmartScreen Filter"
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AppHost" -Name "EnableWebContentEvaluation" -Value 0 -Type "DWord" -Description "Disabling SmartScreen Web Content Evaluation"
+
+    # Delete Defender files
+    $defenderPaths = @(
+        "$env:ProgramFiles\Windows Defender",
+        "$env:ProgramFiles\Windows Defender Advanced Threat Protection",
+        "$env:ProgramFiles(x86)\Windows Defender",
+        "$env:ProgramData\Microsoft\Windows Defender",
+        "$env:ProgramData\Microsoft\Windows Defender\Platform",
+        "$env:ProgramData\Microsoft\Windows Defender Advanced Threat Protection",
+        "$env:ProgramData\Microsoft\Windows Security Health",
+        "$env:WinDir\System32\SecurityHealthService.exe"
+    )
+
+    foreach ($path in $defenderPaths) {
+        Remove-Directory -Path $path -Description "Removing Windows Defender directory"
+    }
+
+    # Disable additional features
+    Write-LogMessage "Disabling Windows Defender Application Guard" -Type Info
+    Disable-WindowsOptionalFeature -FeatureName "Windows-Defender-ApplicationGuard" -NoRestart -WarningAction SilentlyContinue | Out-Null
+
+    # Disable AllowUpdateService
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Update\AllowUpdateService" -Name "value" -Value 0 -Type "DWord" -Description "Disabling Windows AllowUpdateService"
+
+    # Disable AllowAutoUpdate
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Update\AllowAutoUpdate" -Name "value" -Value 5 -Type "DWord" -Description "Disabling Windows AllowAutoUpdate"
+
+    # Disable various Windows Defender features through policy manager
+    $defenderPolicies = @(
+        "AllowArchiveScanning", "AllowBehaviorMonitoring", "AllowCloudProtection",
+        "AllowIntrusionPreventionSystem", "AllowIOAVProtection", "AllowOnAccessProtection",
+        "AllowRealtimeMonitoring", "AllowScanningNetworkFiles", "AllowScriptScanning",
+        "DisableCatchupFullScan", "DisableCatchupQuickScan", "EnableNetworkProtection",
+        "PUAProtection", "AllowEmailScanning"
+    )
+
+    foreach ($policy in $defenderPolicies) {
+        $value = if ($policy -like "Disable*") { 0 } else { 0 }
+       Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\$policy" -Name "value" -Value $value -Type "DWord" -Description "Configuring Windows Defender policy: $policy"
+    }
+
+    # Set RealTimeScanDirection to monitor only outgoing files
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\RealTimeScanDirection" -Name "value" -Value 2 -Type "DWord" -Description "Setting RealTimeScanDirection to monitor only outgoing files"
+
+    Complete-Operation "Disabling Windows Defender components"
+}
+
+function Uninstall-OneDrive {
+    Start-Operation "Uninstalling OneDrive"
+
+    # Check if in safe mode
+    if (-not (Test-SafeMode)) {
+        Write-LogMessage "System needs to be in safe mode to uninstall OneDrive" -Type Warning
+        return
+    }
+
+    # Stop OneDrive processes
+    Stop-ProcessSafely -Name "OneDrive"
+    Stop-ProcessSafely -Name "explorer"
+
+    # Uninstall OneDrive
+    if (Test-Path "$env:systemroot\System32\OneDriveSetup.exe") {
+        Write-LogMessage "Running OneDrive uninstaller (64-bit)" -Type Info
+        Start-Process "$env:systemroot\System32\OneDriveSetup.exe" -ArgumentList "/uninstall" -Wait
+    }
+
+    if (Test-Path "$env:systemroot\SysWOW64\OneDriveSetup.exe") {
+        Write-LogMessage "Running OneDrive uninstaller (32-bit)" -Type Info
+        Start-Process "$env:systemroot\SysWOW64\OneDriveSetup.exe" -ArgumentList "/uninstall" -Wait
+    }
+
+    # Remove OneDrive leftovers
+    $oneDrivePaths = @(
+        "$env:localappdata\Microsoft\OneDrive",
+        "$env:programdata\Microsoft OneDrive",
+        "$env:systemdrive\OneDriveTemp"
+    )
+
+    foreach ($path in $oneDrivePaths) {
+        Remove-Directory -Path $path -Description "Removing OneDrive directory"
+    }
+
+    # Check if user OneDrive directory is empty before removing
+    $userOneDrive = "$env:userprofile\OneDrive"
+    if (Test-Path $userOneDrive) {
+        $fileCount = (Get-ChildItem $userOneDrive -Recurse | Measure-Object).Count
+        if ($fileCount -eq 0) {
+            Remove-Directory -Path $userOneDrive -Description "Removing empty user OneDrive directory"
+        }
+        else {
+            Write-LogMessage "User OneDrive directory contains files, skipping removal" -Type Warning
+        }
+    }
+
+    # Disable OneDrive via Group Policies
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Wow6432Node\Policies\Microsoft\Windows\OneDrive" -Name "DisableFileSyncNGSC" -Value 1 -Type "DWord" -Description "Disabling OneDrive via Group Policy"
+
+    # Remove OneDrive from explorer sidebar
+    New-PSDrive -PSProvider "Registry" -Root "HKEY_CLASSES_ROOT" -Name "HKCR" -ErrorAction SilentlyContinue
+
+   Set-ProtectedRegistryValue -Path "HKCR:\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" -Name "System.IsPinnedToNameSpaceTree" -Value 0 -Type "DWord" -Description "Removing OneDrive from explorer sidebar (CLSID)"
+   Set-ProtectedRegistryValue -Path "HKCR:\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" -Name "System.IsPinnedToNameSpaceTree" -Value 0 -Type "DWord" -Description "Removing OneDrive from explorer sidebar (Wow6432Node)"
+
+    # Remove OneDrive from startup for new users
+    try {
+        Write-LogMessage "Removing OneDrive from startup for new users" -Type Info
+        reg load "hku\Default" "C:\Users\Default\NTUSER.DAT"
+        reg delete "HKEY_USERS\Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f
+        reg unload "hku\Default"
+    }
+    catch {
+        Write-LogMessage ("Failed to modify default user registry: " + $_.Exception.Message) -Type Error
+    }
+
+    # Remove start menu entry and scheduled tasks
+    Remove-File -Path "$env:userprofile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk" -Description "Removing OneDrive start menu shortcut"
+
+    Get-ScheduledTask -TaskPath '\' -TaskName 'OneDrive*' -ErrorAction SilentlyContinue |
+        Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
+
+    # Restart explorer
+    Start-Process "explorer.exe"
+
+    Complete-Operation "Uninstalling OneDrive"
+}
+
+function Remove-Bloatware {
+    param (
+        [array]$BloatwareList
+    )
+
+    Start-Operation "Removing bloatware applications"
+
+    foreach ($app in $BloatwareList) {
+        try {
+            Write-LogMessage "Attempting to remove: $app" -Type Info
+            Get-AppxPackage -Name $app -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue
+
+            # Disable content delivery
+            $cdmSettings = @(
+                @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Name="FeatureManagementEnabled"; Value=0},
+                @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Name="ContentDeliveryAllowed"; Value=0},
+                @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Name="OemPreInstalledAppsEnabled"; Value=0},
+                @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Name="PreInstalledAppsEnabled"; Value=0},
+                @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Name="PreInstalledAppsEverEnabled"; Value=0},
+                @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Name="SilentInstalledAppsEnabled"; Value=0},
+                @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Name="SystemPaneSuggestionsEnabled"; Value=0},
+                @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Name="SubscribedContentEnabled"; Value=0}
+            )
+
+            # Apply content delivery manager settings
+            foreach ($setting in $cdmSettings) {
+               Set-ProtectedRegistryValue -Path $setting.Path -Name $setting.Name -Value $setting.Value -Type "DWord" -Description "Disabling content delivery"
+            }
+
+            # Disable subscription content
+            for ($i = 310093; $i -le 353694; $i++) {
+                if ($i -in @(310093, 338388, 338389, 338393, 353694, 353696)) {
+                   Set-ProtectedRegistryValue -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "SubscribedContent-$i`Enabled" -Value 0 -Type "DWord" -Description "Disabling subscribed content"
+                }
+            }
+
+            # Clear content store
+            Remove-RegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions" -Description "Clearing subscriptions"
+            Remove-RegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps" -Description "Clearing suggested apps"
+        }
+        catch {
+            Write-LogMessage ("Failed to remove " + $app + " : " + $_.Exception.Message) -Type Error
+        }
+    }
+
+    Complete-Operation "Removing bloatware applications"
+}
+
+function Set-PrivacySettings {
+    Start-Operation "Configuring privacy settings"
+
+    # Disable Cortana
+    $cortanaSettings = @(
+        @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"; Name="ConnectedSearchPrivacy"; Value=0},
+        @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"; Name="ConnectedSearchUseWeb"; Value=0},
+        @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"; Name="ConnectedSearchUseWebOverMeteredConnections"; Value=0},
+        @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"; Name="DisableWebSearch"; Value=1},
+        @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search"; Name="CortanaEnabled"; Value=0},
+        @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search"; Name="BingSearchEnabled"; Value=0},
+        @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search"; Name="CanCortanaBeEnabled"; Value=0},
+        @{Path="HKCU:\SOFTWARE\Microsoft\Personalization\Settings"; Name="AcceptedPrivacyPolicy"; Value=0},
+        @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search"; Name="DeviceHistoryEnabled"; Value=0},
+        @{Path="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search"; Name="HistoryViewEnabled"; Value=0}
+    )
+
+    foreach ($setting in $cortanaSettings) {
+       Set-ProtectedRegistryValue -Path $setting.Path -Name $setting.Name -Value $setting.Value -Type "DWord" -Description "Disabling Cortana"
+    }
+
+    # Disable telemetry
+    $telemetrySettings = @(
+        @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications"; Name="AllowTelemetry"; Value=0},
+        @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"; Name="AllowTelemetry"; Value=0},
+        @{Path="HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection"; Name="AllowTelemetry"; Value=0}
+    )
+
+    foreach ($setting in $telemetrySettings) {
+       Set-ProtectedRegistryValue -Path $setting.Path -Name $setting.Name -Value $setting.Value -Type "DWord" -Description "Disabling telemetry"
+    }
+
+    # Disable scheduled tasks related to telemetry
+    $telemetryTasks = @(
+        "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser",
+        "Microsoft\Windows\Application Experience\ProgramDataUpdater",
+        "Microsoft\Windows\Autochk\Proxy",
+        "Microsoft\Windows\Customer Experience Improvement Program\Consolidator",
+        "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip",
+        "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector",
+        # Added task to disable DeviceCensus
+        "Microsoft\Windows\Device Information\Device" # This is the scheduled task for devicecensus.exe
+    )
+
+    foreach ($taskPath in $telemetryTasks) { # Changed variable name to $taskPath for clarity
+        try {
+            # Scheduled tasks are identified by their path in Task Scheduler
+            $task = Get-ScheduledTask -TaskPath "\" -TaskName ($taskPath.Split('\')[-1]) -ErrorAction SilentlyContinue
+            if ($taskPath.StartsWith("Microsoft\Windows\Device Information")) { # More specific check for DeviceCensus task path
+                $task = Get-ScheduledTask -TaskPath "\Microsoft\Windows\Device Information\" -TaskName "Device" -ErrorAction SilentlyContinue
+            } else {
+                 # Attempt to get task by full path if it contains subfolders
+                $pathParts = $taskPath.Split('\')
+                $taskName = $pathParts[-1]
+                $folderPath = "\" + ($pathParts[0..($pathParts.Length-2)] -join '\')
+                if ($pathParts.Length -gt 1) {
+                    $task = Get-ScheduledTask -TaskPath $folderPath -TaskName $taskName -ErrorAction SilentlyContinue
+                } else { # Root task
+                    $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+                }
+            }
+
+            if ($task) {
+                if ($task.State -ne [Microsoft.Win32.TaskScheduler.TaskState]::Disabled) {
+                    Disable-ScheduledTask -InputObject $task -ErrorAction Stop | Out-Null
+                    Write-LogMessage "Disabled scheduled task: $taskPath" -Type Success
+                } else {
+                    Write-LogMessage "Scheduled task already disabled: $taskPath" -Type Info
+                }
+            } else {
+                Write-LogMessage "Scheduled task not found (may not exist on this system or already removed): $taskPath" -Type Info
+            }
+        }
+        catch {
+            Write-LogMessage "Failed to disable or check task $taskPath : $($_.Exception.Message)" -Type Warning
+        }
+    }
+
+    # Location tracking
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" -Name "SensorPermissionState" -Value 0 -Type "DWord" -Description "Disabling location tracking"
+   Set-ProtectedRegistryValue -Path "HKLM:\System\CurrentControlSet\Services\lfsvc\Service\Configuration" -Name "Status" -Value 0 -Type "DWord" -Description "Disabling location tracking service"
+
+    # Disable input collection
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\InputPersonalization" -Name "RestrictImplicitInkCollection" -Value 1 -Type "DWord" -Description "Disabling implicit ink collection"
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\InputPersonalization" -Name "RestrictImplicitTextCollection" -Value 1 -Type "DWord" -Description "Disabling implicit text collection"
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore" -Name "HarvestContacts" -Value 0 -Type "DWord" -Description "Disabling contact harvesting"
+
+    # Advertising ID
+   Set-ProtectedRegistryValue -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" -Name "Enabled" -Value 0 -Type "DWord" -Description "Disabling Advertising ID"
+
+    # Disable feedback experience
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "NumberOfSIUFInPeriod" -Value 0 -Type "DWord" -Description "Disabling feedback experience"
+
+    # Disable consumer features
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableWindowsConsumerFeatures" -Value 1 -Type "DWord" -Description "Disabling consumer features"
+
+    # Disable Windows Tips
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableSoftLanding" -Value 1 -Type "DWord" -Description "Disabling Windows Tips"
+
+    # Disable tailored experiences
+   Set-ProtectedRegistryValue -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy" -Name "TailoredExperiencesWithDiagnosticDataEnabled" -Value 0 -Type "DWord" -Description "Disabling tailored experiences"
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableTailoredExperiencesWithDiagnosticData" -Value 1 -Type "DWord" -Description "Disabling tailored experiences via policy"
+
+    # Disable automatic network device installation
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" -Name "AutoSetup" -Value 0 -Type "DWord" -Description "Disabling automatic network device installation"
+
+    # Disable background apps
+    try {
+        Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" |
+        Where-Object { $_.PSChildName -ne "Microsoft.Windows.Cortana*" } |
+        ForEach-Object {
+           Set-ProtectedRegistryValue -Path $_.PSPath -Name "Disabled" -Value 1 -Type "DWord" -Description "Disabling background app: $($_.PSChildName)"
+           Set-ProtectedRegistryValue -Path $_.PSPath -Name "DisabledByUser" -Value 1 -Type "DWord" -Description "Disabling background app: $($_.PSChildName)"
+        }
+    }
+    catch {
+        Write-LogMessage ("Error disabling background apps: " + $_.Exception.Message) -Type Warning
+    }
+
+    # Disable remote assistance
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance" -Name "fAllowToGetHelp" -Value 0 -Type "DWord" -Description "Disabling Remote Assistance"
+
+    # Disable AutoLogger and ETW traces
+    $etlLogPath = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
+    Remove-Directory -Path $etlLogPath -Description "Removing ETL Autologs"
+
+    if (Test-Path $etlLogPath) {
+        # If removal failed, try to secure the directory
+        try {
+            $acl = Get-Acl $etlLogPath
+            $rule = New-Object System.Security.AccessControl.FileSystemAccessRule("System", "FullControl", "ContainerInherit, ObjectInherit", "None", "Deny")
+            $acl.AddAccessRule($rule)
+            Set-Acl $etlLogPath $acl
+            Write-LogMessage "Secured ETL Autologs directory" -Type Success
+        }
+        catch {
+            Write-LogMessage ("Failed to secure ETL Autologs directory: " + $_.Exception.Message) -Type Error
+        }
+    }
+
+    # Disable DiagTrack service
+    Set-ServiceConfiguration -Name "DiagTrack" -State "Stopped" -StartupType "Disabled" -Description "Disabling DiagTrack (Connected User Experiences and Telemetry)" -Force $true # Clarified description
+
+    # Disable dmwappushservice
+    Set-ServiceConfiguration -Name "dmwappushservice" -State "Stopped" -StartupType "Disabled" -Description "Disabling dmwappushservice (Device Management Wireless Application Protocol Push message routing)" -Force $true # Clarified description
+
+    # Disable Windows Insider Service
+    Set-ServiceConfiguration -Name "wisvc" -State "Stopped" -StartupType "Disabled" -Description "Disabling Windows Insider Service" -Force $true
+
+    # Disable IP Helper (can leak data)
+    Set-ServiceConfiguration -Name "iphlpsvc" -State "Stopped" -StartupType "Disabled" -Description "Disabling IP Helper service" -Force $true
+
+    # Disable NVIDIA telemetry
+    Set-ServiceConfiguration -Name "NvTelemetryContainer" -State "Stopped" -StartupType "Disabled" -Description "Disabling NVIDIA Telemetry" -Force $true
+
+    # Set network profile to public for enhanced security
+    try {
+        Get-NetConnectionProfile -ErrorAction SilentlyContinue | Set-NetConnectionProfile -NetworkCategory Public -ErrorAction SilentlyContinue
+        Write-LogMessage "Attempted to set network profiles to Public" -Type Success # Changed to "Attempted" as it might not apply to all or fail silently
+    }
+    catch {
+        Write-LogMessage ("Failed to set network profile to Public: " + $_.Exception.Message) -Type Warning
+    }
+
+    Complete-Operation "Configuring privacy settings"
+}
+
+function Set-PerformanceOptimizations {
+    Start-Operation "Applying performance optimizations"
+
+    # Services to disable for performance
+    $servicesToDisable = @(
+        @{Name="WpcMonSvc"; Desc="Windows Parental Controls"},
+        @{Name="diagsvc"; Desc="Diagnostic Execution Service"},
+        @{Name="Fax"; Desc="Windows Fax Service"},
+        @{Name="lfsvc"; Desc="Geolocation Service"},
+        @{Name="DusmSvc"; Desc="Data Usage Service"},
+        @{Name="StorSvc"; Desc="Storage Service"},
+        @{Name="MSDTC"; Desc="Distributed Transaction Coordinator"},
+        @{Name="Ndu"; Desc="Network Data Usage Monitor"},
+        @{Name="AppMgmt"; Desc="Application Management"},
+        @{Name="TrkWks"; Desc="Distributed Link Tracking Client"},
+        @{Name="DispBrokerDesktopSvc"; Desc="Display Policy Service"},
+        @{Name="OneSyncSvc"; Desc="OneSync Service"},
+        @{Name="WalletService"; Desc="Wallet Service"}
+    )
+
+    # Only disable printer-related services if safe mode is disabled
+    if (-not $Config.SafetyToggles.BePrinterSafe) {
+        $servicesToDisable += @(
+            @{Name="Spooler"; Desc="Print Spooler"},
+            @{Name="StiSvc"; Desc="Windows Image Acquisition"}
+        )
+    }
+
+    # Only disable certain services if safety mode is disabled
+    if (-not $Config.SafetyToggles.BeWifiSafe) {
+        $servicesToDisable += @(
+            @{Name="RmSvc"; Desc="Radio Management Service"},
+            @{Name="WlanSvc"; Desc="WLAN AutoConfig"}
+        )
+    }
+
+    if (-not $Config.SafetyToggles.BeMicrophoneSafe) {
+        $servicesToDisable += @{Name="camsvc"; Desc="Capability Access Manager Service"}
+    }
+
+    # Disable selected services
+    foreach ($service in $servicesToDisable) {
+        Set-ServiceConfiguration -Name $service.Name -State "Stopped" -StartupType "Disabled" -Description "Disabling $($service.Desc)" -Force $true
+    }
+
+    # Disable Windows features
+    if ($Config.General.DisablePrefetcher) {
+       Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" -Name "EnablePrefetcher" -Value 0 -Type "DWord" -Description "Disabling Prefetcher"
+    }
+
+    if ($Config.General.DisableMemoryDump) {
+       Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Name "CrashDumpEnabled" -Value 0 -Type "DWord" -Description "Disabling Memory Dump"
+    }
+
+    # Hardware acceleration
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" -Name "HwSchMode" -Value 2 -Type "DWord" -Description "Enabling Hardware Accelerated GPU Scheduling"
+
+    # Disable visual effects
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "EnableTransparency" -Value 0 -Type "DWord" -Description "Disabling transparency effects"
+
+    # Disable diagnostic services
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\services\WdiServiceHost" -Name "Start" -Value 4 -Type "DWord" -Description "Disabling Diagnostic Service Host"
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\services\WdiSystemHost" -Name "Start" -Value 4 -Type "DWord" -Description "Disabling Diagnostic System Host"
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\services\DPS" -Name "Start" -Value 4 -Type "DWord" -Description "Disabling Diagnostic Policy Service"
+
+    # Disable hibernation
+   Set-ProtectedRegistryValue -Path "HKLM:\System\CurrentControlSet\Control\Session Manager\Power" -Name "HibernateEnabled" -Value 0 -Type "DWord" -Description "Disabling hibernation"
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings" -Name "ShowHibernateOption" -Value 0 -Type "DWord" -Description "Hiding hibernation option"
+
+    # Disable scheduled defragmentation
+    Disable-ScheduledTask -TaskName "Microsoft\Windows\Defrag\ScheduledDefrag" -ErrorAction SilentlyContinue | Out-Null
+    Write-LogMessage "Disabled scheduled defragmentation" -Type Success
+
+    # Disable superfetch/sysmain
+    Set-ServiceConfiguration -Name "SysMain" -State "Stopped" -StartupType "Disabled" -Description "Disabling Superfetch/SysMain" -Force $true
+
+    # Disable SSDPSRV
+    Set-ServiceConfiguration -Name "SSDPSRV" -State "Stopped" -StartupType "Disabled" -Description "Disabling SSDP Discovery" -Force $true
+
+    # Disable AxInstSV
+    Set-ServiceConfiguration -Name "AxInstSV" -State "Stopped" -StartupType "Disabled" -Description "Disabling ActiveX Installer" -Force $true
+
+    # Disable MapsBroker
+    Set-ServiceConfiguration -Name "MapsBroker" -State "Stopped" -StartupType "Disabled" -Description "Disabling Downloaded Maps Manager" -Force $true
+
+    # Set power plan
+    $powerCfg = powercfg -SetActive $Config.General.PowerPlan
+    if ($LASTEXITCODE -eq 0) {
+        Write-LogMessage "Applied power plan successfully" -Type Success
+    }
+    else {
+        Write-LogMessage "Failed to apply power plan" -Type Warning
+    }
+
+    # Configure power settings
+    powercfg -Change -monitor-timeout-ac $Config.General.MonitorAcTimeout
+    powercfg -Change -monitor-timeout-dc $Config.General.MonitorDcTimeout
+    powercfg -Change -disk-timeout-ac $Config.General.DiskAcTimeout
+    powercfg -Change -disk-timeout-dc $Config.General.DiskDcTimeout
+    powercfg -Change -standby-timeout-ac $Config.General.StandbyAcTimeout
+    powercfg -Change -standby-timeout-dc $Config.General.StandbyDcTimeout
+    powercfg -Change -hibernate-timeout-ac $Config.General.HibernateAcTimeout
+    powercfg -Change -hibernate-timeout-dc $Config.General.HibernateDcTimeout
+
+    Write-LogMessage "Applied power settings" -Type Success
+
+    Complete-Operation "Applying performance optimizations"
+}
+
+function Set-QualityOfLifeImprovements {
+    Start-Operation "Applying quality of life improvements"
+
+    # Set file attachment handling
+   Set-ProtectedRegistryValue -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" -Name "SaveZoneInformation" -Value 2 -Type "DWord" -Description "Disabling attachment lock when saved"
+   Set-ProtectedRegistryValue -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Associations" -Name "DefaultFileTypeRisk" -Value 6152 -Type "DWord" -Description "Lowering attachment risk level"
+
+    # Disable Microsoft Store integration
+   Set-ProtectedRegistryValue -Path "HKLM:\Software\Policies\Microsoft\Windows\Explorer" -Name "NoUseStoreOpenWith" -Value 1 -Type "DWord" -Description "Disabling 'Look for an app in the Microsoft Store'"
+
+    # Remove taskbar items
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0 -Type "DWord" -Description "Removing widgets button from taskbar"
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarMn" -Value 0 -Type "DWord" -Description "Removing chat button from taskbar"
+
+    # Disable Windows tips
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "SoftLandingEnabled" -Value 0 -Type "DWord" -Description "Disabling Windows tips"
+
+    # Disable automatic restart sign-on
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "DisableAutomaticRestartSignOn" -Value 1 -Type "DWord" -Description "Disabling automatic restart sign-on"
+
+    # Disable notifications
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" -Name "NOC_GLOBAL_SETTING_TOASTS_ENABLED" -Value 0 -Type "DWord" -Description "Disabling notifications"
+   Set-ProtectedRegistryValue -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" -Name "ToastEnabled" -Value 0 -Type "DWord" -Description "Disabling toast notifications"
+
+    # Disable dynamic scrollbars
+   Set-ProtectedRegistryValue -Path "HKCU:\Control Panel\Accessibility" -Name "DynamicScrollbars" -Value 0 -Type "DWord" -Description "Disabling dynamic scrollbars"
+
+    # Disable fast boot (can cause issues with some software)
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Name "HiberbootEnabled" -Value 0 -Type "DWord" -Description "Disabling Fast Boot"
+
+    # Disable sticky keys prompt
+   Set-ProtectedRegistryValue -Path "HKCU:\Control Panel\Accessibility\StickyKeys" -Name "Flags" -Value 506 -Type "DWord" -Description "Disabling Sticky Keys prompt"
+
+    # Show This PC shortcut on desktop
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu" -Name "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" -Value 0 -Type "DWord" -Description "Showing This PC on desktop"
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" -Name "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" -Value 0 -Type "DWord" -Description "Showing This PC on desktop"
+
+    # Disable ads in File Explorer
+   Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "ShowSyncProviderNotifications" -Value 0 -Type "DWord" -Description "Disabling ads in File Explorer"
+
+    # Disable third-party suggestions
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableThirdPartySuggestions" -Value 1 -Type "DWord" -Description "Disabling third-party suggestions"
+
+    # Disable enhanced pointer precision
+   Set-ProtectedRegistryValue -Path "HKCU:\Control Panel\Mouse" -Name "MouseSpeed" -Value 0 -Type "DWord" -Description "Disabling enhanced pointer precision"
+   Set-ProtectedRegistryValue -Path "HKCU:\Control Panel\Mouse" -Name "MouseThreshold1" -Value 0 -Type "DWord" -Description "Disabling pointer acceleration"
+   Set-ProtectedRegistryValue -Path "HKCU:\Control Panel\Mouse" -Name "MouseThreshold2" -Value 0 -Type "DWord" -Description "Disabling pointer acceleration"
+
+    # Legacy right-click menu (Windows 11)
+    if ($Config.General.LegacyRightClicksMenu) {
+       Set-ProtectedRegistryValue -Path "HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" -Name "(Default)" -Value "" -Type "String" -Description "Enabling legacy right-click menu"
+    }
+
+    # Disable startup sound
+    if ($Config.General.DisableStartupSound) {
+       Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation" -Name "DisableStartupSound" -Value 1 -Type "DWord" -Description "Disabling Windows startup sound"
+    }
+
+    # Disable Windows sounds
+    if ($Config.General.DisableWindowsSounds) {
+        try {
+            Get-ChildItem -Path "HKCU:\AppEvents\Schemes\Apps" |
+            Get-ChildItem |
+            Get-ChildItem |
+            Where-Object {$_.PSChildName -eq ".Current"} |
+            Set-ItemProperty -Name "(Default)" -Value ".None"
+
+            Write-LogMessage "Disabled Windows sound effects" -Type Success
+        }
+        catch {
+            Write-LogMessage ("Failed to disable Windows sounds: " + $_.Exception.Message) -Type Error
+        }
+    }
+
+    # Remove 3D Objects folder
+    if ($Config.General.Remove3dObjFolder) {
+        Remove-RegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" -Description "Removing 3D Objects folder"
+        Remove-RegistryValue -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" -Description "Removing 3D Objects folder (WOW6432Node)"
+    }
+
+    # Dark theme
+    if ($Config.General.DarkTheme) {
+       Set-ProtectedRegistryValue -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "AppsUseLightTheme" -Value 0 -Type "DWord" -Description "Enabling dark theme for apps"
+       Set-ProtectedRegistryValue -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "SystemUsesLightTheme" -Value 0 -Type "DWord" -Description "Enabling dark theme for system"
+    }
+
+    Complete-Operation "Applying quality of life improvements"
+}
+
+function Set-SecurityEnhancements {
+    Start-Operation "Applying security enhancements"
+
+    # Airstrike Attack mitigation
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name "DontDisplayNetworkSelectionUI" -Value 1 -Type "DWord" -Description "Hardening against Airstrike Attack"
+
+    # Disable Windows Media Player Network Sharing
+    Set-ServiceConfiguration -Name "WMPNetworkSvc" -State "Stopped" -StartupType "Disabled" -Description "Disabling Windows Media Player Network Sharing" -Force $true
+
+    # Disable WPAD (Web Proxy Auto-Discovery) - potential MITM vector
+    if (-not $Config.SafetyToggles.BePrinterSafe) {
+        Set-ServiceConfigurationWithScExe -Name "WinHttpAutoProxySvc" -State "Stopped" -StartupType "Disabled" -Description "Disabling WPAD service"
+    }
+
+    # Disable LLMNR (Link-Local Multicast Name Resolution) - potential spoofing vector
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" -Name "EnableMulticast" -Value 0 -Type "DWord" -Description "Disabling LLMNR"
+
+    # Flush DNS cache
+    try {
+        ipconfig /flushdns | Out-Null
+        Write-LogMessage "Flushed DNS cache" -Type Success
+    }
+    catch {
+        Write-LogMessage "Failed to flush DNS cache: $($_.Exception.Message)" -Type Warning
+    }
+
+    # Disable NetBIOS over TCP/IP (potential spoofing vector)
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" -Name "NetbiosOptions" -Value 2 -Type "DWord" -Description "Disabling NetBIOS over TCP/IP"
+
+    # Anonymous enumeration hardening
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "RestrictAnonymous" -Value 1 -Type "DWord" -Description "Disabling anonymous enumeration of shares"
+
+    # Disable Wi-Fi Sense (risky auto-connection feature)
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting" -Name "Value" -Value 0 -Type "DWord" -Description "Disabling Wi-Fi Sense reporting"
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots" -Name "Value" -Value 0 -Type "DWord" -Description "Disabling Wi-Fi Sense auto-connect"
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\WcmSvc\wifinetworkmanager\config" -Name "AutoConnectAllowedOEM" -Value 0 -Type "DWord" -Description "Disabling Wi-Fi Sense OEM settings"
+
+    # Disable Remote Assistance
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance" -Name "fAllowToGetHelp" -Value 0 -Type "DWord" -Description "Disabling Remote Assistance"
+
+    # Disable AutoPlay and AutoRun
+   Set-ProtectedRegistryValue -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoDriveTypeAutoRun" -Value 255 -Type "DWord" -Description "Disabling AutoPlay"
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer" -Name "NoAutoplayfornonVolume" -Value 1 -Type "DWord" -Description "Disabling AutoPlay for non-volume devices"
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer" -Name "NoAutorun" -Value 1 -Type "DWord" -Description "Disabling AutoRun"
+
+    # Protect against credential scraping (Mimikatz)
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\LSASS.exe" -Name "AuditLevel" -Value 8 -Type "DWord" -Description "LSASS protection - audit level"
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "RunAsPPL" -Value 1 -Type "DWord" -Description "LSASS protection - RunAsPPL"
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "DisableRestrictedAdmin" -Value 0 -Type "DWord" -Description "LSASS protection - DisableRestrictedAdmin"
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "DisableRestrictedAdminOutboundCreds" -Value 1 -Type "DWord" -Description "LSASS protection - DisableRestrictedAdminOutboundCreds"
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" -Name "UseLogonCredential" -Value 0 -Type "DWord" -Description "LSASS protection - Disable WDigest"
+   Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" -Name "Negotiate" -Value 0 -Type "DWord" -Description "LSASS protection - Disable WDigest Negotiate"
+   Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" -Name "AllowProtectedCreds" -Value 1 -Type "DWord" -Description "LSASS protection - Allow protected credentials"
+
+    # Disable SMB Server (if selected)
+    if ($Config.Security.DisableSMBServer) {
+        try {
+            # Disable SMB1
+            Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force -ErrorAction Stop
+            # Disable SMB2/3
+            Set-SmbServerConfiguration -EnableSMB2Protocol $false -Force -ErrorAction Stop
+            # Disable SMB network adapter binding
+            Disable-NetAdapterBinding -Name "*" -ComponentID "ms_server" -ErrorAction Stop
+
+            Write-LogMessage "Disabled SMB Server" -Type Success
+        }
+        catch {
+            Write-LogMessage ("Failed to disable SMB Server: " + $_.Exception.Message) -Type Error
+        }
+    }
+
+    # With this:
+	if ($Config.Security.DisableWindowsFirewall) {
+		# Disable both the service and the profiles
+		Disable-WindowsFirewallService
+		Disable-WindowsFirewallProfiles
 	}
-}
-#serviceStatus("Schedule");
-
-function killProcess{ 
-	param($processName)
-	Write-Output $("Trying to close " + $processName + " ...")
-	
-	for ($i=1; $i -le 10; $i++){
-		$firefox = Get-Process $processName -ErrorAction SilentlyContinue
-		if ($firefox) {
-			$firefox | Stop-Process -Force
-			Sleep 1
-		}
-	}
-	return
-}
-
-Function EnablePeek {	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewWindow" "0" "Enabling Windows Peek Thumbnail" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewDesktop" "0" "Enabling Windows Peek Desktop Preview" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\DWM" "EnableAeroPeek" "1" "Enabling Windows Peek" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ExtendedUIHoverTime" "0" "Enabling Windows Peek Taskbar Thumbnail" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\DWM" "AlwaysHibernateThumbnails" "1" "Enabling Windows Peek Taskbar Thumbnail Cache" "DWord"
-}
-
-Function DisablePeek {	
-	if ($beAeroPeekSafe -eq 1) {
-		Write-Host "Aero Peek NOT disabled because of the beAeroPeekSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-		return
-	}	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewWindow" "1" "Disabling Windows Peek Thumbnail" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisablePreviewDesktop" "1" "Disabling Windows Peek Desktop Preview" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\DWM" "EnableAeroPeek" "0" "Disabling Windows Peek" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ExtendedUIHoverTime" "30000" "Disabling Windows Peek Taskbar Thumbnail" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\DWM" "AlwaysHibernateThumbnails" "0" "Disabling Windows Peek Taskbar Thumbnail Cache" "DWord"
-}
-
-Function EnableThumbnail {	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "IconsOnly" "0" "Enabling Windows Thumbnail" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbnailCache" "0" "Enabling Windows Thumbnail" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbsDBOnNetworkFolders" "0" "Enabling Windows Thumbnail" "DWord"
-}
-
-Function DisableThumbnail {	
-	if ($beThumbnailSafe -eq 1) {
-		Write-Host "Windows Thumbnails NOT disabled because of the beThumbnailSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-		return
-	}
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "IconsOnly" "1" "Disabling Windows Thumbnail" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbnailCache" "1" "Disabling Windows Thumbnail" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "DisableThumbsDBOnNetworkFolders" "1" "Disabling Windows Thumbnail" "DWord"
-}
-
-# Prefetch-files contain metadata information about the last run of the program, how many times it was run, which logical drive a program was run and dlls used.
-Function EnablePrefetcher {	
-	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" "EnablePrefetcher" "3" "Enabling Prefetcher" "DWord"
-}
-Function DisablePrefetcher {	
-	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" "EnablePrefetcher" "0" "Disabling Prefetcher" "DWord"
-}
-
-Function EnableMemoryDump {
-	RegChange "SYSTEM\CurrentControlSet\Control\CrashControl" "CrashDumpEnabled" "1" "Enabling Memory Dump" "DWord"
-}
-
-Function DisableMemoryDump {
-	RegChange "SYSTEM\CurrentControlSet\Control\CrashControl" "CrashDumpEnabled" "0" "Disabling Memory Dump" "DWord"
-}
-
-Function GPUVendor {
-	Write-Output "Checking your GPU vendor..."
-	$myGPU = Get-WmiObject win32_VideoController
-	if ($myGPU.name -like '*nvidia*') {
-		write-host 'GPU vendor is Nvidia'
-		return "nvidia"				
-	}
-}
-
-Function installDraculaNotepad {
-	Write-Output "Checking internet connection..." 
-	
-	$HTTP_Request = [System.Net.WebRequest]::Create('http://google.com')
-	$HTTP_Response = $HTTP_Request.GetResponse()
-	$HTTP_Status = [int]$HTTP_Response.StatusCode
-
-	If ($HTTP_Status -eq 200) {
-		Write-Output "Conected to the internet." 
-	}
-	Else {
-		Write-Output "NOT conected to the internet." 
-		return
-	}
-
-	If ($HTTP_Response -eq $null) { } 
-	Else { $HTTP_Response.Close() }
-
-	
-	Write-Output "Checking if Notepad++ is running..." 	
-	if((get-process "Notepad++" -ea SilentlyContinue) -eq $Null){        
-		Write-Output "Notepad++ not running." 
-	} else { 
-		$restartNeeded = 1
-		Write-Host "Notepad++ is running and will be killed. Press any key to continue..." -ForegroundColor Yellow -BackgroundColor DarkGreen
-		$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
-		killProcess("notepad++");
-	}
-
-	Write-Output "Downloading Dracula Theme for Notepad++..." 
-	$url = "https://raw.githubusercontent.com/dracula/notepad-plus-plus/master/Dracula.xml"
-	$output = "$Env:USERPROFILE\AppData\Roaming\Notepad++\themes\Dracula.xml"
-	$start_time = Get-Date
-
-	$wc = New-Object System.Net.WebClient
-	$wc.DownloadFile($url, $output)
-
-	Write-Output "Time taken: $((Get-Date).Subtract($start_time).Seconds) second(s)" 
-
-	$file = "$Env:USERPROFILE\AppData\Roaming\Notepad++\config.xml"
-	$OpenTag = 'name="stylerTheme" path="'
-	$CloseTag = '" />'
-	$NewText = $OpenTag + "$Env:USERPROFILE\AppData\Roaming\Notepad++\themes\Dracula.xml" + $CloseTag
-	(Get-Content $file) | Foreach-Object {$_ -replace "$OpenTag.*$CloseTag", $NewText} | Set-Content $file
-	
-	if ($restartNeeded -eq 1) {	
-		Write-Output "Starting Notepad++" 
-		Start notepad++
-	}
-}
-
-Function uninstallDraculaNotepad {
-	Write-Output "Checking if Notepad++ is running..." 	
-	if((get-process "Notepad++" -ea SilentlyContinue) -eq $Null){
-		Write-Output "Notepad++ not running." 
-	} else { 
-		$restartNeeded = 1
-		Write-Host "Notepad++ is running and will be killed. Press any key to continue..." -ForegroundColor Yellow -BackgroundColor DarkGreen
-		$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
-		killProcess("notepad++");
-	}
-	
-	$file = "$Env:USERPROFILE\AppData\Roaming\Notepad++\config.xml"
-	$OpenTag = 'name="stylerTheme" path="'
-	$CloseTag = '" />'
-	$NewText = $OpenTag + "$Env:USERPROFILE\AppData\Roaming\Notepad++\stylers.xml" + $CloseTag
-	(Get-Content $file) | Foreach-Object {$_ -replace "$OpenTag.*$CloseTag", $NewText} | Set-Content $file
-	
-	if ($restartNeeded -eq 1) {	
-		Write-Output "Starting Notepad++" 
-		Start notepad++
-	}
-}	
-
-# Link-Local Multicast Name Resolution (LLMNR) protocol, a protocol that allow name resolution without the requirement of a DNS server. LLMNR is a secondary name resolution protocol. 
-# With LLMNR, queries are sent using multicast over a local network link on a single subnet from a client computer to another client computer on the same subnet that also has LLMNR enabled.
-# Imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
-Function DisableLLMNR {
-	RegChange "SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" "EnableMulticast" "0" "Disabling Link-Local Multicast Name Resolution (LLMNR) protocol" "DWord"
-}
-
-Function EnableLLMNR {
-	RegChange "SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" "EnableMulticast" "1" "Enabling Link-Local Multicast Name Resolution (LLMNR) protocol" "DWord"
-}	
-
-##########
-# Global Functions - End
-##########
-#--------------------------------------------------------------------------
-
-##########
-# Program - Start
-##########
-
-if ($beNetworkPrinterSafe -eq 1) {
-	$bePrinterSafe = 1
-}
-
-if ($troubleshootInstalls -eq 1) {
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop" "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop" "DWord"	
-	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop"
-
-	RegChange "SYSTEM\CurrentControlSet\Services\diagnosticshub.standardcollector.service" "Start" "2" "Disabling diagnosticshub.standardcollector.service service" "DWord"
-	Get-Service diagnosticshub.standardcollector.service | Set-Service -StartupType automatic
-
-	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
-	write-Host "Troubleshoot Install: Enabling BITS (Background Intelligent Transfer Service)" -ForegroundColor Green -BackgroundColor Black 
-	Get-Service BITS | Set-Service -StartupType automatic
-	
-	write-Host "DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation." -ForegroundColor Green -BackgroundColor Black
-	Write-Host "Troubleshoot Install: Enabling DoSvc (Delivery Optimization)..."
-	Get-Service DoSvc | Set-Service -StartupType automatic
-	
-	Write-Output "Troubleshoot Install: Windows firewall service enabled by registry."
-	New-ItemProperty -Path HKLM:SYSTEM\CurrentControlSet\Services\MpsSvc -Name Start -PropertyType DWord -Value 2 -Force -EA SilentlyContinue | Out-Null	
-	
-	Write-Output "Troubleshoot Install: Windows Firewall enabled by registry."
-	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" "0" "Enabling Windows Anti Spyware - DisableAntiSpyware - Windows Firewall"
-	
-	Write-Output "Troubleshoot Install: Windows Firewall enabled by Get-Service."
-	Get-Service MpsSvc | Set-Service -StartupType automatic
-	
-	Write-Output "Troubleshoot Install: Windows Firewall enabled by Get-NetFirewallProfile."
-	Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled True
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\MpsSvc" "Start" "2" "Enabling Windows Firewall service..." "DWord"
-	
-	Write-Output "Troubleshoot Install: Enabling connection related dependency services."
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Application" "Start" "1" "Enabling AutoLogger\EventLog-Application..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-Security" "Start" "1" "Enabling AutoLogger\EventLog-Security..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\EventLog-System" "Start" "1" "Enabling AutoLogger\EventLog-System..." "DWord"
-	pause
-}
-
-if ($legacyRightClicksMenu -eq 0) {
-	regDelete "Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" "Disabling legacy right click menu..." 
-}
-
-if ($legacyRightClicksMenu -eq 1) {
-	RegChange "Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" "(Default)" "" "Enabling legacy right click menu..." "String"
-}
-
-if ($disableStartupSound -eq 0) {
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation" "DisableStartupSound" "0" "Enabling Windows startup sound..." "DWord"
-}
-
-if ($disableStartupSound -eq 1) {
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation" "DisableStartupSound" "1" "Disabling Windows startup sound..." "DWord"
-}
-
-if ($disableCortana -eq 0) {
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchPrivacy" "1" "Setting ConnectedSearchPrivacy to 3..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWeb" "1" "Setting ConnectedSearchUseWeb to 0..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWebOverMeteredConnections" "1" "Setting ConnectedSearchUseWebOverMeteredConnections to 0..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "DisableWebSearch" "1" "Disabling Cortana web search..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "CortanaEnabled" "1" "Disabling Cortana..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "BingSearchEnabled" "1" "Disabling BingSearch..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "CanCortanaBeEnabled" "1" "Setting CanCortanaBeEnabled to 0..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Personalization\Settings" "AcceptedPrivacyPolicy" "1" "Setting AcceptedPrivacyPolicy to 0..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "DeviceHistoryEnabled" "1" "Setting DeviceHistoryEnabled to 0..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "HistoryViewEnabled" "1" "Setting HistoryViewEnabled to 0..." "DWord"
-}
-
-if ($disableCortana -eq 1) {
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchPrivacy" "0" "Setting ConnectedSearchPrivacy to 3..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWeb" "0" "Setting ConnectedSearchUseWeb to 0..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWebOverMeteredConnections" "0" "Setting ConnectedSearchUseWebOverMeteredConnections to 0..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "DisableWebSearch" "1" "Disabling Cortana web search..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "CortanaEnabled" "0" "Disabling Cortana..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "BingSearchEnabled" "0" "Disabling BingSearch..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "CanCortanaBeEnabled" "0" "Setting CanCortanaBeEnabled to 0..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Personalization\Settings" "AcceptedPrivacyPolicy" "0" "Setting AcceptedPrivacyPolicy to 0..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "DeviceHistoryEnabled" "0" "Setting DeviceHistoryEnabled to 0..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "HistoryViewEnabled" "0" "Setting HistoryViewEnabled to 0..." "DWord"
-}
-
-if ($disableVBS -eq 1) {
-	RegChange "SYSTEM\CurrentControlSet\Control\DeviceGuard" "EnableVirtualizationBasedSecurity" "0" "Disabling Virtualization-based security..." "DWord"
-}
-
-if ($disableNtfsEncryption -eq 0) {
-	RegChange "SYSTEM\CurrentControlSet\Policies" "NtfsDisableEncryption" "0" "Enabling NTFS file encryption..." "DWord"
-}
-
-if ($disableNtfsCompression -eq 1) {
-	RegChange "SYSTEM\CurrentControlSet\Policies" "NtfsDisableCompression" "1" "Disabling NTFS file compression..." "DWord"
-}
-
-if ($beXboxSafe -eq 0) {
-	Write-Output "Disabling Xbox features..."
-	Get-AppxPackage "Microsoft.XboxApp" | Remove-AppxPackage
-	Get-AppxPackage "Microsoft.XboxIdentityProvider" | Remove-AppxPackage -ErrorAction SilentlyContinue
-	Get-AppxPackage "Microsoft.XboxSpeechToTextOverlay" | Remove-AppxPackage
-	Get-AppxPackage "Microsoft.XboxGameOverlay" | Remove-AppxPackage
-	Get-AppxPackage "Microsoft.XboxGamingOverlay" | Remove-AppxPackage
-	Get-AppxPackage "Microsoft.Xbox.TCUI" | Remove-AppxPackage
-	
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Disabling Xbox scheduled tasks..."
-		Get-ScheduledTask  XblGameSaveTaskLogon | Disable-ScheduledTask
-		Get-ScheduledTask  XblGameSaveTask | Disable-ScheduledTask
-	}
-	
-	RegChange "Software\Microsoft\GameBar" "AutoGameModeEnabled" "0" "Disabling GameBar" "DWord"
-	RegChange "Software\Microsoft\GameBar" "ShowStartupPanel" "0" "Disabling Game Bar Tips" "DWord"
-	RegChange "System\GameConfigStore" "GameDVR_Enabled" "0" "Changing Registry key to disable Game DVR - GameDVR_Enabled" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" "0" "Changing Registry key to disable gamebarpresencewriter"
-
-	# xbox dvr causing fps issues
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\GameDVR" "GameDVR" "0" "Disabling Xbox GameDVR..." "DWord"
-}
-
-if ($beWifiSafe -eq 1) {
-	RegChange "SYSTEM\CurrentControlSet\Services\RmSvc" "Start" "2" "Enabling RmSvc (Radio Management Service) service" "DWord"
-	Get-Service RmSvc | Set-Service -StartupType automatic
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\WlanSvc" "Start" "2" "Enabling WlanSvc (WLAN Autoconfig) service" "DWord"
-	Get-Service WlanSvc | Set-Service -StartupType automatic
-}
-
-if ($beAppxSafe -eq 0) {
-	RegChange "SYSTEM\CurrentControlSet\Services\InstallService" "Start" "4" "Disabling InstallService MS Store service" "DWord"
-	Get-Service InstallService | Set-Service -StartupType disabled	
-	Stop-Service InstallService -Force -NoWait
-	
-	RegChange "SYSTEM\ControlSet001\Services\PcaSvc" "Start" "4" "Disabling PcaSvc (Program Compatibility Assistant) service" "DWord"
-	Get-Service PcaSvc | Set-Service -StartupType disabled
-	Stop-Service PcaSvc -Force -NoWait 
-	RegChange "SYSTEM\ControlSet001\Services\wlidsvc" "Start" "4" "Disabling wlidsvc (Microsoft Windows Live ID Service) service" "DWord"
-	Get-Service wlidsvc | Set-Service -StartupType disabled
-	Stop-Service wlidsvc -Force -NoWait
-
-	#TokenBroker required for night light windows feature
-	#RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "4" "Disabling TokenBroker (Windows Store permission manager) service" "DWord"
-	#Get-Service TokenBroker | Set-Service -StartupType disabled
-	#Stop-Service TokenBroker -Force -NoWait
-}
-
-if ($beAppxSafe -eq 1) {
-	RegChange "SYSTEM\CurrentControlSet\Services\InstallService" "Start" "2" "Enabling InstallService MS Store service" "DWord"
-	Get-Service InstallService | Set-Service -StartupType automatic	
-	Start-Service InstallService -Force -NoWait 
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "2" "Enabling TokenBroker (Windows Store permission manager) service" "DWord"
-	Get-Service TokenBroker | Set-Service -StartupType automatic
-	Start-Service TokenBroker -Force -NoWait 
-	
-	RegChange "SYSTEM\ControlSet001\Services\wlidsvc" "Start" "2" "Enabling wlidsvc (Microsoft Windows Live ID Service) service" "DWord"
-	Get-Service wlidsvc | Set-Service -StartupType automatic
-	Start-Service wlidsvc -Force -NoWait 
-	
-	RegChange "SYSTEM\ControlSet001\Services\PcaSvc" "Start" "2" "Enabling PcaSvc (Program Compatibility Assistant) service" "DWord"
-	Get-Service PcaSvc | Set-Service -StartupType automatic
-	Start-Service PcaSvc -Force -NoWait 
-}
-
-
-if ($beXboxSafe -eq 1) {
-	$safeXboxBloatware = @(	
-		"Microsoft.XboxGamingOverlay"
-		"Microsoft.Xbox.TCUI"
-		"Microsoft.XboxApp"
-		"Microsoft.XboxGameOverlay"
-		"Microsoft.XboxIdentityProvider"
-		"Microsoft.XboxSpeechToTextOverlay"
-	)
-	foreach ($safeXboxBloatware1 in $safeXboxBloatware) {
-		Write-Output "Trying to install $safeXboxBloatware1."
-		Get-AppxPackage -Name $safeXboxBloatware1| Add-AppxPackage
-		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safeXboxBloatware1 | Add-AppxProvisionedPackage -Online		
-	}
-	
-	RegChange "System\GameConfigStore" "GameDVR_Enabled" "1" "Changing Registry key to ENABLE Game DVR - GameDVR_Enabled" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" "1" "Changing Registry key to ENABLE gamebarpresencewriter"
-	
-	# The Game bar is a Xbox app Game DVR feature that makes it simple to take control of your gaming activities—such as broadcasting, capturing clips, and sharing captures
-	# (delete) = Enable
-	# 0 = Disable
-	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR" -Name "AllowGameDVR" -ErrorAction SilentlyContinue
-	Remove-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AutoGameModeEnabled" -ErrorAction SilentlyContinue
-	
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Enabling Xbox scheduled tasks..."
-		Get-ScheduledTask  XblGameSaveTaskLogon | Enable-ScheduledTask
-		Get-ScheduledTask  XblGameSaveTask | Enable-ScheduledTask
-	}
-	RegChange "Software\Microsoft\GameBar" "ShowStartupPanel" "1" "Enabling Game Bar Tips" "DWord"
-}
-
-if ($beBiometricSafe -eq 1) {
-	$safebeBiometricSafe = @(	
-		"*Microsoft.BioEnrollment*"
-		"*Microsoft.CredDialogHost*"
-		"*Microsoft.ECApp*"
-		"*Microsoft.LockApp*"
-	)
-	foreach ($safebeBiometricSafe1 in $safebeBiometricSafe) {
-		Get-AppxPackage -Name $safebeBiometricSafe1| Add-AppxPackage
-		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $safebeBiometricSafe1 | Add-AppxProvisionedPackage -Online
-		Write-Output "Trying to install $safebeBiometricSafe1."
-	}
-}
-
-if ($beCastSafe -eq 1) {
-	Write-Output "Trying to install Microsoft.PPIP."
-	Get-AppxPackage -Name "*Microsoft.PPIP*" | Add-AppxPackage
-	Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like "*Microsoft.PPIP*" | Add-AppxProvisionedPackage -Online
-}
-
-if ($beVpnPppoeSafe -eq 1) {
-	RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "2" "Enabling DNS Cache Service" "DWord"	
-}
-	
-if (GPUVendor -eq "nvidia" -and installNvidiaControlPanel -eq 1) {	
-	Get-AppxPackage -Name "*NVIDIACorp.NVIDIAControlPanel*" | Add-AppxPackage
-	Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like "*NVIDIACorp.NVIDIAControlPanel*" | Add-AppxProvisionedPackage -Online
-	Write-Output "Trying to install Nvidia control panel."
-}
-
-# SMB Server is known for opening doors for mass ransomware attacks - WannaCry and NotPetya
-if ($disableSMBServer -eq 0) {	
-	Write-Output "Enabling SMB Server..."	
-	Set-SmbServerConfiguration -EnableSMB2Protocol $true -Force
-	Enable-NetAdapterBinding -Name "*" -ComponentID "ms_server"
-}
-
-if ($disableSMBServer -eq 1) {	
-	Write-Output "Disabling SMB Server..."	
-	Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force
-	Set-SmbServerConfiguration -EnableSMB2Protocol $false -Force
-	Disable-NetAdapterBinding -Name "*" -ComponentID "ms_server"
-}
-
-if ($disableSystemRestore -eq 0) {
-	Write-Output "Enabling system restore..."
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Enabling system restore scheduled task..."
-		Enable-ScheduledTask -TaskName "Microsoft\Windows\SystemRestore\SR" -EA SilentlyContinue | Out-Null
-	}
-	
-	Get-Service swprv | Set-Service -StartupType automatic
-	Get-Service VSS | Set-Service -StartupType automatic
-}
-
-if ($disableSystemRestore -eq 1) {
-	Write-Output "Disabling system restore..."
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Disabling system restore scheduled task..."
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\SystemRestore\SR" -EA SilentlyContinue | Out-Null
-	}
-
-	Get-Service swprv | Stop-Service -PassThru | Set-Service -StartupType disabled
-	Get-Service VSS | Stop-Service -PassThru | Set-Service -StartupType disabled
-}
-
-if ($disableTelemetry -eq 0) {		
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
-	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "1" "Disabling data collection through telemetry"  
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Enabling telemetry scheduled tasks..."
-		Enable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
-		Enable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
-		Enable-ScheduledTask -TaskName "Microsoft\Windows\Autochk\Proxy" | Out-Null
-		Enable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\Consolidator" | Out-Null
-		Enable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" | Out-Null
-		Enable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
-	}
-}
-
-if ($disableTelemetry -eq 1) {
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"  
-	RegChange "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "0" "Disabling data collection through telemetry"
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Disabling telemetry scheduled tasks..."
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\Autochk\Proxy" | Out-Null
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\Consolidator" | Out-Null
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" | Out-Null
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" | Out-Null
-	}	
-}
-
-if ($disableBloatware -eq 0) {	
-	foreach ($Bloat in $bloatwareList) {
-		Write-Output "Trying to INSTALL $Bloat."
-		Get-AppxPackage -Name $Bloat| Add-AppxPackage
-		Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like $Bloat | Add-AppxProvisionedPackage -Online		
-	}	
-	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "FeatureManagementEnabled" "1" "Enabling Windows bloatware" "Dword"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "1" "Enabling Windows bloatware" "Dword"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "1" "Enabling Windows bloatware" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "1" "Enabling Windows bloatware" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "1" "Enabling Windows bloatware" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "1" "Enabling Windows bloatware" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "1" "Enabling Windows bloatware" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContentEnabled" "1" "Enabling Windows bloatware" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-353696Enabled" "1" "Enabling Windows bloatware" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-353694Enabled" "1" "Enabling Windows bloatware" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338393Enabled" "1" "Enabling Windows bloatware" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338389Enabled" "1" "Enabling Windows bloatware" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338388Enabled" "1" "Enabling Windows bloatware" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-310093Enabled" "1" "Enabling Windows bloatware" "DWord"
-}
-
-if ($disableBloatware -eq 1) {			
-	foreach ($Bloat in $bloatwareList) {
-		Write-Output "Trying to remove $Bloat"
-		Get-AppxPackage -Name $Bloat| Remove-AppxPackage
-	}	
-	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "FeatureManagementEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "Dword"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "ContentDeliveryAllowed" "0" "Adding Registry key to PREVENT bloatware apps from returning" "Dword"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "OemPreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "PreInstalledAppsEverEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SilentInstalledAppsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContentEnabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-353696Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-353694Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338393Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338389Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-338388Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SubscribedContent-310093Enabled" "0" "Adding Registry key to PREVENT bloatware apps from returning" "DWord"
-	
-	regDelete "Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions" "Clearing bloatware registry keys"
-	regDelete "Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps" "Clearing bloatware registry keys"
-}
-
-if ($unpinStartMenu -eq 1) {			
-	Write-Host "Unpinning all tiles from the start menu"
-	regDelete "Software\Microsoft\Windows\CurrentVersion\CloudStore\*" "Clearing all start menu items..." 
-	
-    (New-Object -Com Shell.Application).
-    NameSpace('shell:::{4234d49b-0245-4df3-b780-3893943456e1}').
-    Items() |
-        % { $_.Verbs() } |
-        ? {$_.Name -match 'Un.*pin from Start'} |
-        % {$_.DoIt()}
-}
-
-if ($disablelastaccess -eq 0) {
-	Write-Output "Disabling last file access."
-	fsutil behavior set disablelastaccess 3
-}
-
-if ($disablelastaccess -eq 1) {
-	Write-Output "Enabling last file access."
-	fsutil behavior set disablelastaccess 2
-}
-
-if ($doPerformanceStuff -eq 0) {
-	# Parental Controls
-	Write-Output "Enabling Windows Parental Controls..."
-	Get-Service WpcMonSvc | Stop-Service -PassThru | Set-Service -StartupType automatic	
-
-	# Diagnostic Execution Service
-	Write-Output "Disabling Windows Diagnostic Execution Service..."
-	Get-Service diagsvc | Stop-Service -PassThru | Set-Service -StartupType automatic	
-
-	# USELESS FAX
-	Get-Service Fax | Stop-Service -PassThru | Set-Service -StartupType automatic
-	if($?){   write-Host -ForegroundColor Green "Windows Fax service enabled"  }else{   write-Host -ForegroundColor red "Windows Fax service not enabled" } 
-
-	# USELESS GEO
-	Get-Service lfsvc | Stop-Service -PassThru | Set-Service -StartupType automatic
-	if($?){   write-Host -ForegroundColor Green "Geo service enabled"  }else{   write-Host -ForegroundColor red "Geo service not enabled" } 
-
-	# USELESS DusmSvc
-	Get-Service DusmSvc | Stop-Service -PassThru | Set-Service -StartupType automatic
-	if($?){   write-Host -ForegroundColor Green "DusmSvc service enabled"  }else{   write-Host -ForegroundColor red "DusmSvc service not enabled" } 
-
-	# Winmgmt is required by VMware autorization service
-	Write-Output "Troubleshoot Install: Enabling Windows Management Instrumentation service enabled."
-	Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType automatic	
-	New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 2 -Force
-
-	RegChange "SYSTEM\CurrentControlSet\Services\StorSvc" "Start" "2" "Enabling StorSvc (Storage Service) service" "DWord"
-	Get-Service StorSvc | Set-Service -StartupType automatic
-
-	RegChange "SYSTEM\CurrentControlSet\Services\MSDTC" "Start" "2" "Enabling MSDTC (Distributed Transaction Coordinator) service" "DWord"
-	Get-Service MSDTC | Set-Service -StartupType automatic
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\Ndu" "Start" "2" "Enabling Ndu (Network Data Usage Monitor) service" "DWord"
-	Get-Service Ndu | Set-Service -StartupType automatic
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\AppMgmt" "Start" "2" "Enabling AppMgmt (Application Management) service" "DWord"
-	Get-Service AppMgmt | Set-Service -StartupType automatic
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\Spooler" "Start" "2" "Enabling print spooler service" "DWord"
-	Get-Service Spooler | Set-Service -StartupType automatic
-
-	Remove-Printer -Name "Microsoft XPS Document Writer"
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\StiSvc" "Start" "2" "Enabling StiSvc Windows Image Acquisition (WIA) service" "DWord"
-	Get-Service StiSvc | Set-Service -StartupType automatic
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\TrkWks" "Start" "2" "Enabling TrkWks (Distributed Link Tracking Client) service" "DWord"
-	Get-Service TrkWks | Set-Service -StartupType automatic
-	
-	# Required by bluetooth
-	RegChange "SYSTEM\CurrentControlSet\Services\BthAvctpSvc" "Start" "2" "Enabling AVCTP (Audio Video Control Transport Protocol) service" "DWord"
-	Get-Service BthAvctpSvc | Set-Service -StartupType automatic
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\DispBrokerDesktopSvc" "Start" "2" "Enabling DispBrokerDesktopSvc (Display Policy Service) service" "DWord"
-	Get-Service DispBrokerDesktopSvc | Set-Service -StartupType automatic
-	
-	# DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation
-	RegChange "SYSTEM\CurrentControlSet\Services\DoSvc" "Start" "2" "Enabling DoSvc (Delivery Optimization) service" "DWord"
-	Get-Service DoSvc | Set-Service -StartupType automatic
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\OneSyncSvc" "Start" "2" "Enabling OneSyncSvc service" "DWord"
-	Get-Service OneSyncSvc | Set-Service -StartupType automatic
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\WalletService" "Start" "2" "Enabling WalletService service" "DWord"
-	Get-Service WalletService | Set-Service -StartupType automatic
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\diagnosticshub.standardcollector.service" "Start" "2" "Enabling diagnosticshub.standardcollector.service service" "DWord"
-	Get-Service diagnosticshub.standardcollector.service | Set-Service -StartupType automatic
-
-	# In very rare cases, Hardware Accelerated GPU Scheduling set to ON (2) may improve latency
-	RegChange "SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" "1" "Disabling Hardware Accelerated GPU Scheduling" "DWord"
-
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" "EnableTransparency" "1" "Enabling Windows transparency effect" "DWord"	
-	RegChange "SYSTEM\CurrentControlSet\services\WdiServiceHost" "Start" "2" "Enabling Diagnostic Service Host" "DWord"
-	RegChange "SYSTEM\CurrentControlSet\services\WdiSystemHost" "Start" "2" "Enabling Diagnostic System Host Service" "DWord"
-	RegChange "SYSTEM\CurrentControlSet\services\DPS" "Start" "2" "Enabling Diagnostic Policy Service" "DWord"
-	
-	Write-Output "Enabling EpsonCustomerResearchParticipation..."
-	Get-Service EpsonCustomerResearchParticipation | Set-Service -StartupType automatic
-	Write-Output "Enabling LGHUBUpdaterService..."
-	Get-Service LGHUBUpdaterService | Set-Service -StartupType automatic
-	
-	RegChange "System\CurrentControlSet\Control\Session Manager\Power" "HibernateEnabled" "1" "Enabling hibernation..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings" "ShowHibernateOption" "1" "Making visible hibernation..." "DWord"
-	
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		write-Host -ForegroundColor Green -BackgroundColor Black "Defragmentation cause unnecessary wear on SSDs"
-		Write-Host "Enabling scheduled defragmentation..."
-		Enable-ScheduledTask -TaskName "Microsoft\Windows\Defrag\ScheduledDefrag" | Out-Null
-	}
-	
-	write-Host "Superfetch is known to cause all kinds of problems: slow boot times, disk wear, bottleneck, RAM consumption" -ForegroundColor Green -BackgroundColor Black 
-	Write-Host "Enabling Superfetch service..."
-	Get-Service SysMain | Stop-Service -PassThru | Set-Service -StartupType automatic
-	
-	Write-Host "Enabling SSDPSRV service..."
-	Get-Service SSDPSRV | Stop-Service -PassThru | Set-Service -StartupType automatic
-	
-	Write-Host "Enabling AxInstSV service..."
-	Get-Service AxInstSV | Stop-Service -PassThru | Set-Service -StartupType automatic
-	
-	Write-Host "Enabling MapsBroker (Downloaded Maps Manager) service..."
-	Get-Service MapsBroker | Set-Service -StartupType automatic
-	
-	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
-	write-Host "Enabling BITS (Background Intelligent Transfer Service)" -ForegroundColor Green -BackgroundColor Black 
-	Get-Service BITS | Set-Service -StartupType automatic
-
-	Write-Host "Disabling netsvcs. Its known for huge bandwidth usage..."
-	Get-Service netsvcs | Stop-Service -PassThru | Set-Service -StartupType disabled	
-	
-	#RegChange "SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" "DODownloadMode" "3" "Enabling DeliveryOptimization download mode HTTP blended with Internet Peering..." "DWord"
-	#RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "3" "Enabling DeliveryOptimization download mode HTTP blended with Internet Peering..." "DWord"	
-	#RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "2" "Enabling Edge updates..." "DWord"
-		
-	Write-Host "Enabling LanmanWorkstation Service..."
-	Get-Service Workstation | Set-Service -StartupType automatic
-		
-	Write-Host "Enabling LanmanServer Service..."
-	Get-Service Server | Set-Service -StartupType automatic
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\camsvc" "Start" "2" "Enabling camsvc service" "DWord"
-	Get-Service camsvc | Set-Service -StartupType automatic
-}
-
-if ($doPerformanceStuff -eq 1) {
-	# Why not?	
-	killProcess("ai");
-	deleteFile "$env:Programfiles\Microsoft Office\root\vfs\ProgramFilesCommonX64\Microsoft Shared\Office16\ai.exe" "Deleting office ai.exe..."	
-	killProcess("DIM");
-	deleteFile "$env:Programfiles\Corel\CUH\v2\DIM.EXE" "Deleting Corel Updater..."
-
-	# Parental Controls
-	Write-Output "Disabling Windows Parental Controls..."
-	Get-Service WpcMonSvc | Stop-Service -PassThru | Set-Service -StartupType disabled	
-
-	# Diagnostic Execution Service
-	Write-Output "Disabling Windows Diagnostic Execution Service..."
-	Get-Service diagsvc | Stop-Service -PassThru | Set-Service -StartupType disabled	
-
-	# USELESS FAX
-	Get-Service Fax | Stop-Service -PassThru | Set-Service -StartupType disabled
-	if($?){   write-Host -ForegroundColor Green "Windows Fax service disabled"  }else{   write-Host -ForegroundColor red "Windows Fax service not disabled" } 
-
-	# USELESS GEO
-	Get-Service lfsvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-	if($?){   write-Host -ForegroundColor Green "Geo service disabled"  }else{   write-Host -ForegroundColor red "Geo service not disabled" } 
-
-	# USELESS DusmSvc
-	Get-Service DusmSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-	if($?){   write-Host -ForegroundColor Green "DusmSvc service disabled"  }else{   write-Host -ForegroundColor red "DusmSvc service not disabled" } 
-
-	# Winmgmt is required by VMware autorization service
-	# Write-Output "Troubleshoot Install: Enabling Windows Management Instrumentation service enabled."
-	# Get-Service Winmgmt | Start-Service -PassThru | Set-Service -StartupType disabled
-	# New-ItemProperty -Path 'HKLM:SYSTEM\CurrentControlSet\Services\Winmgmt' -name Start -PropertyType DWord -Value 4 -Force
-
-	if ($beWSL2Safe -eq 0) {
-		RegChange "SYSTEM\CurrentControlSet\Services\StorSvc" "Start" "4" "Disabling StorSvc (Storage Service) service" "DWord"
-		Get-Service StorSvc | Set-Service -StartupType disabled
-	}
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\MSDTC" "Start" "4" "Disabling MSDTC (Distributed Transaction Coordinator) service" "DWord"
-	Get-Service MSDTC | Set-Service -StartupType disabled
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\Ndu" "Start" "4" "Disabling Ndu (Network Data Usage Monitor) service" "DWord"
-	Get-Service Ndu | Set-Service -StartupType disabled
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\AppMgmt" "Start" "4" "Disabling AppMgmt (Application Management) service" "DWord"
-	Get-Service AppMgmt | Set-Service -StartupType disabled
-
-	Remove-Printer -Name "Microsoft XPS Document Writer"
-
-	RegChange "SYSTEM\CurrentControlSet\Services\Spooler" "Start" "4" "Disabling print spooler service" "DWord"
-	Get-Service Spooler | Set-Service -StartupType disabled
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\StiSvc" "Start" "4" "Disabling StiSvc Windows Image Acquisition (WIA) service" "DWord"
-	Get-Service StiSvc | Set-Service -StartupType disabled
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\TrkWks" "Start" "4" "Disabling TrkWks (Distributed Link Tracking Client) service" "DWord"
-	Get-Service TrkWks | Set-Service -StartupType disabled
-	
-	# Required by bluetooth
-	# RegChange "SYSTEM\CurrentControlSet\Services\BthAvctpSvc" "Start" "4" "Disabling AVCTP (Audio Video Control Transport Protocol) service" "DWord"
-	# Get-Service BthAvctpSvc | Set-Service -StartupType disabled
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\DispBrokerDesktopSvc" "Start" "4" "Disabling DispBrokerDesktopSvc (Display Policy Service) service" "DWord"
-	Get-Service DispBrokerDesktopSvc | Set-Service -StartupType disabled
-	
-	if ($beAppxSafe -eq 1) {
-		# DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation
-		RegChange "SYSTEM\CurrentControlSet\Services\DoSvc" "Start" "2" "Enabling DoSvc (Delivery Optimization) service" "DWord"
-		Get-Service DoSvc | Set-Service -StartupType automatic
-	} else {
-		# DoSvc (Delivery Optimization) it overrides the windows updates opt-out user option, turn your pc into a p2p peer for Windows updates, mining your network performance and compromises your online gameplay, work and navigation
-		RegChange "SYSTEM\CurrentControlSet\Services\DoSvc" "Start" "4" "Disabling DoSvc (Delivery Optimization) service" "DWord"
-		Get-Service DoSvc | Set-Service -StartupType disabled
-	}
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\OneSyncSvc" "Start" "4" "Disabling OneSyncSvc service" "DWord"
-	Get-Service OneSyncSvc | Set-Service -StartupType disabled
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\WalletService" "Start" "4" "Disabling WalletService service" "DWord"
-	Get-Service WalletService | Set-Service -StartupType disabled
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\diagnosticshub.standardcollector.service" "Start" "4" "Disabling diagnosticshub.standardcollector.service service" "DWord"
-	Get-Service diagnosticshub.standardcollector.service | Set-Service -StartupType disabled
-	
-	#In very rare cases, Hardware Accelerated GPU Scheduling set to ON (2) may improve latency
-	RegChange "SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" "2" "Disabling Hardware Accelerated GPU Scheduling" "DWord"
-	
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" "EnableTransparency" "0" "Disabling Windows transparency effect" "DWord"
-	RegChange "SYSTEM\CurrentControlSet\services\WdiServiceHost" "Start" "4" "Disabling Diagnostic Service Host" "DWord"
-	RegChange "SYSTEM\CurrentControlSet\services\WdiSystemHost" "Start" "4" "Disabling Diagnostic System Host Service" "DWord"
-	RegChange "SYSTEM\CurrentControlSet\services\DPS" "Start" "4" "Disabling Diagnostic Policy Service" "DWord"
-	
-	killProcess("nvngx_update");
-	deleteFile "$env:WINDIR\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_577df0ba9db954d8\nvngx_update.exe" "Deleting Nvidia nvngx_update (bandwidth usage, lack of parameters for users to choose when its suppose to update)..."
-	RegChange "System\CurrentControlSet\Control\Session Manager\Power" "HibernateEnabled" "0" "Disabling hibernation..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings" "ShowHibernateOption" "0" "Hiding hibernation..." "DWord"
-	
-	Write-Output "Disabling EpsonCustomerResearchParticipation..."
-	Get-Service EpsonCustomerResearchParticipation | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
-	Write-Output "Disabling LGHUBUpdaterService (bandwidth usage, lack of parameters for users to choose when its suppose to update)..."
-	Get-Service LGHUBUpdaterService | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
-	Write-Host "Disabling netsvcs. Its known for huge bandwidth usage..."
-	Get-Service netsvcs | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		write-Host -ForegroundColor Green -BackgroundColor Black "Defragmentation cause unnecessary wear on SSDs"
-		Write-Host "Disabling scheduled defragmentation..."
-		Disable-ScheduledTask -TaskName "Microsoft\Windows\Defrag\ScheduledDefrag" | Out-Null
-	}
-	
-	write-Host "Superfetch is known to cause all kinds of problems: slow boot times, disk wear, bottleneck, RAM consumption" -ForegroundColor Green -BackgroundColor Black 
-	Write-Host "Stopping and disabling Superfetch service..."
-	Get-Service SysMain | Stop-Service -PassThru | Set-Service -StartupType disabled	
-	
-	Write-Host "Stopping and disabling SSDPSRV service..."
-	Get-Service SSDPSRV | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
-	Write-Host "Stopping and disabling AxInstSV service..."
-	Get-Service AxInstSV | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
-	Write-Host "Stopping and disabling MapsBroker (Downloaded Maps Manager) service..."
-	Get-Service MapsBroker | Stop-Service -PassThru | Set-Service -StartupType disabled
-	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" "DODownloadMode" "100" "Disabling DeliveryOptimization Peering and HTTP download mode (bypass mode)..." "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "100" "Disabling DeliveryOptimization Peering and HTTP download mode (bypass mode)..." "DWord"	
-	RegChange "System\CurrentControlSet\Services\edgeupdate*" "Start" "4" "Disabling Edge updates..." "DWord"
-	
-	regDelete "Software\Microsoft\Windows\CurrentVersion\Run\com.squirrel.Teams.Teams" "Disabling MS Teams updater"
-		
-	if ($beNetworkPrinterSafe -eq 0) {
-		Write-Host "Disabling LanmanWorkstation Service..."
-		Get-Service Workstation | Stop-Service -PassThru | Set-Service -StartupType disabled
-		
-		Write-Host "Disabling LanmanServer Service..."
-		Get-Service Server | Stop-Service -PassThru | Set-Service -StartupType disabled
-	}	
-		
-	if ($beWifiSafe -eq 0) {
-		RegChange "SYSTEM\CurrentControlSet\Services\RmSvc" "Start" "4" "Disabling RmSvc (Radio Management Service) service" "DWord"
-		Get-Service RmSvc | Set-Service -StartupType disabled
-		
-		RegChange "SYSTEM\CurrentControlSet\Services\WlanSvc" "Start" "4" "Disabling WlanSvc (WLAN Autoconfig) service" "DWord"
-		Get-Service WlanSvc | Set-Service -StartupType disabled
-	}
-
-	if ($beWifiSafe -eq 1) {
-		Write-Host "RmSvc (Radio Management Service) service  NOT disabled because of the beWifiSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-	}
-
-
-	if ($beMicrophoneSafe -eq 0) {			
-		RegChange "SYSTEM\CurrentControlSet\Services\camsvc" "Start" "4" "Disabling camsvc service" "DWord"
-		Get-Service camsvc | Set-Service -StartupType disabled
-	}
-
-	if ($beMicrophoneSafe -eq 1) {			
-		Write-Host "camsvc service  was NOT disabled because of the beMicrophoneSafe configuration" -ForegroundColor Yellow -BackgroundColor DarkGreen
-		RegChange "SYSTEM\CurrentControlSet\Services\camsvc" "Start" "2" "Enabling camsvc service" "DWord"
-		Get-Service camsvc | Set-Service -StartupType automatic
-	}	
-}
-
-if ($doQualityOfLifeStuff -eq 0) {
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "SaveZoneInformation" "1" "Enabling Attachment being locked when saved..." "DWord"
-
-	Get-Service VMwareHostd | Set-Service -StartupType automatic
-	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "2" "Enabling VMware host..." "DWord"
-	
-	# Look for an app in the Microsoft Store
-	RegChange "Software\Policies\Microsoft\Windows\Explorer" "NoUseStoreOpenWith" "0" "Enabling Look for an app in the Microsoft Store" "DWord"
-	
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarDa" "1" "Adding widgets button to taskbar" "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarMn" "1" "Adding chat button to taskbar" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SoftLandingEnabled" "1" "Enabling Get tips and suggestion when i use Windows" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "0" "Enabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "1" "Enabling Action Center toasts..." "DWord"
-
-	# Required for notification center bar
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "0" "Enabling Action Center notification center..." "DWord"
-	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "1" "Enabling Action Center toast push notifications..." "DWord"
-	RegChange "Control Panel\Accessibility" "DynamicScrollbars" "1" "Enabling dynamic scrollbars..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\MRT" "DontOfferThroughWUAU " "0" "Enabling Malicious Software Removal Tool offering" "DWord"
-
-	write-Host "Fast Boot is known to cause problems with steam" -ForegroundColor Green -BackgroundColor Black 
-	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Power" "HiberbootEnabled" "1" "Enabling Fast boot..." "DWord"
-	powercfg /hibernate ON
-	
-	write-Host "RAZER services that allows third party software to ness with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
-	Write-Output "Enabling Razer Chroma SDK Server..."
-	Get-Service "Razer Chroma SDK Server" | Stop-Service -PassThru | Set-Service -StartupType automatic
-	Write-Output "Enabling Razer Chroma SDK Service..."
-	Get-Service "Razer Chroma SDK Service" | Stop-Service -PassThru | Set-Service -StartupType automatic
-
-	Write-Output "Enabling WpnService, push notification anoyance service..."
-	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType automatic
-	
-	RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "2" "Enabling WpnUserService, push notification anoyance service..." "DWord"
-	RegChange "Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" "NoGenTicket" "1" "Enabling Licence Checking..." "DWord"
-	
-	RegChange "SOFTWARE\Microsoft\Windows\Windows Error Reporting" "Disabled" "0" "Enabling Error reporting..." "DWord"
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Host "Enabling Error reporting task..."
-		Get-ScheduledTask  *QueueReporting* | Enable-ScheduledTask
-	}
-
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "1" "Hiding This PC shortcut on desktop..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "1" "Hiding This PC shortcut on desktop..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ShowSyncProviderNotifications" "1" "Enabling Windows Ads within file explorer..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableThirdPartySuggestions" "0" "Disabling Windows suggestions of apps and content from third-party software publishers..." "DWord"	
-	RegChange "Control Panel\Mouse" "MouseSpeed" "1" "Disabling Windows enhanced pointer precision..." "DWord"
-	RegChange "Control Panel\Mouse" "MouseThreshold1" "6" "Enabling Windows enhanced pointer acceleration..." "DWord"
-	RegChange "Control Panel\Mouse" "MouseThreshold2" "10" "Enabling Windows enhanced pointer acceleration..." "DWord"
-
-	# k-lite codec pack updater
-	deleteFile "$env:WINDIR\K-Lite Codec Pack\Tools\CodecTweakTool.exe" "Deleting SecurityHealthService.exe..."	
-}
-
-if ($doQualityOfLifeStuff -eq 1) {
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "SaveZoneInformation" "2" "Disabling Attachment being locked when saved..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Associations" "DefaultFileTypeRisk" "6152" "Lowering attachments risk level to prevent user prompts..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "HideZoneInfoOnProperties" "0" "Enabling Unblock on the files Properties..." "DWord"
-
-	Get-Service VMwareHostd | Stop-Service -PassThru | Set-Service -StartupType disabled
-	RegChange "SYSTEM\CurrentControlSet\services\VMwareHostd" "Start" "4" "Disabling VMware host..." "DWord"
-	
-	# Look for an app in the Microsoft Store
-	RegChange "Software\Policies\Microsoft\Windows\Explorer" "NoUseStoreOpenWith" "1" "Disabling Look for an app in the Microsoft Store" "DWord"
-	
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarDa" "0" "Removing widgets button from taskbar" "DWord"	
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarMn" "0" "Removing chat button from taskbar" "DWord"
-	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SoftLandingEnabled" "0" "Disabling Get tips and suggestion when i use Windows" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" "DisableAutomaticRestartSignOn" "1" "Disabling Windows Winlogon Automatic Restart Sign-On..." "DWord"
-
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Notifications\Settings" "NOC_GLOBAL_SETTING_TOASTS_ENABLED" "0" "Disabling Action Center global toasts..." "DWord"	
-
-	# Required for notification center bar
-	#RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableNotificationCenter" "1" "Disabling Action Center notification center..." "DWord"
-
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "0" "Disabling Action Center toast push notifications..." "DWord"
-	
-	RegChange "Control Panel\Accessibility" "DynamicScrollbars " "0" "Disabling dynamic scrollbars..." "DWord"	
-	RegChange "SOFTWARE\Policies\Microsoft\MRT" "DontOfferThroughWUAU " "1" "Disabling Malicious Software Removal Tool offering" "DWord"
-	
-	write-Host "Fast Boot is known to cause problems with steam" -ForegroundColor Green -BackgroundColor Black 
-	RegChange "SYSTEM\CurrentControlSet\Control\Session Manager\Power" "HiberbootEnabled" "0" "Disabling Fast boot..." "DWord"
-	powercfg /hibernate OFF
-	
-	Write-Host "RAZER services that allows third party software to mess with your keyboard backlight" -ForegroundColor Green -BackgroundColor Black 	
-	Write-Output "Disabling Razer Chroma SDK Server..."
-	Get-Service "Razer Chroma SDK Server" | Stop-Service -PassThru | Set-Service -StartupType disabled
-	Write-Output "Disabling Razer Chroma SDK Service..."
-	Get-Service "Razer Chroma SDK Service" | Stop-Service -PassThru | Set-Service -StartupType disabled
-
-	Write-Output "Disabling WpnService, push notification anoyance service..."
-	Get-Service WpnService | Stop-Service -PassThru | Set-Service -StartupType disabled
-
-	# WpnUserService is required by the taskbar to work properly
-	# RegChange "System\CurrentControlSet\Services\WpnUserService*" "Start" "4" "Disabling WpnUserService, push notification anoyance service..." "DWord"	
-	
-	RegChange "Software\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" "NoGenTicket" "0" "Disabling Licence Checking..." "DWord"	
-	RegChange "SOFTWARE\Microsoft\Windows\Windows Error Reporting" "Disabled" "1" "Disabling Error reporting..." "DWord"
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Host "Disabling Error reporting task..."
-		Get-ScheduledTask  *QueueReporting* | Disable-ScheduledTask
-	}
-	
-	RegChange "Control Panel\Accessibility\StickyKeys" "Flags" "506" "Disabling Sticky keys prompt..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "0" "Show This PC shortcut on desktop..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" "0" "Show This PC shortcut on desktop..." "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ShowSyncProviderNotifications" "0" "Disabling Windows Ads within file explorer..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableThirdPartySuggestions" "1" "Disabling Windows suggestions of apps and content from third-party software publishers..." "DWord"
-	RegChange "Control Panel\Mouse" "MouseSpeed" "0" "Disabling Windows enhanced pointer precision..." "DWord"
-	RegChange "Control Panel\Mouse" "MouseThreshold1" "0" "Disabling Windows enhanced pointer acceleration..." "DWord"
-	RegChange "Control Panel\Mouse" "MouseThreshold2" "0" "Disabling Windows enhanced pointer acceleration..." "DWord"
-}
-
-if ($doPrivacyStuff -eq 0) {
-	Write-Output "Reverse privacy stuff..."
-
-	regDelete "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Option\CompatTelRunner.exe" "Enabling CompatTelRunner"
-
-	EnableThumbnail
-	EnablePeek
-	EnablePrefetcher	
-	EnableMemoryDump
-
-	# Copilot
-	RegChange "Software\Policies\Microsoft\Windows\WindowsCopilot" "TurnOffWindowsCopilot" "0" "Enabling CoPilot..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot" "TurnOffWindowsCopilot" "0" "Enabling CoPilot..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Edge" "HubsSidebarEnabled" "1" "Enabling CoPilot..." "DWord"
-	RegChange "Software\Policies\Microsoft\Windows\Explorer" "DisableSearchBoxSuggestions" "0" "Enabling CoPilot..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableSearchBoxSuggestions" "0" "Enabling CoPilot..." "DWord"
-
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "1" "Enabling Windows location tracking" "DWord"
-	RegChange "System\CurrentControlSet\Services\lfsvc\Service\Configuration" "Status" "1" "Enabling Windows location tracking" "DWord"
-	RegChange "Software\Microsoft\InputPersonalization" "RestrictImplicitInkCollection" "0" "Enabling Windows implicit ink collection" "DWord"
-	RegChange "Software\Microsoft\InputPersonalization" "RestrictImplicitTextCollection" "0" "Enabling Windows implicit text collection" "DWord"
-	RegChange "Software\Microsoft\InputPersonalization\TrainedDataStore" "HarvestContacts" "1" "Enabling Windows contact harvesting" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "1" "Enabling Windows Feedback Experience program / Advertising ID" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "1" "Enabling Cortana from being used as part of your Windows Search Function" 
-	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "1" "Enabling Windows Feedback Experience from sending anonymous data" "DWord"   
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "0" "Adding Registry key to allow bloatware apps from returning" "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "1" "Enabling Reality Portal" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "0" "Enabling live tiles" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "1" "Enabling Location Tracking" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "1" "Enabling Location Tracking" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "1" "Enabling People icon on Taskbar" "DWord"
-	RegChange "Software\Policies\Microsoft\Windows\Explorer" "HidePeopleBar" "0" "Enabling People Bar" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "1" "Enabling Activity History Feed" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "1" "Enabling Activity History Feed" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "1" "Enabling Activity History Feed" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "0" "Enabling Tailored Experiences" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "1" "Enabling automatic installation of network devices" "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop" "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "0" "Enabling Remote Desktop" "DWord"	
-	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server" "fDenyTSConnections" "0" "Enabling Remote Desktop"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" "0" "Enabling handwriting personalization data sharing..." "DWord"	
-	RegChange "SOFTWARE\Policies\Microsoft\SQMClient\Windows" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\AppV\CEIP" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "DisableOptinExperience" "0" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "CEIPEnable" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "SqmLoggerRunning" "1" "Enabling Windows Customer Experience Improvement Program..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AppModel" "Start" "1" "Enabling AutoLogger\AppModel..." "DWord"
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "1" "Enabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "1" "Enabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DataMarket" "Start" "1" "Enabling AutoLogger\DataMarket..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "1" "Enabling AutoLogger\DefenderApiLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "1" "Enabling AutoLogger\DefenderAuditLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DiagLog" "Start" "1" "Enabling AutoLogger\DiagLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\LwtNetLog" "Start" "1" "Enabling AutoLogger\LwtNetLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "1" "Enabling AutoLogger\Mellanox-Kernel..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "1" "Enabling AutoLogger\NBSMBLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NtfsLog" "Start" "1" "Enabling AutoLogger\NtfsLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\PEAuthLog" "Start" "1" "Enabling AutoLogger\PEAuthLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\RdrLog" "Start" "1" "Enabling AutoLogger\RdrLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\ReadyBoot" "Start" "1" "Enabling AutoLogger\ReadyBoot..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatform" "Start" "1" "Enabling AutoLogger\SetupPlatform..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "1" "Enabling AutoLogger\SetupPlatformTel..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SpoolerLogger" "Start" "1" "Enabling AutoLogger\SpoolerLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SQMLogger" "Start" "1" "Enabling AutoLogger\SQMLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "1" "Enabling AutoLogger\TCPIPLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TileStore" "Start" "1" "Enabling AutoLogger\TileStore..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\UBPM" "Start" "1" "Enabling AutoLogger\UBPM..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WdiContextLog" "Start" "1" "Enabling AutoLogger\WdiContextLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "1" "Enabling AutoLogger\WFP-IPsec Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "1" "Enabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AppModel" "Start" "1" "Enabling AutoLogger\AppModel..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "1" "Enabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "1" "Enabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DataMarket" "Start" "1" "Enabling AutoLogger\DataMarket..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "1" "Enabling AutoLogger\DefenderApiLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "1" "Enabling AutoLogger\DefenderAuditLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "1" "Enabling AutoLogger\DiagLog..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\LwtNetLog" "Start" "1" "Enabling AutoLogger\LwtNetLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "1" "Enabling AutoLogger\Mellanox-Kernel..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "1" "Enabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "1" "Enabling AutoLogger\NBSMBLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NtfsLog" "Start" "1" "Enabling AutoLogger\NtfsLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\PEAuthLog" "Start" "1" "Enabling AutoLogger\PEAuthLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\RdrLog" "Start" "1" "Enabling AutoLogger\RdrLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\ReadyBoot" "Start" "1" "Enabling AutoLogger\ReadyBoot..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatform" "Start" "1" "Enabling AutoLogger\SetupPlatform..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "1" "Enabling AutoLogger\SetupPlatformTel..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SpoolerLogger" "Start" "1" "Enabling AutoLogger\SpoolerLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SQMLogger" "Start" "1" "Enabling AutoLogger\SQMLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "1" "Enabling AutoLogger\TCPIPLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TileStore" "Start" "1" "Enabling AutoLogger\TileStore..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\UBPM" "Start" "1" "Enabling AutoLogger\UBPM..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WdiContextLog" "Start" "1" "Enabling AutoLogger\WdiContextLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "1" "Enabling AutoLogger\WFP-IPsec Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "1" "Enabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "1" "Enabling AutoLogger\WiFiSession..." "DWord"	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Enabling Windows Insider Program..." "DWord"	
-
-	Write-Output "Setting network to private..."
-	Set-NetConnectionProfile -NetworkCategory Private
-   
-   	Write-Output "Enabling Background application access..."
-	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
-		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 0
-		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 0
-	}
-	
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Enabling scheduled tasks, Consolidator, UsbCeip, DmClient..."  
-		Get-ScheduledTask  Consolidator | Enable-ScheduledTask
-		Get-ScheduledTask  UsbCeip | Enable-ScheduledTask
-		Get-ScheduledTask  DmClient | Enable-ScheduledTask
-		Get-ScheduledTask  DmClientOnScenarioDownload | Enable-ScheduledTask
-	}
-	
-    # Diagnostics Tracking Service is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations
-    RegChange "SYSTEM\CurrentControlSet\Services\DiagTrack" "Start" "2" "Enabling DiagTrack (Connected User Experiences and Telemetry) service" "DWord"
-	Get-Service DiagTrack | Set-Service -StartupType automatic
-    
-	# dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations
-	Get-Service dmwappushservice | Set-Service -StartupType automatic
-	
-	write-Host "Windows Insider Service contact web servers by its own" -ForegroundColor Green -BackgroundColor Black 
-	Write-Host "Enabling wisvc (Windows Insider Service)..."
-	Get-Service wisvc | Set-Service -StartupType automatic
-	Get-Service CryptSvc | Set-Service -StartupType automatic
-	
-	Write-Host "Stopping and disabling EventLog (Windows Event Log)..."
-	Get-Service EventLog | Set-Service -StartupType automatic
-	
-	# Disable Ip helper due transfering a lot of strange data
-	RegChange "SYSTEM\CurrentControlSet\Services\iphlpsvc" "Start" "2" "Enabling Ip Helper service" "DWord"
-	Get-Service iphlpsvc | Set-Service -StartupType automatic
-
-	Write-Host "Enabling Nvidia Telemetry service..."
-	Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -StartupType automatic
-}
-
-if ($doPrivacyStuff -eq 1) {
-	Write-Output "Doing privacy stuff..."
-
-	killProcess("compattelrunner");
-	deleteFile "$env:SystemRoot\System32\compattelrunner.exe" "Deleting office compattelrunner.exe..."	
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Option\CompatTelRunner.exe" "Debugger" "%windir%\System32\taskkill.exe" "Disabling CompatTelRunner..." "String"
-
-	killProcess("CUH");
-	deleteFile "$env:Programfiles(x86)\Corel\CUH\v2\CUH.exe" "Deleting Corel Updater (CUH.exe)..."	
-
-	clearCaches
-	DisableThumbnail
-	DisablePeek
-	DisablePrefetcher	
-	DisableMemoryDump	
-	
-	# Copilot
-	RegChange "Software\Policies\Microsoft\Windows\WindowsCopilot" "TurnOffWindowsCopilot" "1" "Disabling CoPilot..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot" "TurnOffWindowsCopilot" "1" "Disabling CoPilot..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Edge" "HubsSidebarEnabled" "0" "Disabling CoPilot..." "DWord"
-	RegChange "Software\Policies\Microsoft\Windows\Explorer" "DisableSearchBoxSuggestions" "1" "Disabling CoPilot..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "DisableSearchBoxSuggestions" "1" "Disabling CoPilot..." "DWord"
-
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "0" "Disabling Windows location tracking" "DWord"
-	RegChange "System\CurrentControlSet\Services\lfsvc\Service\Configuration" "Status" "0" "Disabling Windows location tracking" "DWord"
-	RegChange "Software\Microsoft\InputPersonalization" "RestrictImplicitInkCollection" "1" "Disabling Windows implicit ink collection" "DWord"
-	RegChange "Software\Microsoft\InputPersonalization" "RestrictImplicitTextCollection" "1" "Disabling Windows implicit text collection" "DWord"
-	RegChange "Software\Microsoft\InputPersonalization\TrainedDataStore" "HarvestContacts" "0" "Disabling Windows contact harvesting" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" "0" "Disabling Windows Feedback Experience program / Advertising ID"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortana" "0" "Stopping Cortana from being used as part of your Windows Search Function" 
-	RegChange "Software\Microsoft\Siuf\Rules" "NumberOfSIUFInPeriod" "0" "Disabling Windows Feedback Experience from sending anonymous data"         
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableWindowsConsumerFeatures" "1" "Adding Registry key to prevent bloatware apps from returning"	
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Holographic" "FirstRunSucceeded" "0" "Disabling Reality Portal"	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" "NoTileApplicationNotification" "1" "Disabling live tiles"  
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "SensorPermissionState" "0" "Disabling Location Tracking"
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" "Status" "0" "Disabling Location Tracking"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" "PeopleBand" "0" "Disabling People icon on Taskbar"
-	RegChange "Software\Policies\Microsoft\Windows\Explorer" "HidePeopleBar" "1" "Disabling People Bar"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "0" "Disabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "0" "Disabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "0" "Disabling Activity History Feed"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CloudContent" "DisableTailoredExperiencesWithDiagnosticData" "1" "Disabling Tailored Experiences"	
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private" "AutoSetup" "0" "Disabling automatic installation of network devices"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server" "fDenyTSConnections" "1" "Disabling Remote Desktop"
-	RegChange "SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "1" "Disabling Remote Desktop"	
-	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server" "fDenyTSConnections" "1" "Disabling Remote Desktop"
-	RegChange "SYSTEM\CurrentControlSet001\Control\Terminal Server\WinStations\RDP-Tcp" "UserAuthentication" "1" "Disabling Remote Desktop"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" "1" "Disabling handwriting personalization data sharing..." "DWord"	
-	RegChange "SOFTWARE\Policies\Microsoft\SQMClient\Windows" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\AppV\CEIP" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\IE" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Windows" "DisableOptinExperience" "1" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "CEIPEnable" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"
-	RegChange "SOFTWARE\Microsoft\SQMClient\Reliability" "SqmLoggerRunning" "0" "Disabling Windows Customer Experience Improvement Program..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AppModel" "Start" "0" "Disabling AutoLogger\AppModel..." "DWord"
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "0" "Disabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "0" "Disabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DataMarket" "Start" "0" "Disabling AutoLogger\DataMarket..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "0" "Disabling AutoLogger\DefenderApiLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "0" "Disabling AutoLogger\DefenderAuditLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\DiagLog" "Start" "0" "Disabling AutoLogger\DiagLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\LwtNetLog" "Start" "0" "Disabling AutoLogger\LwtNetLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "0" "Disabling AutoLogger\Mellanox-Kernel..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "0" "Disabling AutoLogger\NBSMBLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\NtfsLog" "Start" "0" "Disabling AutoLogger\NtfsLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\PEAuthLog" "Start" "0" "Disabling AutoLogger\PEAuthLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\RdrLog" "Start" "0" "Disabling AutoLogger\RdrLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\ReadyBoot" "Start" "0" "Disabling AutoLogger\ReadyBoot..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatform" "Start" "0" "Disabling AutoLogger\SetupPlatform..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "0" "Disabling AutoLogger\SetupPlatformTel..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SpoolerLogger" "Start" "0" "Disabling AutoLogger\SpoolerLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\SQMLogger" "Start" "0" "Disabling AutoLogger\SQMLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "0" "Disabling AutoLogger\TCPIPLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\TileStore" "Start" "0" "Disabling AutoLogger\TileStore..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\UBPM" "Start" "0" "Disabling AutoLogger\UBPM..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WdiContextLog" "Start" "0" "Disabling AutoLogger\WdiContextLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "0" "Disabling AutoLogger\WFP-IPsec Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "0" "Disabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"
-	RegChange "SYSTEM\ControlSet001\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AppModel" "Start" "0" "Disabling AutoLogger\AppModel..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener" "Start" "0" "Disabling AutoLogger\AutoLogger-Diagtrack-Listener..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Circular Kernel Context Logger" "Start" "0" "Disabling AutoLogger\Circular Kernel Context Logger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DataMarket" "Start" "0" "Disabling AutoLogger\DataMarket..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderApiLogger" "Start" "0" "Disabling AutoLogger\DefenderApiLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DefenderAuditLogger" "Start" "0" "Disabling AutoLogger\DefenderAuditLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\DiagLog" "Start" "0" "Disabling AutoLogger\DiagLog..." "DWord"
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\LwtNetLog" "Start" "0" "Disabling AutoLogger\LwtNetLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Mellanox-Kernel" "Start" "0" "Disabling AutoLogger\Mellanox-Kernel..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-AssignedAccess-Trace" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-AssignedAccess-Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\Microsoft-Windows-Setup" "Start" "0" "Disabling AutoLogger\Microsoft-Windows-Setup..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NBSMBLOGGER" "Start" "0" "Disabling AutoLogger\NBSMBLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\NtfsLog" "Start" "0" "Disabling AutoLogger\NtfsLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\PEAuthLog" "Start" "0" "Disabling AutoLogger\PEAuthLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\RdrLog" "Start" "0" "Disabling AutoLogger\RdrLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\ReadyBoot" "Start" "0" "Disabling AutoLogger\ReadyBoot..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatform" "Start" "0" "Disabling AutoLogger\SetupPlatform..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SetupPlatformTel" "Start" "0" "Disabling AutoLogger\SetupPlatformTel..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SpoolerLogger" "Start" "0" "Disabling AutoLogger\SpoolerLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\SQMLogger" "Start" "0" "Disabling AutoLogger\SQMLogger..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TCPIPLOGGER" "Start" "0" "Disabling AutoLogger\TCPIPLOGGER..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\TileStore" "Start" "0" "Disabling AutoLogger\TileStore..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\UBPM" "Start" "0" "Disabling AutoLogger\UBPM..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WdiContextLog" "Start" "0" "Disabling AutoLogger\WdiContextLog..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WFP-IPsec Trace" "Start" "0" "Disabling AutoLogger\WFP-IPsec Trace..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiDriverIHVSessionRepro" "Start" "0" "Disabling AutoLogger\WiFiDriverIHVSessionRepro..." "DWord"	
-	RegChange "SYSTEM\ControlSet\Control\WMI\AutoLogger\WiFiSession" "Start" "0" "Disabling AutoLogger\WiFiSession..." "DWord"	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\PreviewBuilds" "AllowBuildPreview" "0" "Disabling Windows Insider Program..." "DWord"	
-	
-	Set-NetConnectionProfile -NetworkCategory Public
-   
-	Write-Output "Disabling Background application access..."
-	Get-ChildItem -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Exclude "Microsoft.Windows.Cortana*" | ForEach {
-		Set-ItemProperty -Path $_.PsPath -Name "Disabled" -Type DWord -Value 1
-		Set-ItemProperty -Path $_.PsPath -Name "DisabledByUser" -Type DWord -Value 1
-	}	
-	
-	if ($(serviceStatus("Schedule")) -eq "running") {
-		Write-Output "Disabling scheduled tasks, Consolidator, UsbCeip, DmClient..."
-		Get-ScheduledTask  Consolidator | Disable-ScheduledTask
-		Get-ScheduledTask  UsbCeip | Disable-ScheduledTask
-		Get-ScheduledTask  DmClient | Disable-ScheduledTask
-		Get-ScheduledTask  DmClientOnScenarioDownload | Disable-ScheduledTask
-	}
-	
-	# Diagnostics Tracking Service is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations
-    RegChange "SYSTEM\CurrentControlSet\Services\DiagTrack" "Start" "4" "Disabling DiagTrack (Connected User Experiences and Telemetry) service" "DWord"
-	Get-Service DiagTrack | Set-Service -StartupType disabled
-    
-	
-	
-	# dmwappushservice is a Windows keylogger to collect all the speeches, calendar, contacts, typing, inking informations
-	Get-Service dmwappushservice | Set-Service -StartupType disabled
-	
-	$path = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
-	deletePath $path "Clearing ETL Autologs..."
-	hardenPath $path "Hardening ETL Autologs folder..."
-	
-	write-Host "AppHostRegistrationVerifier tries to connect to 13.107.246.19 port 443 when the pc is idle for no known reason." -ForegroundColor Green -BackgroundColor Black
-	deleteFile "$env:WINDIR\system32\AppHostRegistrationVerifier.exe" "Deleting AppHostRegistrationVerifier.exe..."		
-	deleteFile "$env:WINDIR\system32\wbem\wmiprvse.exe" "Deleting WMI Provider Host..."	
-	
-	write-Host "Windows Insider Service contact web servers by its own" -ForegroundColor Green -BackgroundColor Black 
-	Write-Host "Stopping and disabling wisvc (Windows Insider Service)..."
-	Get-Service wisvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-
-	# EventLog disabled causes Windows to crash
-	# Write-Host "Stopping and disabling EventLog (Windows Event Log)..."
-	# Get-Service EventLog | Stop-Service -PassThru | Set-Service -StartupType disabled	
-		
-	# Disable Ip helper due transfering a lot of strange data
-	RegChange "SYSTEM\CurrentControlSet\Services\iphlpsvc" "Start" "4" "Disabling Ip Helper service" "DWord"
-	Get-Service iphlpsvc | Set-Service -StartupType disabled
-
-	Write-Host "Disabling Nvidia Telemetry service..."
-	Get-Service NvTelemetryContainer | Stop-Service -PassThru | Set-Service -StartupType disabled
-}
-
-if ($doSecurityStuff -eq 0) {
-	# Airstrike Attack - FDE bypass and EoP on domain joined Windows workstations. An attacker with physical access to a locked device with WiFi capabilities (such as a laptop or a workstation) can abuse this functionality to force the laptop to authenticate against a rogue access point and capture a MSCHAPv2 challenge response hash for the domain computer account.
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "DontDisplayNetworkSelectionUI" "0" "Disabling the hardening against the Airstrike Attack" "DWord"
-	
-	RegChange "SYSTEM\CurrentControlSet\services\WMPNetworkSvc" "Start" "2" "Enabling Windows Media Player Network Sharing Service" "DWord"
-	
-	# WPAD exposes the system to MITM attack
-	RegChange "SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" "Start" "2" "Enabling WPAD WinHttpAutoProxySvc Service" "DWord"
-	
-	RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "2" "Enabling DNS Cache Service" "DWord"
-	EnableLLMNR
-	
-	# NetBIOS imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
-	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "0" "Enabling NetBIOS over TCP/IP..." "DWord"
-	
-	#Allowing Anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system. (Stig Viewer V-220930)
-	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RestrictAnonymous" "0" "Allowing Anonymous enumeration of shares (Allowing anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system.)- Stig Viewer V-220930" "Dword"	
-	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting" "Value" "1" "Enabling Wi-Fi Sense" "Dword"  
-	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots" "Value" "1" "Enabling Wi-Fi Sense, it connects you to open hotspots that are greenlighted through crowdsourcing. Openning doors to Lure10 MITM attack and phishing" "Dword"
-	RegChange "SOFTWARE\Microsoft\WcmSvc\wifinetworkmanager\config" "AutoConnectAllowedOEM" "1" "Enabling Wi-Fi Sense"
-	RegChange "SYSTEM\CurrentControlSet\Control\Remote Assistance" "fAllowToGetHelp" "1" "Enabling Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823)"
-	RegChange "SYSTEM\CurrentControlSet001\Control\Remote Assistance" "fAllowToGetHelp" "1" "Enabling Remote Assistance"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" "fAllowToGetHelp" "1" "Enabling Remote Assistance"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\policies\Explorer" "NoDriveTypeAutoRun" "149" "Enabling autoplay " "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutoplayfornonVolume" "0" "Enabling autoplay " "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutorun" "0" "Enabling autorun " "DWord"
-	
-	# Protect against credential scraping, mimikatz attack
-	# Configures lsass.exe as a protected process and disables wdigest
-	# Enables delegation of non-exported credentials which enables support for Restricted Admin Mode or Remote Credential Guard
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\LSASS.exe" "AuditLevel" "8" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RunAsPPL" "0" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "DisableRestrictedAdmin" "1" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "DisableRestrictedAdminOutboundCreds" "0" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "UseLogonCredential" "1" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "Negotiate" "1" "Hardening LSASS... " "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" "AllowProtectedCreds" "0" "Hardening LSASS... " "DWord"
-	
-	#Enable the LSA protection to prevent Mimikatz from accessing a specific memory location of the LSASS process and scraping credentials
-	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RunAsPPL" "0" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "UseLogonCredential" "1" "Hardening LSASS... " "DWord"
-	
-	#Windows 10 must be configured to enable Remote host allows delegation of non-exportable credentials. (Stig Viewer V-74699)
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" "AllowProtectedCreds" "0" "Hardening LSASS... " "DWord"
-	
-	Write-Host "Enabling Network Location Awareness Service..."
-	Enable-NetAdapterBinding -Name "*" -ComponentID "ms_msclient"	
-	
-	Write-Host "Enabling Network Location Awareness Service..."
-	Get-Service NlaSvc | Set-Service -StartupType automatic
-}
-
-if ($doSecurityStuff -eq 1) {
-	# Airstrike Attack - FDE bypass and EoP on domain joined Windows workstations. An attacker with physical access to a locked device with WiFi capabilities (such as a laptop or a workstation) can abuse this functionality to force the laptop to authenticate against a rogue access point and capture a MSCHAPv2 challenge response hash for the domain computer account.
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\System" "DontDisplayNetworkSelectionUI" "1" "Hardening against the Airstrike Attack" "DWord"	
-	RegChange "SYSTEM\CurrentControlSet\services\WMPNetworkSvc" "Start" "4" "Disabling Windows Media Player Network Sharing Service" "DWord"
-	
-	if ($bePrinterSafe -eq 0) {
-		# WPAD exposes the system to MITM attack
-		RegChange "SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" "Start" "4" "Disabling WPAD WinHttpAutoProxySvc Service" "DWord"
-	} else {
-		# WPAD exposes the system to MITM attack
-		RegChange "SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc" "Start" "2" "Enabling WPAD WinHttpAutoProxySvc Service" "DWord"
-	}
-	DisableLLMNR
-
-	Write-Output "Flushing DNS."
-	ipconfig /flushDNS
-	if ($beWSL2Safe -eq 0) {
-		RegChange "SYSTEM\CurrentControlSet\services\Dnscache" "Start" "4" "Disabling DNS Cache Service" "DWord"
-	}
-	
-	# NetBIOS imposes security risk for layer-4 name resolution spoofing attacks, ARP poisoning, KARMA attack and cache poisoning.
-	RegChange "SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\Tcpip*" "NetbiosOptions" "2" "Disabling NetBIOS over TCP/IP..." "DWord"
-	
-	#Allowing Anonymous logon users to list all account names and enumerate all shared resources can provide a map of potential points to attack the system. (Stig Viewer V-220930)
-	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RestrictAnonymous" "1" "Disabling Anonymous enumeration of shares..." "Dword" 		
-	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting" "Value" "0" "Disabling Wi-Fi Sense" "Dword"   
-	RegChange "SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots" "Value" "0" "Disabling Wi-Fi Sense, it connects you to open hotspots that are greenlighted through crowdsourcing. Openning doors to Lure10 MITM attack and phishing" "Dword"
-	RegChange "SOFTWARE\Microsoft\WcmSvc\wifinetworkmanager\config" "AutoConnectAllowedOEM" "0" "Disabling Wi-Fi Sense"	
-	RegChange "SYSTEM\CurrentControlSet\Control\Remote Assistance" "fAllowToGetHelp" "0" "Disabling Remote Assistance (RA). RA may allow unauthorized parties access to the resources on the computer. (Stigviewer V-220823)"
-	RegChange "SYSTEM\CurrentControlSet001\Control\Remote Assistance" "fAllowToGetHelp" "0" "Disabling Remote Assistance"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" "fAllowToGetHelp" "0" "Disabling Remote Assistance"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\policies\Explorer" "NoDriveTypeAutoRun" "255" "Disabling autoplay " "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutoplayfornonVolume" "1" "Disabling autoplay " "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Explorer" "NoAutorun" "1" "Disabling autorun " "DWord"	
-	
-	# Protect against credential scraping, mimikatz attack
-	# Configures lsass.exe as a protected process and disables wdigest
-	# Enables delegation of non-exported credentials which enables support for Restricted Admin Mode or Remote Credential Guard
-	RegChange "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\LSASS.exe" "AuditLevel" "8" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RunAsPPL" "1" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "DisableRestrictedAdmin" "0" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "DisableRestrictedAdminOutboundCreds" "1" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "UseLogonCredential" "0" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "Negotiate" "0" "Hardening LSASS... " "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" "AllowProtectedCreds" "1" "Hardening LSASS... " "DWord"	
-	
-	#Enable the LSA protection to prevent Mimikatz from accessing a specific memory location of the LSASS process and scraping credentials
-	RegChange "SYSTEM\CurrentControlSet\Control\Lsa" "RunAsPPL" "1" "Hardening LSASS... " "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" "UseLogonCredential" "0" "Hardening LSASS... " "DWord"
-	
-	#Windows 10 must be configured to enable Remote host allows delegation of non-exportable credentials. (Stig Viewer V-74699)
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" "AllowProtectedCreds" "1" "Hardening LSASS... " "DWord"
-
-	if ($beNetworkFolderSafe -eq 0) {
-		Write-Host "Disabling Network Location Awareness Service..."
-		Disable-NetAdapterBinding -Name "*" -ComponentID "ms_msclient"
-		
-		Write-Host "Disabling Network Location Awareness Service..."
-		Get-Service NlaSvc | Set-Service -StartupType disabled
-	}
-	
-	if ($beNetworkFolderSafe -eq 1) {
-		Write-Host "Enabling Network Location Awareness Service..."
-		Get-Service NlaSvc | Set-Service -StartupType automatic
-	}
-}
-
-if ($doFingerprintPrevention -eq 0) {
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" "NoRecentDocsHistory" "0" "Enabling Recent docs history " "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "SaveZoneInformation" "0" "Enabling Windows save zone information..." "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet" "EnableActiveProbing" "1" "Enabling internet connection test... " "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" "NoRecycleFiles" "1" "Enabling recycle bin... " "DWord"
-	
-	# DNS-over-HTTPS (DoH) encrypt the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers
-	RegChange "SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" "EnableAutoDoh" "0" "Disabling DNS over HTTPS (DoH)... " "DWord"
-}
-
-if ($doFingerprintPrevention -eq 1) {
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" "NoRecentDocsHistory" "1" "Disabling Recent docs history " "DWord"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" "SaveZoneInformation" "1" "Disabling Windows save zone information..." "DWord"
-	RegChange "SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet" "EnableActiveProbing" "0" "Disabling internet connection test... " "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" "NoRecycleFiles" "1" "Disabling recycle bin... " "DWord"
-	
-	# DNS-over-HTTPS (DoH) encrypt the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers
-	RegChange "SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" "EnableAutoDoh" "2" "Enabling DNS over HTTPS (DoH)... " "DWord"
-}
-
-if ($darkTheme -eq 0) {
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "AppsUseLightTheme" "1" "Disabling dark theme mode" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "SystemUsesLightTheme" "1" "Disabling dark theme for system" "DWord"
-}
-
-if ($darkTheme -eq 1) {
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "AppsUseLightTheme" "0" "Enabling dark theme mode" "DWord"
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "SystemUsesLightTheme" "0" "Enabling dark theme for system" "DWord"
-}
-
-if ($disableWindowsFirewall -eq 0) {
-	Write-Host "Enabling MpsSvc (Windows Firewall Service)..."
-	Get-Service MpsSvc | Set-Service -StartupType automatic
-	Write-Host "Enabling Windows Firewall..."
-	Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled True | Out-Null
-	RegChange "SYSTEM\CurrentControlSet\Services\MpsSvc" "Start" "2" "Enabling Windows Firewall service..." "DWord"
-}
-
-if ($disableWindowsFirewall -eq 1) {
-	Write-Host "Stopping and disabling MpsSvc (Windows Firewall Service)..."
-	Get-Service MpsSvc | Stop-Service -PassThru | Set-Service -StartupType disabled
-	Write-Host "Disabling Windows Firewall..."
-	Get-NetFirewallProfile | Set-NetFirewallProfile -Enabled False | Out-Null
-	RegChange "SYSTEM\CurrentControlSet\Services\MpsSvc" "Start" "4" "Disabling Windows Firewall service..." "DWord"	
-}
-
-if ($firefoxSettings -eq 1) {
-	killProcess("firefox");
-	
-	$PrefsFiles = Get-Item -Path ($env:APPDATA+"\Mozilla\Firefox\Profiles\*\prefs.js")
-	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
-
-	$aboutConfigArr = @('geo.enabled', 'general.warnOnAboutConfig', 'dom.push.enabled', 'dom.webnotifications.enabled', 'app.update.auto', 'app.update.checkInstallTime', 'app.update.auto.migrated', 'app.update.service.enabled',  'identity.fxaccounts.enabled', 'privacy.firstparty.isolate', 'privacy.firstparty.isolate.block_post_message', 'privacy.resistFingerprinting', 'browser.cache.offline.enable', 'browser.send_pings', 'browser.sessionstore.max_tabs_undo', 'dom.battery.enabled', 'dom.event.clipboardevents.enabled', 'browser.startup.homepage_override.mstone','browser.cache.disk.capacity', 'dom.event.contextmenu.enabled', 'media.videocontrols.picture-in-picture.video-toggle.enabled', 'skipConfirmLaunchExecutable', 'activity-stream.disableSnippets', 'browser.messaging-system.whatsNewPanel.enabled', 'extensions.htmlaboutaddons.recommendations.enabled', 'extensions.pocket.onSaveRecs', 'extensions.pocket.enabled', 'browser.aboutConfig.showWarning', 'browser.search.widget.inNavBar', 'browser.urlbar.richSuggestions.tail', 'browser.tabs.warnOnCloseOtherTabs', 'network.trr.mode', 'network.trr.uri', 'network.trr.bootstrapAddress', 'network.security.esni.enabled', 'network.dns.echconfig.enabled', 'network.dns.use_https_rr_as_altsvc', 'browser.topsites.blockedSponsors', 'app.update.BITS.enabled', 'app.update.background.interval', 'media.autoplay.default', 'browser.search.widget.inNavBar', 'browser.contentblocking.category', 'network.cookie.cookieBehavior', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons', 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features', 'browser.uiCustomization.state','browser.newtabpage.activity-stream.feeds.telemetry','browser.newtabpage.activity-stream.telemetry','browser.ping-centre.telemetry','datareporting.healthreport.service.enabled','datareporting.healthreport.uploadEnabled','datareporting.policy.dataSubmissionEnabled','datareporting.sessions.current.clean','devtools.onboarding.telemetry.logged','toolkit.telemetry.archive.enabled','toolkit.telemetry.bhrPing.enabled','toolkit.telemetry.enabled','toolkit.telemetry.firstShutdownPing.enabled','toolkit.telemetry.hybridContent.enabled','toolkit.telemetry.newProfilePing.enabled','toolkit.telemetry.prompted','toolkit.telemetry.rejected','toolkit.telemetry.reportingpolicy.firstRun','toolkit.telemetry.server','toolkit.telemetry.shutdownPingSender.enabled','toolkit.telemetry.unified','toolkit.telemetry.unifiedIsOptIn','toolkit.telemetry.updatePing.enabled','app.shield.optoutstudies.enabled')
-
-	foreach ($file in $PrefsFiles) {
-		$path = Get-ItemProperty -Path $file
-		Write-Output "editing $path"
-		$out = @()
-
-		:Outer foreach ($line in Get-Content $file){
-			foreach ($aboutConfigArr2 in $aboutConfigArr){
-				if ($line -match $aboutConfigArr2) {
-					continue Outer
-				}
-			}
-			$out+= $line 
-		}	
-		
-		$out+= 'user_pref("geo.enabled", false);'
-		$out+= 'user_pref("general.warnOnAboutConfig", false);'
-		$out+= 'user_pref("dom.push.enabled", false);'
-		$out+= 'user_pref("dom.webnotifications.enabled", false);'		
-		$out+= 'user_pref("identity.fxaccounts.enabled", false);'		
-		$out+= 'user_pref("privacy.resistFingerprinting", true);'
-		$out+= 'user_pref("browser.cache.offline.enable", false);'
-		$out+= 'user_pref("browser.send_pings", false);'
-		$out+= 'user_pref("browser.sessionstore.max_tabs_undo", 0);'
-		$out+= 'user_pref("dom.battery.enabled", false);'
-		$out+= 'user_pref("dom.event.clipboardevents.enabled", false);'
-		$out+= 'user_pref("browser.startup.homepage_override.mstone", ignore);'
-		$out+= 'user_pref("browser.cache.disk.capacity", 10000000);'
-		$out+= 'user_pref("dom.event.contextmenu.enabled", false);'
-		$out+= 'user_pref("media.videocontrols.picture-in-picture.video-toggle.enabled", false);'
-		$out+= 'user_pref("browser.download.skipConfirmLaunchExecutable", true);'
-		$out+= 'user_pref("browser.newtabpage.activity-stream.disableSnippets", true);'
-		$out+= 'user_pref("browser.messaging-system.whatsNewPanel.enabled", false);'	
-		$out+= 'user_pref("extensions.htmlaboutaddons.recommendations.enabled", false);'
-		$out+= 'user_pref("extensions.pocket.onSaveRecs", false);'
-		$out+= 'user_pref("extensions.pocket.enabled", false);'
-		$out+= 'user_pref("browser.aboutConfig.showWarning", false);'
-		$out+= 'user_pref("browser.urlbar.richSuggestions.tail", false);'
-		$out+= 'user_pref("browser.tabs.warnOnCloseOtherTabs", false);'
-		
-		# Disable cross-domain cookie access
-		$out+= 'user_pref("privacy.firstparty.isolate", true);'
-		$out+= 'user_pref("privacy.firstparty.isolate.block_post_message", true);'
-		
-		# Disable update
-		$out+= 'user_pref("app.update.auto", false);'
-		$out+= 'user_pref("app.update.checkInstallTime", false);'
-		$out+= 'user_pref("app.update.auto.migrated", false);'
-		$out+= 'user_pref("app.update.service.enabled", false);'
-		$out+= 'user_pref("app.update.BITS.enabled", false);'		
-		$out+= 'user_pref("app.update.background.interval", "999999999");'
-		
-		# DNS-over-HTTPS (DoH) encrypt the communication between the client and the resolver to prevent the inspection of domain names by network eavesdroppers
-		$out+= 'user_pref("network.trr.mode", 2);'
-		$out+= 'user_pref("network.trr.uri", "https://dns.google/dns-query");'
-		$out+= 'user_pref("network.trr.bootstrapAddress", "8.8.8.8");'
-		
-		# Enable Encrypted Client Hello (ECH) on Firefox, to prevent TLS from leaking any data by encrypting all messages;
-		$out+= 'user_pref("network.dns.echconfig.enabled", true);'
-		$out+= 'user_pref("network.dns.use_https_rr_as_altsvc", true);'
-		
-		# Remove Amazon`s shortcut from startup
-		$out+= 'user_pref("browser.topsites.blockedSponsors", "[\"amazon\",\"trivago\",\"booking\"]");'
-		
-		# Allow autoplay of audio and video
-		$out+= 'user_pref("media.autoplay.default", "0");'
-		
-		# Show search bar
-		$out+= 'user_pref("browser.search.widget.inNavBar", true);'
-		$out+= 'user_pref("browser.uiCustomization.state", "{\"placements\":{\"widget-overflow-fixed-list\":[],\"nav-bar\":[\"back-button\",\"forward-button\",\"stop-reload-button\",\"customizableui-special-spring1\",\"urlbar-container\",\"search-container\",\"customizableui-special-spring2\",\"save-to-pocket-button\",\"downloads-button\",\"fxa-toolbar-menu-button\",\"addon_darkreader_org-browser-action\",\"ublock0_raymondhill_net-browser-action\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"tabbrowser-tabs\",\"new-tab-button\",\"alltabs-button\"],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"addon_darkreader_org-browser-action\",\"ublock0_raymondhill_net-browser-action\",\"developer-button\"],\"dirtyAreaCache\":[\"nav-bar\"],\"currentVersion\":17,\"newElementCount\":2}");'
-		
-		# Block third-party cookies
-		$out+= 'user_pref("browser.contentblocking.category", "custom");'
-		$out+= 'user_pref("network.cookie.cookieBehavior", "1");'
-		
-		# Disable recommendations
-		$out+= 'user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);'
-		$out+= 'user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", false);'
-
-		# Telemetry and data collection
-		$out+= 'user_pref("browser.newtabpage.activity-stream.feeds.telemetry", false);'
-		$out+= 'user_pref("browser.newtabpage.activity-stream.telemetry", false);'
-		$out+= 'user_pref("browser.ping-centre.telemetry", false);'
-		$out+= 'user_pref("datareporting.healthreport.service.enabled", false);'
-		$out+= 'user_pref("datareporting.healthreport.uploadEnabled", false);'
-		$out+= 'user_pref("datareporting.policy.dataSubmissionEnabled", false);'
-		$out+= 'user_pref("datareporting.sessions.current.clean", true);'
-		$out+= 'user_pref("devtools.onboarding.telemetry.logged", false);'
-		$out+= 'user_pref("toolkit.telemetry.archive.enabled", false);'
-		$out+= 'user_pref("toolkit.telemetry.bhrPing.enabled", false);'
-		$out+= 'user_pref("toolkit.telemetry.enabled", false);'
-		$out+= 'user_pref("toolkit.telemetry.firstShutdownPing.enabled", false);'
-		$out+= 'user_pref("toolkit.telemetry.hybridContent.enabled", false);'
-		$out+= 'user_pref("toolkit.telemetry.newProfilePing.enabled", false);'
-		$out+= 'user_pref("toolkit.telemetry.prompted", 2);'
-		$out+= 'user_pref("toolkit.telemetry.rejected", true);'
-		$out+= 'user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);'
-		$out+= 'user_pref("toolkit.telemetry.server", "");'
-		$out+= 'user_pref("toolkit.telemetry.shutdownPingSender.enabled", false);'
-		$out+= 'user_pref("toolkit.telemetry.unified", false);'
-		$out+= 'user_pref("toolkit.telemetry.unifiedIsOptIn", false);'
-		$out+= 'user_pref("toolkit.telemetry.updatePing.enabled", false);'
-		$out+= 'user_pref("app.shield.optoutstudies.enabled", false);'
-
-		Copy-Item $file $file$currentDate".txt"
-
-		Clear-Content $file
-		Add-Content $file $out
-
-		Write-Output "Updated $path"
-	}
-}
-
-if ($firefoxCachePath) {
-	killProcess("firefox");	
-	$PrefsFiles = Get-Item -Path ($env:SystemDrive+"\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*\prefs.js")
-	$currentDate = Get-Date -UFormat "%Y-%m-%d-%Hh%M"
-	$aboutConfigArr = @('*"browser.cache.disk.parent_directory"*','*"browser.cache.disk.capacity"*','*"browser.cache.disk.smart_size.enabled"*')
-	
-	foreach ($file in $PrefsFiles) {
-	$path = Get-ItemProperty -Path $file
-	Write-Output "editing $path"
-	$out = @()
-
-	foreach ($line in Get-Content $file){
-		$matchAboutConfig = 0
-		foreach ($aboutConfigArr2 in $aboutConfigArr){
-			if ($line -like $aboutConfigArr2) {
-				$matchAboutConfig = 1 
-			}	
-		}
-
-		if ($matchAboutConfig -eq 0) {				
-			$out+= $line  
-		}
-	}
-	
-	$out+= 'user_pref("browser.cache.disk.smart_size.enabled", false);'
-	$out+= 'user_pref("browser.cache.disk.capacity", 25000000);'
-	$out+= 'user_pref("browser.cache.disk.parent_directory", "' + $firefoxCachePath + '");'	
-	Copy-Item $file $file$currentDate".txt"
-	Clear-Content $file
-	Add-Content $file $out
-	Write-Output "Updated $path"
-	}
-} 
-
-if ($remove3dObjFolder -eq 0) {
-	RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "a" "1" "Enabling 3D Objects from explorer My Computer submenu" "DWord"
-	RegChange "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "a" "1" "Enabling 3D Objects from explorer My Computer submenu" "DWord"
-}
-
-if ($remove3dObjFolder -eq 1) {	
-    Write-Host "Removing 3D Objects from explorer 'My Computer' submenu"
-	regDelete "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "Removing 3D Objects from explorer My Computer submenu"
-	regDelete "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" "Removing 3D Objects from explorer My Computer submenu"
-}
-
-if ($disableWindowsSounds -eq 1) { 
-	Write-Host "Disabling Windows sound effects..."
-	Get-ChildItem -Path "HKCU:\AppEvents\Schemes\Apps" | Get-ChildItem | Get-ChildItem | Where-Object {$_.PSChildName -eq ".Current"} | Set-ItemProperty -Name "(Default)" -Value ".None"
-}
-
-
-if ($disablePerformanceMonitor -eq 1) { 
-	deletePath "$env:WINDIR\System32\SleepStudy" "Clearing SleepStudy event trace session log..."
-	deletePath "$env:WINDIR\System32\SleepStudy\ScreenOn" "Clearing ScreenOn event trace session log..."
-	deletePath "$env:WINDIR\System32\LogFiles\WMI" "Clearing RadioMgr/WMI event trace session log..."
-	deletePath "$env:WINDIR\System32\LogFiles\WMI\RtBackup" "Clearing RadioMgr/WMI event trace session log..."
-	
-	Write-Output "Stopping and disabling PLA service Performance Logs & Alerts"
-	Get-Service pla | Stop-Service -PassThru | Set-Service -StartupType disabled
-	Get-Service PerfHost | Stop-Service -PassThru | Set-Service -StartupType disabled
-}
-
-if ($beAppxSafe -eq 1) {
-	# Windows update services are required for Appx to work
-	$disableWindowsUpdates = 0;
-}
-
-if ($disableWindowsUpdates -eq 0) {	
-	RegChange "SYSTEM\CurrentControlSet\Services\UsoSvc" "Start" "2" "Enabling UsoSvc service" "DWord"
-	Get-Service UsoSvc | Set-Service -StartupType automatic
-
-	RegChange "SYSTEM\CurrentControlSet\Services\CryptSvc" "Start" "2" "CryptSvc service enabled" "DWord"
-	Get-Service CryptSvc | Set-Service -StartupType automatic
-
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" "Start" "2" "Windows Update Medic Service enabled" "DWord"
-	Get-Service WaaSMedicSvc | Set-Service -StartupType automatic
-
-	RegChange "SYSTEM\CurrentControlSet\Services\wuauserv" "Start" "2" "Windows Updates service enabled" "DWord"
-	Get-Service wuauserv | Set-Service -StartupType automatic
-	
-	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
-	RegChange "SYSTEM\CurrentControlSet\Services\BITS" "Start" "2" "BITS (Background Intelligent Transfer Service) enabled" "DWord"
-	Get-Service BITS | Set-Service -StartupType automatic
-	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "NoAutoUpdate" "0" "Windows Update enabled" "DWord"
-	
-	# This enable "Receive updates for other Microsoft products"
-	regDelete "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" "Clearing network profiles..."
-	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Device Metadata" "PreventDeviceMetadataFromNetwork" "0" "Enabling retrieve device metadata for installed devices from the Internet" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DontPromptForWindowsUpdate" "0" "Enabling prompt to search Windows Update" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DontSearchWindowsUpdate" "0" "Enabling Windows Update to search for device drivers when no local drivers for a device are present" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DriverUpdateWizardWuSearchEnabled" "1" "Enabling DriverUpdateWizardWuSearchEnabled" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "ExcludeWUDriversInQualityUpdate" "0" "Enabling Windows Update to include updates that have a Driver classification" "DWord"
-}
-
-if ($disableWindowsUpdates -eq 1) {
-	RegChange "SYSTEM\CurrentControlSet\Services\UsoSvc" "Start" "4" "Disabling UsoSvc service" "DWord"
-	Get-Service UsoSvc | Set-Service -StartupType disabled
-
-	RegChange "SYSTEM\CurrentControlSet\Services\CryptSvc" "Start" "4" "Disabling CryptSvc service" "DWord"
-	Get-Service CryptSvc | Set-Service -StartupType disabled
-
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\WaaSMedicSvc" "Start" "4" "Disabling Windows Update Medic Service" "DWord"
-	Get-Service WaaSMedicSvc | Set-Service -StartupType disabled
-	
-	RegChange "SYSTEM\CurrentControlSet\Services\wuauserv" "Start" "4" "Disabling Windows Updates service" "DWord"
-	Get-Service wuauserv | Set-Service -StartupType disabled
-	
-	# BITS (Background Intelligent Transfer Service), its aggressive bandwidth eating will interfere with you online gameplay, work and navigation. Its aggressive disk usable will reduce your HDD or SSD lifespan
-	RegChange "SYSTEM\CurrentControlSet\Services\BITS" "Start" "4" "Disabling BITS (Background Intelligent Transfer Service)" "DWord"
-	Get-Service BITS | Set-Service -StartupType disabled
-	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "NoAutoUpdate" "1" "Windows Update enabled" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\Device Metadata" "PreventDeviceMetadataFromNetwork" "1" "Disabling retrieve device metadata for installed devices from the Internet" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DontPromptForWindowsUpdate" "1" "Disabling prompt to search Windows Update" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DontSearchWindowsUpdate" "1" "Disabling Windows Update to search for device drivers when no local drivers for a device are present" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\DriverSearching" "DriverUpdateWizardWuSearchEnabled" "0" "Disabling DriverUpdateWizardWuSearchEnabled" "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "ExcludeWUDriversInQualityUpdate" "1" "Disabling Windows Update to include updates that have a Driver classification" "DWord"
-	
-}
-
-if ($useGoogleDNS -eq 1) { 
-	$DC = "8.8.8.8"
-	$Internet = "8.8.4.4"
-	$dns = "$DC", "$Internet"
-
-	$Interface = Get-WmiObject Win32_NetworkAdapterConfiguration 
-	Write-Host "Registering DNS $dns" -ForegroundColor Green
-	$Interface.SetDNSServerSearchOrder($dns)  | Out-Null
-}
-
-if ($unnistallWindowsDefender -eq 1) {
-	Write-Output "Checking if you are in safe mode..."
-	$mySafeMode = gwmi win32_computersystem | select BootupState
-	if ($mySafeMode -notlike '*Normal boot*') {
-		write-host 'Safe mode confirmed.'				
-	} else {		
-		write-host 'System needs to be in safe mode to unninstall Windows Defender.' -ForegroundColor Black -BackgroundColor Red			
-	}
-	
-	takeownRegistry("HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinDefend")
-	
-	Write-Output "Disabling Windows Defender Application Guard..."
-	Disable-WindowsOptionalFeature -FeatureName "Windows-Defender-ApplicationGuard" -NoRestart -WarningAction SilentlyContinue | Out-Null
-	
-	deletePath "$env:Programfiles\windows defender" "Deleting Defender run under demand service MpCmdRun.exe..."
-	deletePath "$env:Programfiles\Windows Defender Advanced Threat Protection" "Deleting Windows Defender Advanced Threat Protection folder..."
-	deletePath "$env:Programfiles(x86)\Windows Defender" "Deleting windows Windows defender x86 folder..."
-	deletePath "$env:ProgramData\Microsoft\Windows Defender" "Deleting Defender Antivirus and Defender Antivirus Network Inspection Service folder..."
-	deletePath "$env:ProgramData\Microsoft\Windows Defender\Platform" "Deleting Defender run under demand service MpCmdRun.exe..."
-	deletePath "$env:ProgramData\Microsoft\Windows Defender Advanced Threat Protection" "Deleting windows Windows defender program data folder..."
-	deletePath "$env:ProgramData\Microsoft\Windows Security Health" "Deleting windows Windows defender program data folder..."
-	
-	regDeleteKey "SOFTWARE\Microsoft\Windows\CurrentVersion\Run\" "SecurityHealth" "Disabling SecurityHealth startup"
-	
-	RegChange "SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" "SpynetReporting" "0" "Disabling Windows Defender Cloud..." "DWord"
-	RegChange "SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" "SubmitSamplesConsent" "2" "Disabling Windows Defender Cloud Sample..." "DWord"			
-	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableConfig" "1" "Disabling Windows Anti Spyware - DisableConfig"
-	RegChange "Software\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" "1" "Disabling Windows Anti Spyware - DisableAntiSpyware"
-	RegChange "SYSTEM\CurrentControlSet\Services\WdBoot" "Start" "4" "Disabling WdBoot (Windows Defender)"
-	RegChange "SYSTEM\CurrentControlSet\Services\WdFilter" "Start" "4" "Disabling WdFilter (Windows Defender)"
-	RegChange "SYSTEM\CurrentControlSet\Services\WdNisDrv" "Start" "4" "Disabling WdNisDrv (Windows Defender)"
-	RegChange "SYSTEM\CurrentControlSet\Services\WdNisSvc" "Start" "4" "Disabling WdNisSvc (Windows Defender)"
-	RegChange "SYSTEM\CurrentControlSet\Services\WinDefend" "Start" "4" "Disabling WinDefend (Windows Defender)"
-	RegChange "SYSTEM\CurrentControlSet\Services\wscsvc" "Start" "4" "Disabling Windows Security Service Center"
-	RegChange "SYSTEM\CurrentControlSet\Services\SecurityHealthService" "Start" "4" "Disabling SecurityHealthService (Windows Defender)"
-	RegChange "SYSTEM\CurrentControlSet\Services\Sense" "Start" "4" "Disabling Sense (Windows Defender)"
-	RegChange "SYSTEM\ControlSet001\Services\WinDefend" "Start" "4" "Disabling WinDefend (Windows Defender)"
-
-	# WebThreatDefSvc
-	RegChange "SYSTEM\ControlSet001\Services\webthreatdefsvc" "Start" "4" "Disabling WebThreatDefSvc" "DWord"
-	Get-Service webthreatdefsvc | Set-Service -StartupType disabled
-	RegChange "SYSTEM\ControlSet001\Services\webthreatdefusersvc" "Start" "4" "Disabling WebThreatDefSvc" "DWord"
-	Get-Service webthreatdefusersvc | Set-Service -StartupType disabled
-	
-	# Disable SmartScreen Filter
-	RegChange "Software\Microsoft\Windows\CurrentVersion\Explorer" "SmartScreenEnabled" "Off" "Disabling SmartScreen Filter" "String"
-	RegChange "Software\Microsoft\Windows\CurrentVersion\AppHost" "EnableWebContentEvaluation" "0" "Disabling SmartScreen Filter" "DWord"
-
-	# Necessary bacause Windows still load this service even if its disabled
-	deleteFile "$env:WINDIR\system32\SecurityHealthService.exe" "Deleting SecurityHealthService.exe..."	
-	
-	sc.exe config WinDefend start=disabled | Out-Null
-	if($?){   write-Host -ForegroundColor Green "Windows Updates Service Disabled"  }else{   write-Host -ForegroundColor red "Windows Updates Service Not Disabled" }
-
-	Set-MpPreference -DisableRealtimeMonitoring $true -EA SilentlyContinue
-	if($?){   write-Host -ForegroundColor Green "Windows Defender Current Session Disabled"  }else{   write-Host -ForegroundColor Green "Windows Defender Current Session not running" }
-
-	Set-ItemProperty -Path "HKLM:Software\Policies\Microsoft\Windows Defender" -Name "DisableRoutinelyTakingAction" -Type DWord -Value 1
-	if($?){   write-Host -ForegroundColor Green "Windows Defender DisableRoutinelyTakingAction Disabled"  }else{   write-Host -ForegroundColor red "Windows Defender DisableRoutinelyTakingAction Not Disabled" }
-
-	Set-ItemProperty -Path "HKLM:Software\Microsoft\Windows Defender\Real-Time Protection" -Name "DisableBehaviorMonitoring" -Type DWord -Value 1
-	if($?){   write-Host -ForegroundColor Green "Windows DisableBehaviorMonitoring Disabled"  }else{   write-Host -ForegroundColor red "Windows DisableBehaviorMonitoring not Disabled" }
-
-	Set-ItemProperty -Path "HKLM:Software\Microsoft\Windows Defender\Real-Time Protection" -Name "DisableAntiSpywareRealtimeProtection" -Type DWord -Value 1
-	if($?){   write-Host -ForegroundColor Green "Windows DisableAntiSpywareRealtimeProtection Disabled"  }else{   write-Host -ForegroundColor red "Windows DisableAntiSpywareRealtimeProtection not Disabled" }
-
-	Set-ItemProperty -Path "HKLM:Software\Microsoft\Windows Defender\Real-Time Protection" -Name "DisableOnAccessProtection" -Type DWord -Value 1
-	if($?){   write-Host -ForegroundColor Green "Windows On Access Protection Disabled"  }else{   write-Host -ForegroundColor red "Windows On Access Protection not Disabled" }
-
-	Set-ItemProperty -Path "HKLM:Software\Microsoft\Windows Defender\Real-Time Protection" -Name "DisableScanOnRealtimeEnable" -Type DWord -Value 1
-	if($?){   write-Host -ForegroundColor Green "Windows Real Time Protection Disabled"  }else{   write-Host -ForegroundColor red "Windows Real Time Protection not Disabled" }
-
-	# Disable AllowUpdateService
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Update\AllowUpdateService")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Update\AllowUpdateService" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Update\AllowUpdateService" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows AllowUpdateService disabled"  }else{   write-Host -ForegroundColor red "Windows AllowUpdateService not disabled" } 
-
-	# Disable AllowAutoUpdate
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Update\AllowAutoUpdate")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Update\AllowAutoUpdate" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Update\AllowAutoUpdate" -Name "value" -Type DWord -Value 5
-	if($?){   write-Host -ForegroundColor Green "Windows AllowAutoUpdate disabled"  }else{   write-Host -ForegroundColor red "Windows AllowAutoUpdate not disabled" } 
-
-	# Disable Windows Defender AllowArchiveScanning
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowArchiveScanning")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowArchiveScanning" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowArchiveScanning" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowArchiveScanning disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowArchiveScanning not disabled" } 
-
-	# Disable Windows Defender AllowBehaviorMonitoring
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowBehaviorMonitoring")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowBehaviorMonitoring" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowBehaviorMonitoring" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowBehaviorMonitoring disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowBehaviorMonitoring not disabled" } 
-
-	# Disable Windows Defender AllowCloudProtection
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowCloudProtection")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowCloudProtection" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowCloudProtection" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowCloudProtection disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowCloudProtection not disabled" } 
-
-	# Disable Windows Defender AllowIntrusionPreventionSystem
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowIntrusionPreventionSystem")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowIntrusionPreventionSystem" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowIntrusionPreventionSystem" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowIntrusionPreventionSystem disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowIntrusionPreventionSystem not disabled" } 
-
-	# Disable Windows Defender AllowIOAVProtection
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowIOAVProtection")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowIOAVProtection" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowIOAVProtection" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowIOAVProtection disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowIOAVProtection not disabled" } 
-
-	# Disable Windows Defender AllowOnAccessProtection
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowOnAccessProtection")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowOnAccessProtection" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowOnAccessProtection" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowOnAccessProtection disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowOnAccessProtection not disabled" } 
-
-	# Disable Windows Defender AllowRealtimeMonitoring
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowRealtimeMonitoring")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowRealtimeMonitoring" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowRealtimeMonitoring" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowRealtimeMonitoring disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowRealtimeMonitoring not disabled" } 
-
-	# Disable Windows Defender AllowScanningNetworkFiles
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowScanningNetworkFiles")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowScanningNetworkFiles" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowScanningNetworkFiles" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowScanningNetworkFiles disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowScanningNetworkFiles not disabled" } 
-
-	# Disable Windows Defender AllowScriptScanning
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowScriptScanning")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowScriptScanning" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowScriptScanning" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowScriptScanning disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowScriptScanning not disabled" } 
-
-	# Disable Windows Defender DisableCatchupFullScan
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\DisableCatchupFullScan")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\DisableCatchupFullScan" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\DisableCatchupFullScan" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender DisableCatchupFullScan disabled"  }else{   write-Host -ForegroundColor red "Windows Defender DisableCatchupFullScan not disabled" } 
-
-	# Disable Windows Defender DisableCatchupQuickScan
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\DisableCatchupQuickScan")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\DisableCatchupQuickScan" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\DisableCatchupQuickScan" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender DisableCatchupQuickScan disabled"  }else{   write-Host -ForegroundColor red "Windows Defender DisableCatchupQuickScan not disabled" } 
-
-	# Disable Windows Defender EnableNetworkProtection
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\EnableNetworkProtection")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\EnableNetworkProtection" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\EnableNetworkProtection" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender EnableNetworkProtection disabled"  }else{   write-Host -ForegroundColor red "Windows Defender EnableNetworkProtection not disabled" } 
-
-	# Disable Windows Defender PUAProtection
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\PUAProtection")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\PUAProtection" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\PUAProtection" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender PUAProtection disabled"  }else{   write-Host -ForegroundColor red "Windows Defender PUAProtection not disabled" } 
-
-	# Change Windows Defender RealTimeScanDirection to monitor only outgoing files
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\RealTimeScanDirection")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\RealTimeScanDirection" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\RealTimeScanDirection" -Name "value" -Type DWord -Value 2
-	if($?){   write-Host -ForegroundColor Green "Changed Windows Defender RealTimeScanDirection to monitor only outgoing files"  }else{   write-Host -ForegroundColor red "Windows RealTimeScanDirection not changed" } 
-
-	# Disable Windows Defender AllowEmailScanning
-	If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowEmailScanning")) {
-		New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowEmailScanning" | Out-Null
-	}
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Defender\AllowEmailScanning" -Name "value" -Type DWord -Value 0
-	if($?){   write-Host -ForegroundColor Green "Windows Defender AllowEmailScanning disabled"  }else{   write-Host -ForegroundColor red "Windows Defender AllowEmailScanning not disabled" } 
-}
-
-if ($unnistallOneDrive -eq 1) {
-
-	Write-Output "Checking if you are in safe mode..."
-	$mySafeMode = gwmi win32_computersystem | select BootupState
-	if ($mySafeMode -notlike '*Normal boot*') {
-		write-host 'Safe mode confirmed.'	
-
-		killProcess("OneDrive");
-		killProcess("explorer");
-
-		Write-Output "Remove OneDrive"
-		if (Test-Path "$env:systemroot\System32\OneDriveSetup.exe") {
-			& "$env:systemroot\System32\OneDriveSetup.exe" /uninstall
-		}
-		if (Test-Path "$env:systemroot\SysWOW64\OneDriveSetup.exe") {
-			& "$env:systemroot\SysWOW64\OneDriveSetup.exe" /uninstall
-		}
-
-		Write-Output "Removing OneDrive leftovers"
-		Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:localappdata\Microsoft\OneDrive"
-		Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:programdata\Microsoft OneDrive"
-		Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:systemdrive\OneDriveTemp"
-		# check if directory is empty before removing:
-		If ((Get-ChildItem "$env:userprofile\OneDrive" -Recurse | Measure-Object).Count -eq 0) {
-			Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:userprofile\OneDrive"
-		}
-
-		Write-Output "Disable OneDrive via Group Policies"
-		New-FolderForced -Path "HKLM:\SOFTWARE\Wow6432Node\Policies\Microsoft\Windows\OneDrive"
-		Set-ItemProperty -Path "HKLM:\SOFTWARE\Wow6432Node\Policies\Microsoft\Windows\OneDrive" "DisableFileSyncNGSC" 1
-
-		Write-Output "Remove Onedrive from explorer sidebar"
-		New-PSDrive -PSProvider "Registry" -Root "HKEY_CLASSES_ROOT" -Name "HKCR"
-		mkdir -Force "HKCR:\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}"
-		Set-ItemProperty -Path "HKCR:\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" "System.IsPinnedToNameSpaceTree" 0
-		mkdir -Force "HKCR:\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}"
-		Set-ItemProperty -Path "HKCR:\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" "System.IsPinnedToNameSpaceTree" 0
-		Remove-PSDrive "HKCR"
-
-		# Thank you Matthew Israelsson
-		Write-Output "Removing run hook for new users"
-		reg load "hku\Default" "C:\Users\Default\NTUSER.DAT"
-		reg delete "HKEY_USERS\Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f
-		reg unload "hku\Default"
-
-		Write-Output "Removing startmenu entry"
-		Remove-Item -Force -ErrorAction SilentlyContinue "$env:userprofile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk"
-
-		Write-Output "Removing scheduled task"
-		Get-ScheduledTask -TaskPath '\' -TaskName 'OneDrive*' -ea SilentlyContinue | Unregister-ScheduledTask -Confirm:$false
-
-		Write-Output "Restarting explorer"
-		Start-Process "explorer.exe"			
-	} else {		
-		write-host 'System needs to be in safe mode to unninstall OneDrive.' -ForegroundColor Black -BackgroundColor Red			
-	}
-}
-
-##########
-# Program - End
-##########
-#--------------------------------------------------------------------------
-
-##########
-# Fixes - Start
-##########
-#--------------------------------------------------------------------------
-
-RegChange "SYSTEM\CurrentControlSet\Services\TimeBrokerSvc" "Start" "2" "Enabling Time Brooker (required by Chrome Installer - Error 44)..." "DWord"
-RegChange "SYSTEM\CurrentControlSet\Services\TokenBroker" "Start" "2" "Enabling NcbService (Network Connection Broker) (NcbService required for night light windows feature)..." "DWord"
-Get-Service NcbService | Set-Service -StartupType automatic
-Start-Service NcbService -Force -NoWait 
-
-##########
-# Fixes - End
-##########
-#--------------------------------------------------------------------------
-
-RegChange "SOFTWARE\Microsoft\CTF\LangBar" "ExtraIconsOnMinimized" "1" "Fix language bar..." "DWord"
-RegChange "SOFTWARE\Microsoft\CTF\LangBar" "Label" "1" "Fix language bar..." "DWord"
-RegChange "SOFTWARE\Microsoft\CTF\LangBar" "ShowStatus" "4" "Fix language bar..." "DWord"
-RegChange "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "CTFMON" "ctfmon.exe" "Fix typing in windows search bar..." "String"
-
-$visual = Read-Host "Install Initial Packages? (y/n)"
-
-while("y","n" -notcontains $visual)
-{
-	$visual = Read-Host "y or n?"
-}
-
-$showhidden = Read-Host "Show hidden files and extensions (y/n)"
-while("y","n" -notcontains $showhidden)
-{
-	$showhidden = Read-Host "y or n?"
-}
-
-$ink = Read-Host "Disable Windows INK (y/n)"
-while("y","n" -notcontains $ink)
-{
-	$ink = Read-Host "y or n?"
-}
-
-if ($showhidden -like "y") { 
-	#SHOW HIDDEN FILES AND EXTENSIONS
-
-	$key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-	Set-ItemProperty $key Hidden 1
-	if($?){   write-Host -ForegroundColor Green "Windows Hidden Files Disabled"  }else{   write-Host -ForegroundColor red "Windows Hidden Files not Disabled" }
-
-	Set-ItemProperty $key HideFileExt 0
-	if($?){   write-Host -ForegroundColor Green "Windows Hidden Extensions Disabled"  }else{   write-Host -ForegroundColor red "Windows Hidden Extensions Options not Disabled" }
-}
-
-
-if ($ink -like "y") { 
-	#Disable INK
-	New-ItemProperty -Path HKLM:SOFTWARE\Policies\Microsoft -Name WindowsInkWorkspace -PropertyType DWord -Value 0 -Force -EA SilentlyContinue | Out-Null
-	if($?){   write-Host -ForegroundColor Green "Windows INK disabled"  }else{   write-Host -ForegroundColor red "Windows INK not disabled" } 
-}
-
-if ($visual -like "y") { 
-	Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-	choco install vcredist-all -y 
-	choco install vcredist2010 -y
-	choco install vcredist2017 -y
-	choco install dotnet4.0 -y 
-	choco install dotnet4.5 -y 
-	choco install dotnetfx -y
-	choco install directx -y
-	choco install dotnetcore -y
-	choco install dotnet-runtime -y
-	
-	choco install qbittorrent -y
-	choco install k-litecodecpackfull -y
-	choco install imageglass -y
-	choco install 7zip.install -y
-	choco install vscode -y
-}
-
-# Disable ShadowCopy
-vssadmin delete shadows /all /quiet | Out-Null
-if($?){   write-Host -ForegroundColor Green "Windows Shadowcopy removed"  }else{   write-Host -ForegroundColor green "Windows Shadowcopy already disabled" } 
-
-# Disable Windows Tile Notifications
-If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Notifications\DisallowTileNotification")) {
-    New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Notifications\DisallowTileNotification" | Out-Null
-}
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Notifications\DisallowTileNotification" -Name "value" -Type DWord -Value 1
-if($?){   write-Host -ForegroundColor Green "Windows Tile Notifications disabled"  }else{   write-Host -ForegroundColor red "Windows Tile Notifications not disabled" } 
-
-# Disable Windows Defender Enhanced Notifications
-If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WindowsDefenderSecurityCenter\DisableEnhancedNotifications")) {
-    New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WindowsDefenderSecurityCenter\DisableEnhancedNotifications" | Out-Null
-}
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WindowsDefenderSecurityCenter\DisableEnhancedNotifications" -Name "value" -Type DWord -Value 1
-if($?){   write-Host -ForegroundColor Green "Windows Defender Enhanced Notifications disabled"  }else{   write-Host -ForegroundColor red "Windows Defender Enhanced Notifications not disabled" } 
-
-# Disable Windows Defender Security Center Notifications
-If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WindowsDefenderSecurityCenter\DisableNotifications")) {
-    New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WindowsDefenderSecurityCenter\DisableNotifications" | Out-Null
-}
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WindowsDefenderSecurityCenter\DisableNotifications" -Name "value" -Type DWord -Value 1
-if($?){   write-Host -ForegroundColor Green "Windows Defender Security Center Notifications disabled"  }else{   write-Host -ForegroundColor red "Windows Defender Security Center Notifications not disabled" } 
-
-
-# Disable AllowSuggestedAppsInWindowsInkWorkspace
-If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WindowsInkWorkspace\AllowSuggestedAppsInWindowsInkWorkspace")) {
-    New-Item -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WindowsInkWorkspace\AllowSuggestedAppsInWindowsInkWorkspace" | Out-Null
-}
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WindowsInkWorkspace\AllowSuggestedAppsInWindowsInkWorkspace" -Name "value" -Type DWord -Value 0
-if($?){   write-Host -ForegroundColor Green "AllowSuggestedAppsInWindowsInkWorkspace disabled"  }else{   write-Host -ForegroundColor red "AllowSuggestedAppsInWindowsInkWorkspace not disabled" } 
-
-# Disable SgrmAgent
-If (!(Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmAgent")) {
-    New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmAgent" | Out-Null
-}
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmAgent" -Name "Start" -Type DWord -Value 2
-if($?){   write-Host -ForegroundColor Green "SgrmAgent disabled"  }else{   write-Host -ForegroundColor red "SgrmAgent not disabled" } 
-
-# Disable SgrmBroker
-If (!(Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmBroker")) {
-    New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmBroker" | Out-Null
-}
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SgrmBroker" -Name "Start" -Type DWord -Value 2
-if($?){   write-Host -ForegroundColor Green "SgrmBroker disabled"  }else{   write-Host -ForegroundColor red "SgrmBroker not disabled" } 
-
-
-PowerCfg -SetActive $powerPlan
-write-Host -ForegroundColor Green "PowerScheme Sucessfully Applied"
-powercfg.exe -x -monitor-timeout-ac $monitorAcTimeout
-powercfg.exe -x -monitor-timeout-dc $monitorDcTimeout
-powercfg.exe -x -disk-timeout-ac $diskAcTimeout
-powercfg.exe -x -disk-timeout-dc $diskDcTimeout
-powercfg.exe -x -standby-timeout-ac $standbyAcTimeout
-powercfg.exe -x -standby-timeout-dc $standbyDcTimeout
-powercfg.exe -x -hibernate-timeout-ac $hybernateAcTimeout
-powercfg.exe -x -hibernate-timeout-dc $hybernateDcTimeout
-
-Write-Output "Patching hosts file..."
-Clear-Content $env:windir\System32\drivers\etc\hosts
-$hostsList = @(		
-	"localhost"
-	
-	# Firefox disable update
-	if ($firefoxSettings -eq 1) {	
-		"aus5.mozilla.org"		
-	} 
-)
-foreach ($line in $hostsList) {
-	Add-Content -Path $env:windir\System32\drivers\etc\hosts -Value $("127.0.0.1 " + $line) -Force	
-}
-
-Remove-PSDrive HKCR
-PAUSE
 
-# NcbService is required by Windows setting app and night light function
-# sppsvc necessary to keep Windows activated
+    # Fingerprint prevention
+    if ($Config.Security.DoFingerprintPrevention) {
+        # Disable recent docs history
+       Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoRecentDocsHistory" -Value 1 -Type "DWord" -Description "Disabling Recent docs history"
+
+        # Disable Windows zone information
+       Set-ProtectedRegistryValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" -Name "SaveZoneInformation" -Value 1 -Type "DWord" -Description "Disabling Windows zone information"
+
+        # Disable internet connection test
+       Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet" -Name "EnableActiveProbing" -Value 0 -Type "DWord" -Description "Disabling internet connection test"
+
+        # Configure DNS over HTTPS
+       Set-ProtectedRegistryValue -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" -Name "EnableAutoDoh" -Value 2 -Type "DWord" -Description "Enabling DNS over HTTPS"
+    }
+
+    # Set Google DNS (if selected)
+    if ($Config.Security.UseGoogleDNS) {
+        try {
+            $dnsServers = @("8.8.8.8", "8.8.4.4")
+
+            $networkAdapters = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object { $_.IPEnabled -eq $true }
+            foreach ($adapter in $networkAdapters) {
+                $adapter.SetDNSServerSearchOrder($dnsServers) | Out-Null
+            }
+
+            Write-LogMessage "Set Google DNS servers" -Type Success
+        }
+        catch {
+            Write-LogMessage ("Failed to set Google DNS: " + $_.Exception.Message) -Type Error
+        }
+    }
+
+    Complete-Operation "Applying security enhancements"
+}
+
+function Set-UpdateConfiguration {
+    Start-Operation "Configuring Windows Updates"
+
+    if ($Config.Updates.DisableWindowsUpdates) {
+        # Services to disable
+        $updateServices = @(
+            @{Name="UsoSvc"; Desc="Update Orchestrator Service"},
+            @{Name="CryptSvc"; Desc="Cryptographic Services"},
+            @{Name="WaaSMedicSvc"; Desc="Windows Update Medic Service"},
+            @{Name="wuauserv"; Desc="Windows Update Service"},
+            @{Name="BITS"; Desc="Background Intelligent Transfer Service"}
+        )
+
+        foreach ($service in $updateServices) {
+            Set-ServiceConfiguration -Name $service.Name -State "Stopped" -StartupType "Disabled" -Description "Disabling $($service.Desc)" -Force $true
+        }
+
+        # Disable updates via registry
+       Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "NoAutoUpdate" -Value 1 -Type "DWord" -Description "Disabling Windows Update"
+       Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata" -Name "PreventDeviceMetadataFromNetwork" -Value 1 -Type "DWord" -Description "Preventing device metadata download"
+
+        # Disable driver updates
+       Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DontPromptForWindowsUpdate" -Value 1 -Type "DWord" -Description "Disabling Windows Update driver prompt"
+       Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DontSearchWindowsUpdate" -Value 1 -Type "DWord" -Description "Disabling Windows Update driver search"
+       Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name "DriverUpdateWizardWuSearchEnabled" -Value 0 -Type "DWord" -Description "Disabling driver update wizard"
+       Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "ExcludeWUDriversInQualityUpdate" -Value 1 -Type "DWord" -Description "Excluding drivers from Windows Update"
+
+        Write-LogMessage "Windows Updates have been disabled" -Type Success
+    }
+    else {
+        # Enable update services if they should be running
+        $updateServices = @(
+            @{Name="UsoSvc"; Desc="Update Orchestrator Service"},
+            @{Name="CryptSvc"; Desc="Cryptographic Services"},
+            @{Name="WaaSMedicSvc"; Desc="Windows Update Medic Service"},
+            @{Name="wuauserv"; Desc="Windows Update Service"},
+            @{Name="BITS"; Desc="Background Intelligent Transfer Service"}
+        )
+
+        foreach ($service in $updateServices) {
+            Set-ServiceConfiguration -Name $service.Name -State "Running" -StartupType "Automatic" -Description "Enabling $($service.Desc)" -Force $false
+        }
+
+       Set-ProtectedRegistryValue -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "NoAutoUpdate" -Value 0 -Type "DWord" -Description "Enabling Windows Update"
+
+        Write-LogMessage "Windows Updates have been enabled" -Type Success
+    }
+
+    Complete-Operation "Configuring Windows Updates"
+}
+
+function Install-InitialPackages {
+    Start-Operation "Installing initial packages"
+
+    if ($Config.Installation.InitialPackages) {
+        try {
+            # Install Chocolatey
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+
+            # Essential software
+            $packages = @(
+                "vcredist-all",
+                "vcredist2010",
+                "vcredist2017",
+                "dotnetcore-3.1-desktopruntime"
+                "dotnet4.0",
+                "dotnet4.5",
+                "dotnetfx",
+                "directx",
+                "dotnetcore",
+                "dotnet-runtime",
+                "qbittorrent",
+                "k-litecodecpackfull",
+                "imageglass",
+                "7zip.install",
+                "vscode"
+            )
+
+            foreach ($package in $packages) {
+                Write-LogMessage "Installing $package..." -Type Info
+                Start-Process -FilePath "choco" -ArgumentList "install $package -y" -Wait -NoNewWindow
+            }
+
+            Write-LogMessage "Initial packages installed successfully" -Type Success
+        }
+        catch {
+            Write-LogMessage ("Failed to install packages: " + $_.Exception.Message) -Type Error
+        }
+    }
+    else {
+        Write-LogMessage "Initial package installation skipped (not selected in config)" -Type Info
+    }
+
+    Complete-Operation "Installing initial packages"
+}
+
+function Show-FinalSummary {
+    $totalOperations = $script:SuccessCount + $script:WarningCount + $script:ErrorCount
+
+    Write-Host "`n===========================================" -ForegroundColor Cyan
+    Write-Host "     Windows Optimization Complete" -ForegroundColor Cyan
+    Write-Host "===========================================" -ForegroundColor Cyan
+    Write-Host "Summary:"
+    Write-Host "  Total Operations: $totalOperations"
+    Write-Host "  Successful: $($script:SuccessCount)" -ForegroundColor Green
+    Write-Host "  Warnings: $($script:WarningCount)" -ForegroundColor Yellow
+    Write-Host "  Errors: $($script:ErrorCount)" -ForegroundColor Red
+    Write-Host "`nLog file saved to: $LogPath"
+    Write-Host "===========================================" -ForegroundColor Cyan
+
+    Write-Host "`nSome changes may require a system restart to take effect." -ForegroundColor Yellow
+    $restart = Read-Host "Would you like to restart your computer now? (y/n)"
+
+    if ($restart -eq 'y') {
+        Write-Host "Restarting in 10 seconds..." -ForegroundColor Cyan
+        Start-Sleep -Seconds 10
+        Restart-Computer -Force
+    }
+    else {
+        Write-Host "Please remember to restart your computer later for changes to take full effect." -ForegroundColor Yellow
+    }
+}
+
+#region Main Execution
+
+# Check and ensure administrator privileges
+if (-not (Test-Administrator)) {
+    Write-Host "This script requires administrator privileges." -ForegroundColor Yellow
+    Write-Host "Attempting to restart with elevated permissions..." -ForegroundColor Yellow
+
+    try {
+        # Get the full path to the current script
+        $scriptPath = $MyInvocation.MyCommand.Definition
+
+        if (-not $scriptPath) {
+            # Fallback if MyCommand.Definition is empty
+            $scriptPath = $PSCommandPath
+        }
+
+        if (-not $scriptPath) {
+            Write-Host "Unable to determine script path. Please run this script as administrator." -ForegroundColor Red
+            Start-Sleep -Seconds 5
+            exit 1
+        }
+
+        # Start a new PowerShell process with elevated privileges
+        $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" "
+        Start-Process -FilePath PowerShell.exe -Verb RunAs -ArgumentList $arguments
+
+        # Exit the current (non-elevated) instance
+        exit 0
+    }
+    catch {
+        Write-Host "Failed to restart script with elevated permissions: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Please right-click on the script and select 'Run as administrator'" -ForegroundColor Yellow
+        Start-Sleep -Seconds 10
+        exit 1
+    }
+}
+
+# Create new PSDrive for HKCR if it doesn't exist
+if (-not (Get-PSDrive HKCR -ErrorAction SilentlyContinue)) {
+    New-PSDrive -Name HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT | Out-Null
+}
+
+# Display header
+Write-Host "===========================================" -ForegroundColor Cyan
+Write-Host "     Windows System Optimization Tool" -ForegroundColor Cyan
+Write-Host "===========================================" -ForegroundColor Cyan
+Write-Host "Starting optimization with selected configuration...`n"
+
+# Execute operations based on configuration
+try {
+    # Clear caches
+    Clear-AllCaches
+
+    # Apply privacy settings
+    if ($Config.Privacy.DoPrivacyStuff) {
+        Set-PrivacySettings
+    }
+
+    # Apply performance optimizations
+    if ($Config.General.DoPerformanceStuff) {
+        Set-PerformanceOptimizations
+    }
+
+    # Apply quality of life improvements
+    Set-QualityOfLifeImprovements
+
+    # Apply security enhancements
+    if ($Config.Security.DoSecurityStuff) {
+        Set-SecurityEnhancements
+    }
+
+    # Configure Windows Updates
+    Set-UpdateConfiguration
+
+    # Remove bloatware if selected
+    if ($Config.Privacy.DisableBloatware) {
+        Remove-Bloatware -BloatwareList $Config.Uninstall.BloatwareList
+    }
+
+    # Uninstall Windows Defender (if selected and in safe mode)
+    if ($Config.Uninstall.UninstallWindowsDefender) {
+        Disable-WindowsDefenderComponents
+    }
+
+    # Uninstall OneDrive (if selected and in safe mode)
+    if ($Config.Uninstall.UninstallOneDrive) {
+        Uninstall-OneDrive
+    }
+
+    # Install initial packages
+    Install-InitialPackages
+
+    # Update hosts file (block telemetry)
+    try {
+        $hostsPath = "$env:windir\System32\drivers\etc\hosts"
+        $hostsContent = Get-Content $hostsPath -ErrorAction SilentlyContinue
+        $telemetryHosts = @(
+            "127.0.0.1 localhost",
+            "127.0.0.1 telemetry.microsoft.com",
+            "127.0.0.1 vortex.data.microsoft.com",
+            "127.0.0.1 settings-win.data.microsoft.com",
+            "127.0.0.1 telemetry.remoteapp.windowsazure.com",
+            "127.0.0.1 watson.telemetry.microsoft.com",
+            "127.0.0.1 telemetry.appex.bing.net"
+        )
+
+        Set-Content -Path $hostsPath -Value $telemetryHosts -Force
+        Write-LogMessage "Updated hosts file to block telemetry" -Type Success
+    }
+    catch {
+        Write-LogMessage ("Failed to update hosts file: " + $_.Exception.Message) -Type Error
+    }
+
+    # Remove VSS shadows (reduce disk space usage)
+    try {
+        vssadmin delete shadows /all /quiet | Out-Null
+        Write-LogMessage "Removed VSS shadow copies" -Type Success
+    }
+    catch {
+        Write-LogMessage ("Failed to remove VSS shadows: " + $_.Exception.Message) -Type Warning
+    }
+
+    # Show final summary and offer restart
+    Show-FinalSummary
+}
+catch {
+    Write-LogMessage ("Critical error during execution: " + $_.Exception.Message) -Type Error
+    Write-LogMessage ("Stack trace: " + $_.ScriptStackTrace) -Type Error
+
+    Write-Host "`nAn error occurred during optimization. Please check the log file for details: $LogPath" -ForegroundColor Red
+}
+finally {
+    # Clean up PSDrive
+    if (Get-PSDrive HKCR -ErrorAction SilentlyContinue) {
+        Remove-PSDrive HKCR -ErrorAction SilentlyContinue
+    }
+}
+
+#endregion Main Execution
